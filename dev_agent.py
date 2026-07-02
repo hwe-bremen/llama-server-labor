@@ -1,19 +1,18 @@
 """
-dev_agent.py — Mode-B Experiment.
+dev_agent_diff.py — Mode-B Experiment (Variante zu dev_agent.py).
 
-Zweck: den lokalen Mellum echte Projektdateien lesen UND schreiben lassen, um
-einzuschaetzen, wie gut das Modell bei realer Entwicklungsarbeit ist.
+Idee: Statt die ganze Datei neu schreiben zu lassen (fehleranfaellig bei
+lokalen Modellen), gibt das Modell nur einen kleinen Diff: old_str -> new_str.
+DIESES Skript wendet ihn per str.replace an — MIT assert-Guard: old_str muss
+genau EINMAL vorkommen, sonst wird abgelehnt (kein stilles Zerschiessen).
 
-Sicherheits-Scope (nicht verhandelbar):
-  - Alle Tools sind fest auf PROJECT_ROOT begrenzt (Traversal-Schutz).
-  - PROJECT_ROOT zeigt AUSSCHLIESSLICH auf das lokale llama-server-Testprojekt.
-  - NIEMALS auf einen produktiven AskValentinAI-Repo richten -> das waere Mode A.
+Sicherheits-Scope: alle Tools fest auf PROJECT_ROOT begrenzt (Traversal-Schutz).
+NIEMALS auf produktive AskValentinAI-Repos richten -> das waere Mode A.
 
-Rollback: Das Projekt liegt unter Git. VOR dem Lauf committen, dann sind alle
-Modell-Aenderungen mit `git checkout -- <datei>` bzw. `git revert` trivial weg.
+Rollback: Projekt liegt unter Git. Vor dem Lauf committen, dann
+`git checkout -- tool_demo.py`.
 
-Voraussetzung: llama-server MIT --jinja gestartet (Tool-Calling), z.B.:
-  llama-server -hf JetBrains/Mellum2-12B-A2.5B-Thinking-GGUF-Q6_K --port 8080 --jinja
+Voraussetzung: llama-server MIT --jinja. Server laeuft aktuell auf 8081.
 """
 
 import os
@@ -21,16 +20,13 @@ import json
 import subprocess
 from openai import OpenAI
 
-BASE_URL = "http://localhost:8081/v1"
+BASE_URL = "http://localhost:8081/v1"  # Q6-Server laeuft auf 8081
 PROJECT_ROOT = os.path.abspath("/Users/hans-wernereberhardt/PycharmProjects/llama-server")
-MAX_STEPS = 8
+MAX_STEPS = 10
 
 client = OpenAI(base_url=BASE_URL, api_key="not-needed")
 
 
-# --------------------------------------------------------------------------
-# Scope-Guard: jeder Pfad muss INNERHALB von PROJECT_ROOT liegen
-# --------------------------------------------------------------------------
 def _safe_path(relpath: str):
     full = os.path.abspath(os.path.join(PROJECT_ROOT, relpath))
     if full != PROJECT_ROOT and not full.startswith(PROJECT_ROOT + os.sep):
@@ -39,7 +35,7 @@ def _safe_path(relpath: str):
 
 
 # --------------------------------------------------------------------------
-# Tools (auf das Projekt begrenzt)
+# Tools
 # --------------------------------------------------------------------------
 def list_files(subdir: str = ".") -> str:
     base = _safe_path(subdir)
@@ -50,7 +46,7 @@ def list_files(subdir: str = ".") -> str:
     out = []
     for name in sorted(os.listdir(base)):
         if name.startswith("."):
-            continue  # .git & versteckte Dateien ausblenden
+            continue
         p = os.path.join(base, name)
         out.append(name + ("/" if os.path.isdir(p) else ""))
     return "\n".join(out) if out else "(leer)"
@@ -66,31 +62,41 @@ def read_file(path: str) -> str:
         return f.read()
 
 
-def write_file(path: str, content: str) -> str:
+def apply_diff(path: str, old_str: str, new_str: str) -> str:
+    """Ersetzt old_str durch new_str — nur wenn old_str GENAU EINMAL vorkommt."""
     full = _safe_path(path)
     if full is None:
         return "FEHLER: Pfad ausserhalb des Projekts verweigert."
-    if os.path.basename(full).startswith("."):
-        return "FEHLER: Schreiben in versteckte Dateien verweigert."
+    if not os.path.isfile(full):
+        return f"FEHLER: Datei nicht gefunden: {path}"
+    if not old_str:
+        return "FEHLER: old_str ist leer."
+    with open(full, "r", encoding="utf-8") as f:
+        src = f.read()
+
+    # assert-Guard: eindeutige Trefferstelle erzwingen
+    count = src.count(old_str)
+    if count == 0:
+        return "FEHLER: old_str nicht gefunden. Anker exakt aus read_file kopieren."
+    if count > 1:
+        return f"FEHLER: old_str nicht eindeutig ({count} Treffer). Groesseren, eindeutigen Anker waehlen."
+
+    new_src = src.replace(old_str, new_str)
     with open(full, "w", encoding="utf-8") as f:
-        f.write(content)
-    return f"OK: {path} geschrieben ({len(content)} Zeichen)."
+        f.write(new_src)
+    delta = len(new_src) - len(src)
+    return f"OK: 1 Ersetzung in {path} ({delta:+d} Zeichen)."
 
 
-# --------------------------------------------------------------------------
-# Schemas + Dispatch
-# --------------------------------------------------------------------------
 TOOLS = [
     {
         "type": "function",
         "function": {
             "name": "list_files",
-            "description": "Listet Dateien/Ordner im Projekt (relativer Unterordner, Standard '.').",
+            "description": "Listet Dateien/Ordner im Projekt.",
             "parameters": {
                 "type": "object",
-                "properties": {
-                    "subdir": {"type": "string", "description": "relativer Unterordner, z.B. '.' oder 'sandbox'"}
-                },
+                "properties": {"subdir": {"type": "string", "description": "relativer Unterordner, Standard '.'"}},
             },
         },
     },
@@ -98,12 +104,10 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "read_file",
-            "description": "Liest den Inhalt einer Projektdatei (relativer Pfad).",
+            "description": "Liest den Inhalt einer Projektdatei.",
             "parameters": {
                 "type": "object",
-                "properties": {
-                    "path": {"type": "string", "description": "relativer Pfad, z.B. 'tool_demo.py'"}
-                },
+                "properties": {"path": {"type": "string", "description": "relativer Pfad, z.B. 'tool_demo.py'"}},
                 "required": ["path"],
             },
         },
@@ -111,15 +115,19 @@ TOOLS = [
     {
         "type": "function",
         "function": {
-            "name": "write_file",
-            "description": "Schreibt (ueberschreibt) eine Projektdatei mit dem gegebenen Inhalt.",
+            "name": "apply_diff",
+            "description": (
+                "Ersetzt eine EINDEUTIGE Textstelle in einer Datei. old_str muss "
+                "woertlich und genau einmal in der Datei vorkommen (inkl. Einrueckung)."
+            ),
             "parameters": {
                 "type": "object",
                 "properties": {
                     "path": {"type": "string", "description": "relativer Pfad, z.B. 'tool_demo.py'"},
-                    "content": {"type": "string", "description": "der komplette neue Dateiinhalt"},
+                    "old_str": {"type": "string", "description": "exakter, eindeutiger Textblock aus der Datei"},
+                    "new_str": {"type": "string", "description": "der Ersatztext"},
                 },
-                "required": ["path", "content"],
+                "required": ["path", "old_str", "new_str"],
             },
         },
     },
@@ -128,7 +136,7 @@ TOOLS = [
 DISPATCH = {
     "list_files": list_files,
     "read_file": read_file,
-    "write_file": write_file,
+    "apply_diff": apply_diff,
 }
 
 
@@ -142,9 +150,6 @@ def run_tool(name: str, args: dict) -> str:
         return f"FEHLER bei {name}: {e}"
 
 
-# --------------------------------------------------------------------------
-# Agenten-Schleife
-# --------------------------------------------------------------------------
 def chat(prompt: str) -> str:
     messages = [{"role": "user", "content": prompt}]
     for _ in range(MAX_STEPS):
@@ -180,9 +185,6 @@ def chat(prompt: str) -> str:
     return "(Abbruch: maximale Schrittzahl erreicht)"
 
 
-# --------------------------------------------------------------------------
-# Git-Sauberkeitscheck (Rollback-Punkt) + eingebaute Verifikation
-# --------------------------------------------------------------------------
 def git_status_hint():
     try:
         r = subprocess.run(
@@ -191,35 +193,31 @@ def git_status_hint():
         )
         if r.returncode != 0:
             print("Hinweis: kein Git-Repo erkannt — Rollback dann manuell.")
-            return
-        if r.stdout.strip():
-            print("WARNUNG: uncommittete Aenderungen vorhanden.")
-            print("Fuer sauberen Rollback zuerst committen, z.B.:")
-            print("  git -C '%s' add -A && git -C '%s' commit -m 'vor dev_agent-Lauf'"
-                  % (PROJECT_ROOT, PROJECT_ROOT))
+        elif r.stdout.strip():
+            print("WARNUNG: uncommittete Aenderungen. Fuer sauberen Rollback zuerst committen.")
         else:
             print("Git-Status sauber — guter Rollback-Punkt.")
     except Exception as e:
         print(f"Git-Check uebersprungen: {e}")
 
 
-# Aufgabe, die echtes Editieren testet: mehrstellige, kohaerente Aenderung.
 DEV_TASK = (
-    "Lies die Datei tool_demo.py. Fuege dort ein neues Tool 'multiply_numbers(a, b)' "
-    "hinzu, vollstaendig analog zu 'add_numbers': (1) die Python-Funktion, (2) den "
-    "Schema-Eintrag in der TOOLS-Liste, (3) den Eintrag im DISPATCH-Dict. Aendere sonst "
-    "nichts. Schreibe die vollstaendige geaenderte Datei mit write_file zurueck."
+    "Du sollst tool_demo.py um ein Tool 'multiply_numbers(a, b)' erweitern, analog "
+    "zu 'add_numbers'. Vorgehen: (1) Lies tool_demo.py mit read_file. (2) Fuege mit "
+    "apply_diff an DREI Stellen etwas hinzu — die Python-Funktion, den Schema-Eintrag "
+    "in TOOLS, den Eintrag in DISPATCH. Nutze fuer jeden apply_diff einen kleinen, "
+    "EINDEUTIGEN Anker (old_str woertlich aus der Datei, inkl. Einrueckung) und haenge "
+    "im new_str den alten Anker plus deine Ergaenzung an. Schreibe NICHT die ganze Datei."
 )
 
 
 def main():
     print(f"PROJECT_ROOT: {PROJECT_ROOT}")
     git_status_hint()
-    print(f"\n{'='*70}\nAUFGABE: {DEV_TASK[:70]}...\n{'='*70}")
+    print(f"\n{'='*70}\nAUFGABE (diff-basiert): multiply_numbers einbauen\n{'='*70}")
     answer = chat(DEV_TASK)
     print(f"\nANTWORT:\n{answer}")
 
-    # Eingebauter Test: hat das Modell valides Python produziert?
     target = os.path.join(PROJECT_ROOT, "tool_demo.py")
     print(f"\n{'-'*70}\nVERIFIKATION: py_compile auf tool_demo.py")
     r = subprocess.run(["python3", "-m", "py_compile", target], capture_output=True, text=True)
