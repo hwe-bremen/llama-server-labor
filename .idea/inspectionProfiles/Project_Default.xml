@@ -1,0 +1,85 @@
+<component name="InspectionProjectProfileManager">
+  <profile version="1.0">
+    <option name="myName" value="Project Default" />
+    <inspection_tool class="Eslint" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="PyPackageRequirementsInspection" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="ignoredPackages">
+        <list>
+          <option value="fastapi" />
+          <option value="uvicorn" />
+          <option value="gunicorn" />
+          <option value="starlette" />
+          <option value="python-multipart" />
+          <option value="sse-starlette" />
+          <option value="Flask" />
+          <option value="Flask-SocketIO" />
+          <option value="Werkzeug" />
+          <option value="python-engineio" />
+          <option value="python-socketio" />
+          <option value="simple-websocket" />
+          <option value="bidict" />
+          <option value="streamlit" />
+          <option value="openai" />
+          <option value="anthropic" />
+          <option value="voyageai" />
+          <option value="tiktoken" />
+          <option value="faiss-cpu" />
+          <option value="numpy" />
+          <option value="scipy" />
+          <option value="scikit-learn" />
+          <option value="redis" />
+          <option value="deepl" />
+          <option value="langdetect" />
+          <option value="beautifulsoup4" />
+          <option value="lxml" />
+          <option value="requests" />
+          <option value="soupsieve" />
+          <option value="pydantic" />
+          <option value="pydantic-settings" />
+          <option value="watchdog" />
+          <option value="aiohttp" />
+          <option value="aiofiles" />
+          <option value="anyio" />
+          <option value="httpx" />
+          <option value="httpx-sse" />
+          <option value="APScheduler" />
+          <option value="slowapi" />
+          <option value="limits" />
+          <option value="cryptography" />
+          <option value="prometheus-client" />
+          <option value="psutil" />
+          <option value="pdfminer.six" />
+          <option value="pdfplumber" />
+          <option value="pypdfium2" />
+          <option value="pymupdf" />
+          <option value="python-docx" />
+          <option value="python-frontmatter" />
+          <option value="pandas" />
+          <option value="pyarrow" />
+          <option value="openpyxl" />
+          <option value="xlrd" />
+          <option value="tabulate" />
+          <option value="rapidfuzz" />
+          <option value="python-dotenv" />
+          <option value="PyYAML" />
+          <option value="Jinja2" />
+          <option value="click" />
+          <option value="rich" />
+          <option value="tqdm" />
+          <option value="selenium" />
+          <option value="tenacity" />
+          <option value="typing_extensions" />
+          <option value="pillow" />
+          <option value="packaging" />
+          <option value="python-dateutil" />
+          <option value="pytz" />
+          <option value="tzdata" />
+          <option value="tzlocal" />
+          <option value="websockets" />
+          <option value="websocket-client" />
+          <option value="pytest" />
+        </list>
+      </option>
+    </inspection_tool>
+  </profile>
+</component>
