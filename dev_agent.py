@@ -21,7 +21,7 @@ import json
 import subprocess
 from openai import OpenAI
 
-BASE_URL = "http://localhost:8080/v1"
+BASE_URL = "http://localhost:8081/v1"
 PROJECT_ROOT = os.path.abspath("/Users/hans-wernereberhardt/PycharmProjects/llama-server")
 MAX_STEPS = 8
 
