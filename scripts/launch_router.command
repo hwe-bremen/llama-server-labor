@@ -10,7 +10,9 @@
 # Beruehrt AskValentinAI / produktive Infrastruktur nicht.
 
 PORT=8080
-URL="http://localhost:${PORT}"
+# 127.0.0.1 statt localhost: die Web-UI-MCP-Anbindung scheitert ueber localhost
+# oft an CORS. Konsistent die IP nutzen (fuer open UND curl).
+URL="http://127.0.0.1:${PORT}"
 
 echo "=================================================="
 echo " llama-server ROUTER"
