@@ -2,29 +2,61 @@
 #
 # Lab-Orchestrator (macOS, doppelklickbar)
 # ----------------------------------------
-# Startet das komplette Web-UI-Lab mit EINEM Aufruf:
-#   1) MCP-Server (read-only) auf Port 8787  -> Tools fuer die Web-UI
-#   2) llama-server-Router auf Port 8080     -> Modelle + Chat-UI (127.0.0.1)
-# Beim Beenden (Ctrl+C) werden beide Dienste gemeinsam gestoppt.
+# Startet MCP-Server + llama-server-Router mit einem Aufruf und oeffnet die
+# MCP-faehige URL (127.0.0.1:8080). Ctrl+C stoppt beide.
 #
-# Die Einzel-Launcher bleiben eigenstaendig nutzbar:
+# Modus (read-only vs. write):
+#   bash scripts/launch_lab.command           -> read-only (sicher, Default)
+#   bash scripts/launch_lab.command write     -> write-faehig
+#   Doppelklick launch_lab.command            -> read-only
+#   Doppelklick launch_lab_write.command      -> write-faehig
+#   (Env MCP_READONLY=0/1 wirkt nur, wenn KEIN Argument gegeben ist)
+#
+# Einzel-Launcher bleiben eigenstaendig nutzbar:
 #   - nur MCP-Server: bash mcp-server/run_webui.sh
 #   - nur Router    : scripts/launch_router.command
-#
-# Schreibzugriff im Frontend statt read-only: MCP_READONLY=0 vor dem Start
-# setzen (idealerweise vorher committen). Mode B: Lab, beruehrt AskValentinAI
-# nicht.
+# Mode B: Lab, beruehrt AskValentinAI nicht.
 set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$HERE/.." && pwd)"
 MCP_PORT="${MCP_PORT:-8787}"
 
+# --- Modus aus 1. Argument bestimmen (explizites Argument gewinnt vor Env) ---
+case "${1:-}" in
+  write|rw|w) export MCP_READONLY=0 ;;
+  read|ro|r)  export MCP_READONLY=1 ;;
+  "")         export MCP_READONLY="${MCP_READONLY:-1}" ;;
+  *) echo "Unbekannter Modus '${1:-}' (erlaubt: read | write) — nutze read-only."
+     export MCP_READONLY=1 ;;
+esac
+
+if [ "${MCP_READONLY}" = "0" ]; then
+  MODE_LABEL="WRITE (schreiben + loeschen erlaubt)"
+else
+  MODE_LABEL="read-only"
+fi
+echo "Lab-Modus: ${MODE_LABEL}"
+
+# --- Hygiene: Warnung + Rollback-Check im Write-Modus ---
+if [ "${MCP_READONLY}" = "0" ]; then
+  echo "!!! Das Frontend-Modell darf jetzt Dateien SCHREIBEN und LOESCHEN."
+  echo "    Eine unbedachte Chat-Eingabe kann Projektdateien veraendern."
+  if git -C "$PROJECT_ROOT" rev-parse --git-dir >/dev/null 2>&1; then
+    if [ -n "$(git -C "$PROJECT_ROOT" status --porcelain 2>/dev/null)" ]; then
+      echo "    WARNUNG: uncommittete Aenderungen — fuer sauberen Rollback zuerst committen."
+    else
+      echo "    Git-Baum sauber — guter Rollback-Punkt."
+    fi
+  fi
+fi
+echo
+
 # --- 1) MCP-Server im Hintergrund starten (nur wenn Port frei) ---
 MCP_PID=""
 if lsof -i ":${MCP_PORT}" >/dev/null 2>&1; then
-  echo "MCP-Server laeuft bereits auf Port ${MCP_PORT} — nutze ihn."
+  echo "MCP-Server laeuft bereits auf Port ${MCP_PORT} — nutze ihn (Modus evtl. abweichend!)."
 else
-  echo "Starte MCP-Server (read-only) auf Port ${MCP_PORT} ..."
+  echo "Starte MCP-Server (${MODE_LABEL}) auf Port ${MCP_PORT} ..."
   bash "$PROJECT_ROOT/mcp-server/run_webui.sh" &
   MCP_PID=$!
 fi
@@ -40,5 +72,4 @@ cleanup() {
 trap cleanup EXIT
 
 # --- 2) Router im Vordergrund (oeffnet Browser, blockiert bis Ctrl+C) ---
-# Kein exec: nach Router-Ende soll der cleanup-trap noch laufen.
 bash "$HERE/launch_router.command"
