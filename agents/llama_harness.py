@@ -1,103 +1,47 @@
 """
-llama_harness.py — lokales Modell (llama-server) als MCP-Agent.
+llama_harness.py — lokales Modell (llama-server) als MCP-Agent (CLI).
 
-Verbindet das lokale Modell ueber die OpenAI-kompatible llama-server-API mit
-dem llama-server-lab MCP-Server und faehrt die Tool-Call-Schleife:
-  Modell schlaegt Tool-Call vor -> Harness ruft ihn per MCP aus -> Ergebnis
-  zurueck ans Modell -> bis das Modell fertig ist.
+Duenner Konsument von core.mcp_agent.MCPAgent: verbindet das lokale Modell mit
+den scope-geschuetzten Tools des mcp-server/ und faehrt die Tool-Call-Schleife.
+Die eigentliche Logik lebt in core/mcp_agent.py (auch von anderen Agenten
+nutzbar).
 
-Damit nutzt das lokale Modell exakt dieselben scope-geschuetzten Tools wie
-Claude (list_directory, read_file, search_files, write_file, delete_file,
-git_*). Der MCP-Server wird als stdio-Subprozess gestartet — kein Port, keine
-Netzwerk-Exposition.
-
-Sicherheit:
-  - Scope-Guard + Tool-Whitelist kommen aus dem MCP-Server selbst.
-  - Start mit MCP_ALLOW_PYTHON=0 (kein Code-Exec fuers lokale Modell).
-  - Fuer vorsichtige erste Laeufe: HARNESS_READONLY=1 setzen -> der Server
-    startet mit MCP_READONLY=1 (nur lesende Tools, kein write/delete/commit).
-  - Vor schreibenden Laeufen committen (Rollback). Der Harness warnt, wenn der
-    Git-Baum nicht sauber ist.
+Konfiguration ueber Env:
+  LLAMA_BASE_URL     (Default http://localhost:8080/v1)
+  HARNESS_MODEL      exakte Modell-ID; leer/local -> Auto-Discovery
+  HARNESS_MODEL_HINT bevorzugtes Modell bei Auto-Wahl (Default Mellum)
+  HARNESS_MAX_STEPS  (Default 8)
+  HARNESS_READONLY=1 nur lesende Tools
 
 Voraussetzung:
-  - llama-server (Router) laeuft auf 8080, MIT --jinja (Tool-Calling).
-  - mcp-server/.venv existiert (mcp-server/setup.sh ausgefuehrt).
-  - pip install openai mcp   (im venv, aus dem der Harness laeuft)
+  - llama-server (Router) auf 8080 MIT --jinja
+  - mcp-server/.venv existiert (mcp-server/setup.sh)
+  - im Ausfuehrungs-venv: pip install openai mcp
 
 Start:
-  python agents/llama_harness.py "Deine Aufgabe hier"
-  python agents/llama_harness.py            # nutzt den read-only Default-Task
+  python agents/llama_harness.py "Deine Aufgabe"
+  python agents/llama_harness.py            # read-only Default-Task
 """
 from __future__ import annotations
 
 import asyncio
-import json
 import os
 import subprocess
 import sys
 from pathlib import Path
 
-from openai import AsyncOpenAI
-from mcp import ClientSession, StdioServerParameters
-from mcp.client.stdio import stdio_client
-
-# --------------------------------------------------------------------------
-# Konfiguration
-# --------------------------------------------------------------------------
-LLAMA_BASE_URL = os.environ.get("LLAMA_BASE_URL", "http://localhost:8080/v1")
-# Bei llama-server ist der Modellname i.d.R. egal (ein Modell pro Port bzw.
-# Router-Auswahl). Fuer den Router die exakte Modell-ID aus /v1/models setzen.
-MODEL = os.environ.get("HARNESS_MODEL", "local")
-# Bei Auto-Auswahl bevorzugtes Modell (Substring-Treffer auf die Modell-ID).
-# Mellum ist laut tool_demo.py der robusteste Tool-Caller.
-MODEL_HINT = os.environ.get("HARNESS_MODEL_HINT", "Mellum")
-MAX_STEPS = int(os.environ.get("HARNESS_MAX_STEPS", "8"))
-READONLY = os.environ.get("HARNESS_READONLY", "0") == "1"
-
-# agents/llama_harness.py -> Projekt-Root ist der Elternordner von agents/.
+# Projekt-Root in den Pfad, damit 'core' ohne Package-Installation importierbar
+# ist (Standalone-Lab-Struktur).
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-MCP_SERVER = PROJECT_ROOT / "mcp-server" / "lab_mcp_server.py"
-MCP_PYTHON = PROJECT_ROOT / "mcp-server" / ".venv" / "bin" / "python"
+sys.path.insert(0, str(PROJECT_ROOT))
+
+from core.mcp_agent import MCPAgent, DEFAULT_BASE_URL  # noqa: E402
 
 
-def _server_params() -> StdioServerParameters:
-    """Startparameter fuer den MCP-Server als stdio-Subprozess."""
-    env = {
-        **os.environ,
-        "MCP_TRANSPORT": "stdio",
-        "MCP_SCOPE_ROOT": str(PROJECT_ROOT),
-        "MCP_ALLOW_PYTHON": "0",
-    }
-    if READONLY:
-        env["MCP_READONLY"] = "1"
-    return StdioServerParameters(command=str(MCP_PYTHON), args=[str(MCP_SERVER)], env=env)
-
-
-def _mcp_tools_to_openai(tools) -> list[dict]:
-    """MCP-Tool-Definitionen -> OpenAI-function-calling-Format."""
-    out = []
-    for t in tools:
-        out.append(
-            {
-                "type": "function",
-                "function": {
-                    "name": t.name,
-                    "description": t.description or "",
-                    "parameters": t.inputSchema or {"type": "object", "properties": {}},
-                },
-            }
-        )
-    return out
-
-
-def _result_to_text(result) -> str:
-    """CallToolResult -> reiner Text (Content-Bloecke zusammenfuehren)."""
-    parts = []
-    for block in result.content:
-        text = getattr(block, "text", None)
-        parts.append(text if text is not None else str(block))
-    body = "\n".join(parts) if parts else "(keine Ausgabe)"
-    return ("[FEHLER] " + body) if getattr(result, "isError", False) else body
+DEFAULT_TASK = (
+    "Liste die Dateien im Projekt-Root. Lies dann config/models.ini und fasse "
+    "in zwei Saetzen zusammen, welche Modelle konfiguriert sind."
+)
 
 
 def _git_clean_hint() -> None:
@@ -117,98 +61,22 @@ def _git_clean_hint() -> None:
         print(f"Git-Check uebersprungen: {e}")
 
 
-async def _resolve_model(client) -> str:
-    """Modell-ID bestimmen. Explizit gesetztes HARNESS_MODEL gewinnt; sonst
-    fragt der Harness /v1/models ab und nimmt ein Modell (bevorzugt ein
-    Tool-Calling-freundliches gemaess MODEL_HINT)."""
-    if MODEL and MODEL != "local":
-        return MODEL
-    try:
-        listed = await client.models.list()
-        ids = [m.id for m in listed.data]
-    except Exception as e:
-        print(f"Modell-Discovery fehlgeschlagen ({e}) — nutze '{MODEL}'.")
-        return MODEL
-    if not ids:
-        print(f"Router meldet keine Modelle — nutze '{MODEL}'.")
-        return MODEL
-    for mid in ids:
-        if MODEL_HINT.lower() in mid.lower():
-            print(f"Modell automatisch gewaehlt: {mid} (Hinweis '{MODEL_HINT}').")
-            return mid
-    print(f"Modell automatisch gewaehlt: {ids[0]} (erstes verfuegbares). "
-          f"Gezielt: HARNESS_MODEL=<id>. Verfuegbar: {', '.join(ids)}")
-    return ids[0]
-
-
-# --------------------------------------------------------------------------
-# Agenten-Schleife
-# --------------------------------------------------------------------------
-async def run(task: str) -> str:
-    client = AsyncOpenAI(base_url=LLAMA_BASE_URL, api_key="not-needed")
-    async with stdio_client(_server_params()) as (read, write):
-        async with ClientSession(read, write) as session:
-            await session.initialize()
-            listed = await session.list_tools()
-            tools = _mcp_tools_to_openai(listed.tools)
-            print(f"MCP-Tools ({len(tools)}): {', '.join(t.name for t in listed.tools)}")
-            if READONLY:
-                print("Modus: READONLY (nur lesende Tools).")
-
-            model = await _resolve_model(client)
-            messages = [{"role": "user", "content": task}]
-            for _ in range(MAX_STEPS):
-                try:
-                    resp = await client.chat.completions.create(
-                        model=model, messages=messages, tools=tools, temperature=0.2
-                    )
-                except Exception as e:
-                    return (f"[Modell-Fehler] {type(e).__name__}: {e}\n"
-                            f"Tipp: Modell setzen mit HARNESS_MODEL=<id> "
-                            f"(verfuegbare IDs: curl -s {LLAMA_BASE_URL}/models).")
-                msg = resp.choices[0].message
-                if not msg.tool_calls:
-                    return msg.content or ""
-                messages.append(
-                    {
-                        "role": "assistant",
-                        "content": msg.content or "",
-                        "tool_calls": [
-                            {
-                                "id": tc.id,
-                                "type": "function",
-                                "function": {"name": tc.function.name, "arguments": tc.function.arguments},
-                            }
-                            for tc in msg.tool_calls
-                        ],
-                    }
-                )
-                for tc in msg.tool_calls:
-                    try:
-                        args = json.loads(tc.function.arguments)
-                    except json.JSONDecodeError:
-                        args = {}
-                    result = await session.call_tool(tc.function.name, args)
-                    text = _result_to_text(result)
-                    preview = text.replace("\n", " ")[:90]
-                    print(f"   [Tool] {tc.function.name}({list(args)}) -> {preview!r}")
-                    messages.append({"role": "tool", "tool_call_id": tc.id, "content": text})
-            return "(Abbruch: maximale Schrittzahl erreicht)"
-
-
-DEFAULT_TASK = (
-    "Liste die Dateien im Projekt-Root. Lies dann config/models.ini und fasse "
-    "in zwei Saetzen zusammen, welche Modelle konfiguriert sind."
-)
-
-
 def main() -> None:
     task = " ".join(sys.argv[1:]).strip() or DEFAULT_TASK
-    print(f"Modell-Endpoint: {LLAMA_BASE_URL}  (Modell: {MODEL})")
+    base_url = os.environ.get("LLAMA_BASE_URL", DEFAULT_BASE_URL)
+    agent = MCPAgent(
+        scope_root=PROJECT_ROOT,
+        base_url=base_url,
+        model=os.environ.get("HARNESS_MODEL") or None,
+        model_hint=os.environ.get("HARNESS_MODEL_HINT", "Mellum"),
+        max_steps=int(os.environ.get("HARNESS_MAX_STEPS", "8")),
+        readonly=os.environ.get("HARNESS_READONLY", "0") == "1",
+    )
+    print(f"Modell-Endpoint: {base_url}")
     print(f"Scope-Root     : {PROJECT_ROOT}")
     _git_clean_hint()
     print(f"{'='*70}\nAUFGABE: {task}\n{'='*70}")
-    answer = asyncio.run(run(task))
+    answer = asyncio.run(agent.run(task))
     print(f"\nANTWORT:\n{answer}")
 
 
