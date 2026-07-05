@@ -48,6 +48,9 @@ LLAMA_BASE_URL = os.environ.get("LLAMA_BASE_URL", "http://localhost:8080/v1")
 # Bei llama-server ist der Modellname i.d.R. egal (ein Modell pro Port bzw.
 # Router-Auswahl). Fuer den Router die exakte Modell-ID aus /v1/models setzen.
 MODEL = os.environ.get("HARNESS_MODEL", "local")
+# Bei Auto-Auswahl bevorzugtes Modell (Substring-Treffer auf die Modell-ID).
+# Mellum ist laut tool_demo.py der robusteste Tool-Caller.
+MODEL_HINT = os.environ.get("HARNESS_MODEL_HINT", "Mellum")
 MAX_STEPS = int(os.environ.get("HARNESS_MAX_STEPS", "8"))
 READONLY = os.environ.get("HARNESS_READONLY", "0") == "1"
 
@@ -114,6 +117,30 @@ def _git_clean_hint() -> None:
         print(f"Git-Check uebersprungen: {e}")
 
 
+async def _resolve_model(client) -> str:
+    """Modell-ID bestimmen. Explizit gesetztes HARNESS_MODEL gewinnt; sonst
+    fragt der Harness /v1/models ab und nimmt ein Modell (bevorzugt ein
+    Tool-Calling-freundliches gemaess MODEL_HINT)."""
+    if MODEL and MODEL != "local":
+        return MODEL
+    try:
+        listed = await client.models.list()
+        ids = [m.id for m in listed.data]
+    except Exception as e:
+        print(f"Modell-Discovery fehlgeschlagen ({e}) — nutze '{MODEL}'.")
+        return MODEL
+    if not ids:
+        print(f"Router meldet keine Modelle — nutze '{MODEL}'.")
+        return MODEL
+    for mid in ids:
+        if MODEL_HINT.lower() in mid.lower():
+            print(f"Modell automatisch gewaehlt: {mid} (Hinweis '{MODEL_HINT}').")
+            return mid
+    print(f"Modell automatisch gewaehlt: {ids[0]} (erstes verfuegbares). "
+          f"Gezielt: HARNESS_MODEL=<id>. Verfuegbar: {', '.join(ids)}")
+    return ids[0]
+
+
 # --------------------------------------------------------------------------
 # Agenten-Schleife
 # --------------------------------------------------------------------------
@@ -128,11 +155,17 @@ async def run(task: str) -> str:
             if READONLY:
                 print("Modus: READONLY (nur lesende Tools).")
 
+            model = await _resolve_model(client)
             messages = [{"role": "user", "content": task}]
             for _ in range(MAX_STEPS):
-                resp = await client.chat.completions.create(
-                    model=MODEL, messages=messages, tools=tools, temperature=0.2
-                )
+                try:
+                    resp = await client.chat.completions.create(
+                        model=model, messages=messages, tools=tools, temperature=0.2
+                    )
+                except Exception as e:
+                    return (f"[Modell-Fehler] {type(e).__name__}: {e}\n"
+                            f"Tipp: Modell setzen mit HARNESS_MODEL=<id> "
+                            f"(verfuegbare IDs: curl -s {LLAMA_BASE_URL}/models).")
                 msg = resp.choices[0].message
                 if not msg.tool_calls:
                     return msg.content or ""
