@@ -53,12 +53,23 @@ echo " Port: ${PORT}"
 echo " Bind: ${BIND_INFO}"
 echo "=================================================="
 
-# --- Laeuft schon etwas auf dem Port? Dann nur Browser oeffnen. ---
-if lsof -i ":${PORT}" >/dev/null 2>&1; then
-  echo "Es laeuft bereits ein Server auf Port ${PORT} — oeffne nur den Browser."
+# --- Laeuft schon ein Server auf der ZIEL-Adresse? Dann nur Browser oeffnen. ---
+# Auf die konkrete URL pruefen, nicht nur den Port: sonst wird beim Wechsel des
+# Bind-Modus (localhost <-> Tailscale) faelschlich nur der Browser geoeffnet,
+# obwohl auf der neuen Adresse gar nichts lauscht.
+if curl -s -o /dev/null "${URL}/v1/models" 2>/dev/null; then
+  echo "Router antwortet bereits auf ${URL} — oeffne nur den Browser."
   open "${URL}"
   echo "Fenster kann geschlossen werden."
   exit 0
+fi
+# Port belegt, aber Ziel-URL antwortet NICHT -> Instanz mit anderer Bind-Adresse.
+if lsof -i ":${PORT}" -sTCP:LISTEN >/dev/null 2>&1; then
+  echo "WARNUNG: Auf Port ${PORT} laeuft bereits ein Server, aber NICHT auf ${URL}."
+  echo "  Wahrscheinlich eine Instanz mit anderem Bind (z.B. localhost statt Tailscale)."
+  echo "  Zuerst beenden:  pkill -f llama-server"
+  echo "  Dann diesen Launcher erneut starten."
+  exit 1
 fi
 
 # --- Warnung, falls noch Einzelserver auf 8081-8083 laufen ---
