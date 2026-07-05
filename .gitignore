@@ -1,0 +1,21 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# --- Virtuelle Umgebungen (greift auch fuer mcp-server/.venv/) ---
+.venv/
+venv/
+env/
+
+# --- Modelle & grosse Lab-Artefakte ---
+*.gguf
+*.bin
+*.safetensors
+
+# --- OS / Editor-Temp ---
+.DS_Store
+*.log
+tmp/
