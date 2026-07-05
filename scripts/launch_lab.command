@@ -2,26 +2,33 @@
 #
 # Lab-Orchestrator (macOS, doppelklickbar)
 # ----------------------------------------
-# Startet MCP-Server + llama-server-Router mit einem Aufruf und oeffnet die
-# MCP-faehige URL (127.0.0.1:8080). Ctrl+C stoppt beide.
+# Startet MCP-Server + llama-server-Router mit einem Aufruf. Ctrl+C stoppt alles.
 #
-# Modus (read-only vs. write):
+# Zugriffs-Modus (read-only vs. write), 1. Argument:
 #   bash scripts/launch_lab.command           -> read-only (sicher, Default)
 #   bash scripts/launch_lab.command write     -> write-faehig
-#   Doppelklick launch_lab.command            -> read-only
-#   Doppelklick launch_lab_write.command      -> write-faehig
-#   (Env MCP_READONLY=0/1 wirkt nur, wenn KEIN Argument gegeben ist)
+#   Doppelklick launch_lab.command / launch_lab_write.command
 #
-# Einzel-Launcher bleiben eigenstaendig nutzbar:
-#   - nur MCP-Server: bash mcp-server/run_webui.sh
-#   - nur Router    : scripts/launch_router.command
+# Netzwerk-Modus ueber Env LAB_BIND:
+#   (nicht gesetzt) -> nur lokal (127.0.0.1)
+#   serve           -> Router lokal + Tailscale Serve davor (HTTPS ueber .ts.net,
+#                      fuer iPad/iPhone/Mac-mini im Tailnet). Empfohlener Remote-Weg.
+#   tailscale|all   -> direkter Bind (siehe launch_router.command; auf macOS ist
+#                      Serve zuverlaessiger als der Direct-Bind)
+#
+# Beispiele:
+#   LAB_BIND=serve bash scripts/launch_lab.command          # remote, read-only
+#   LAB_BIND=serve bash scripts/launch_lab.command write    # remote, schreibfaehig
+#
 # Mode B: Lab, beruehrt AskValentinAI nicht.
 set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$HERE/.." && pwd)"
 MCP_PORT="${MCP_PORT:-8787}"
+ROUTER_PORT="${ROUTER_PORT:-8080}"
+TS_CLI="$(command -v tailscale || echo /Applications/Tailscale.app/Contents/MacOS/Tailscale)"
 
-# --- Modus aus 1. Argument bestimmen (explizites Argument gewinnt vor Env) ---
+# --- Zugriffs-Modus (1. Argument gewinnt vor Env) ---
 case "${1:-}" in
   write|rw|w) export MCP_READONLY=0 ;;
   read|ro|r)  export MCP_READONLY=1 ;;
@@ -29,15 +36,20 @@ case "${1:-}" in
   *) echo "Unbekannter Modus '${1:-}' (erlaubt: read | write) — nutze read-only."
      export MCP_READONLY=1 ;;
 esac
+[ "${MCP_READONLY}" = "0" ] && MODE_LABEL="WRITE (schreiben + loeschen erlaubt)" || MODE_LABEL="read-only"
 
-if [ "${MCP_READONLY}" = "0" ]; then
-  MODE_LABEL="WRITE (schreiben + loeschen erlaubt)"
-else
-  MODE_LABEL="read-only"
+# --- Netzwerk-Modus: LAB_BIND=serve -> Router lokal + Serve davor ---
+SERVE_MODE=0
+if [ "${LAB_BIND:-}" = "serve" ]; then
+  SERVE_MODE=1
+  export LAB_BIND=local   # llama-server bleibt localhost; Serve macht die Exposition
 fi
-echo "Lab-Modus: ${MODE_LABEL}"
 
-# --- Hygiene: Warnung + Rollback-Check im Write-Modus ---
+SUFFIX=""
+[ "$SERVE_MODE" = "1" ] && SUFFIX=" + Tailscale Serve"
+echo "Lab-Modus: ${MODE_LABEL}${SUFFIX}"
+
+# --- Hygiene: Write-Warnung + Rollback-Check ---
 if [ "${MCP_READONLY}" = "0" ]; then
   echo "!!! Das Frontend-Modell darf jetzt Dateien SCHREIBEN und LOESCHEN."
   echo "    Eine unbedachte Chat-Eingabe kann Projektdateien veraendern."
@@ -61,15 +73,31 @@ else
   MCP_PID=$!
 fi
 
-# --- MCP-Server beim Beenden mit aufraeumen (nur den selbst gestarteten) ---
+# --- 1b) Tailscale Serve (nur im serve-Modus) ---
+if [ "$SERVE_MODE" = "1" ]; then
+  echo "Starte Tailscale Serve fuer Port ${ROUTER_PORT} (HTTPS ueber .ts.net) ..."
+  if "$TS_CLI" serve --bg "${ROUTER_PORT}" 2>/tmp/lab_serve_err; then
+    "$TS_CLI" serve status
+  else
+    echo "WARNUNG: 'tailscale serve' fehlgeschlagen:"
+    sed 's/^/    /' /tmp/lab_serve_err
+    echo "    Haeufig: HTTPS/MagicDNS im Tailscale-Admin (login.tailscale.com -> DNS) aktivieren."
+  fi
+fi
+
+# --- Aufraeumen beim Beenden (Serve zuruecksetzen + MCP-Server stoppen) ---
 cleanup() {
-  if [ -n "${MCP_PID}" ]; then
+  if [ "$SERVE_MODE" = "1" ]; then
     echo
+    echo "Setze Tailscale Serve zurueck (serve reset) ..."
+    "$TS_CLI" serve reset 2>/dev/null
+  fi
+  if [ -n "${MCP_PID}" ]; then
     echo "Stoppe MCP-Server (Port ${MCP_PORT}) ..."
     kill "${MCP_PID}" 2>/dev/null
   fi
 }
 trap cleanup EXIT
 
-# --- 2) Router im Vordergrund (oeffnet Browser, blockiert bis Ctrl+C) ---
+# --- 2) Router im Vordergrund (oeffnet Browser lokal, blockiert bis Ctrl+C) ---
 bash "$HERE/launch_router.command"

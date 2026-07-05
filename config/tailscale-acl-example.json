@@ -1,37 +1,43 @@
-// tailscale-acl-example.json — Beispiel-ACL fuer den iPad-Zugriff aufs Lab.
+// tailscale-acl-example.json — Referenz-ACL fuer den Lab-Zugriff.
 //
 // EINSATZ: login.tailscale.com -> Access Controls (Tailnet policy file).
 // Tailscale nutzt HuJSON (JSON mit // Kommentaren). Diese Datei ist eine
-// REFERENZ — an das eigene Tailnet anpassen und dort einfuegen, nicht 1:1.
+// VORLAGE — im Admin einfuegen, mit dem eingebauten Preview/Tester pruefen,
+// erst dann speichern. Eine restriktive Policy ersetzt die Default-Regel
+// "alle Geraete duerfen alles" und kann andere Zugriffe (SSH etc.) brechen.
 //
-// Ziel der Hygiene: NUR das iPad darf das Chat-UI auf dem Mac (Port 8080)
-// erreichen. Der MCP-Server (8787) wird NICHT exponiert — er bleibt localhost
-// und wird nur ueber den llama-server-Proxy erreicht.
+// Rollen ueber Tags statt Geraetenamen: neue Geraete (z.B. der Mac-mini)
+// brauchen dann nur den passenden Tag, die ACL bleibt unveraendert.
+//   tag:llm-server  = Geraete, die den Chat-Dienst anbieten (macbook, mac-mini)
+//   tag:llm-client  = Geraete, die zugreifen duerfen (ipad165, iphone181)
 //
-// WICHTIG: Ein Tailnet ist per Default "alle Geraete duerfen alles". Eine
-// Beschraenkung ersetzt diese Default-Regel. Vorher pruefen, dass keine
-// anderen noetigen Zugriffe brechen — sonst nur die 8080-Regel ergaenzen und
-// die Default-Allow bewusst belassen (dann schuetzt v.a. die Tailnet-Grenze).
-//
-// Platzhalter ersetzen (Namen aus deinem Tailscale-Admin / MagicDNS):
-//   MAC_HOST  = MagicDNS-Name oder Tailscale-IP dieses Macs (z.B. "macbook-pro" oder 100.x.x.x)
-//   IPAD      = MagicDNS-Name / IP des iPads — besser: ein Tag wie tag:llm-client
+// Geraete taggen: Admin-Konsole -> Machines -> Geraet -> Edit ACL tags,
+// oder beim Anmelden:  tailscale up --advertise-tags=tag:llm-server
 {
+  "tagOwners": {
+    "tag:llm-server": ["autogroup:owner"],
+    "tag:llm-client": ["autogroup:owner"]
+  },
+
   "acls": [
-    // Nur das iPad -> Chat-UI auf dem Mac, ausschliesslich Port 8080.
+    // Nur llm-Clients duerfen das Chat-UI (Port 8080) auf llm-Servern erreichen.
+    // Gilt auch fuer Tailscale Serve (Serve unterliegt denselben ACLs).
     {
       "action": "accept",
-      "src": ["IPAD"],
-      "dst": ["MAC_HOST:8080"]
+      "src": ["tag:llm-client"],
+      "dst": ["tag:llm-server:8080"]
     }
 
-    // Hinweis: Ohne weitere accept-Regeln ist alles andere im Tailnet
-    // gesperrt (default-deny, sobald die globale Allow-All entfernt ist).
-    // Falls du deinen eigenen Voll-Zugriff behalten willst, ergaenze bewusst
-    // eine Regel fuer deinen Nutzer, z.B.:
-    //   { "action": "accept", "src": ["autogroup:owner"], "dst": ["*:*"] }
+    // HINWEIS: Ohne weitere accept-Regeln ist alles Uebrige im Tailnet gesperrt
+    // (Tailscale kennt nur allow, keine deny). Brauchst du deinen eigenen
+    // Voll-Zugriff (Admin/SSH/andere Dienste), ergaenze bewusst — das oeffnet
+    // dann aber auch 8080 fuer diese Geraete, da es keine deny-Regeln gibt:
+    //   , { "action": "accept", "src": ["autogroup:owner"], "dst": ["*:*"] }
   ]
 
-  // Optional statt Geraetenamen: das iPad taggen und den Tag adressieren.
-  // "tagOwners": { "tag:llm-client": ["autogroup:owner"] }
+  // Fuer ein reines Ein-Personen-Tailnet ist die Alternative, die Default-
+  // Allow-All zu belassen: dann schuetzt v.a. die Tailnet-Grenze (privat,
+  // WireGuard-verschluesselt, niemand von aussen). Die Tag-Beschraenkung oben
+  // ist die zusaetzliche Haertung, wenn du das Tailnet teilst oder maximale
+  // Isolation willst.
 }
