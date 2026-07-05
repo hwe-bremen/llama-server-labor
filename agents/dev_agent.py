@@ -102,7 +102,7 @@ TOOLS = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "path": {"type": "string", "description": "relativer Pfad, z.B. 'tool_demo.py'"}
+                    "path": {"type": "string", "description": "relativer Pfad, z.B. 'scripts/tool_demo.py'"}
                 },
                 "required": ["path"],
             },
@@ -116,7 +116,7 @@ TOOLS = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "path": {"type": "string", "description": "relativer Pfad, z.B. 'tool_demo.py'"},
+                    "path": {"type": "string", "description": "relativer Pfad, z.B. 'scripts/tool_demo.py'"},
                     "content": {"type": "string", "description": "der komplette neue Dateiinhalt"},
                 },
                 "required": ["path", "content"],
@@ -205,7 +205,7 @@ def git_status_hint():
 
 # Aufgabe, die echtes Editieren testet: mehrstellige, kohaerente Aenderung.
 DEV_TASK = (
-    "Lies die Datei tool_demo.py. Fuege dort ein neues Tool 'multiply_numbers(a, b)' "
+    "Lies die Datei scripts/tool_demo.py. Fuege dort ein neues Tool 'multiply_numbers(a, b)' "
     "hinzu, vollstaendig analog zu 'add_numbers': (1) die Python-Funktion, (2) den "
     "Schema-Eintrag in der TOOLS-Liste, (3) den Eintrag im DISPATCH-Dict. Aendere sonst "
     "nichts. Schreibe die vollstaendige geaenderte Datei mit write_file zurueck."
@@ -220,8 +220,8 @@ def main():
     print(f"\nANTWORT:\n{answer}")
 
     # Eingebauter Test: hat das Modell valides Python produziert?
-    target = os.path.join(PROJECT_ROOT, "tool_demo.py")
-    print(f"\n{'-'*70}\nVERIFIKATION: py_compile auf tool_demo.py")
+    target = os.path.join(PROJECT_ROOT, "scripts", "tool_demo.py")
+    print(f"\n{'-'*70}\nVERIFIKATION: py_compile auf scripts/tool_demo.py")
     r = subprocess.run(["python3", "-m", "py_compile", target], capture_output=True, text=True)
     if r.returncode == 0:
         print("  -> OK, kompiliert sauber.")

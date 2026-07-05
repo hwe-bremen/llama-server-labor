@@ -38,7 +38,7 @@ fi
 # der INI, deshalb hier NICHT nochmal setzen (sonst doppelt).
 # --ui-mcp-proxy: CORS-Proxy, damit die Web-UI lokale MCP-Server erreichen
 #   darf. Nur fuer lokales Lab (127.0.0.1) gedacht.
-PRESET="/Users/hans-wernereberhardt/PycharmProjects/llama-server/models.ini"
+PRESET="/Users/hans-wernereberhardt/PycharmProjects/llama-server/config/models.ini"
 echo "Starte Router mit Preset: ${PRESET}"
 llama-server --port "${PORT}" --models-preset "${PRESET}" --ui-mcp-proxy &
 SERVER_PID=$!

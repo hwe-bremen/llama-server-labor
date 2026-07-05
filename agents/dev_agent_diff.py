@@ -10,7 +10,7 @@ Sicherheits-Scope: alle Tools fest auf PROJECT_ROOT begrenzt (Traversal-Schutz).
 NIEMALS auf produktive AskValentinAI-Repos richten -> das waere Mode A.
 
 Rollback: Projekt liegt unter Git. Vor dem Lauf committen, dann
-`git checkout -- tool_demo.py`.
+`git checkout -- scripts/tool_demo.py`.
 
 Voraussetzung: llama-server MIT --jinja. Server laeuft aktuell auf 8081.
 """
@@ -107,7 +107,7 @@ TOOLS = [
             "description": "Liest den Inhalt einer Projektdatei.",
             "parameters": {
                 "type": "object",
-                "properties": {"path": {"type": "string", "description": "relativer Pfad, z.B. 'tool_demo.py'"}},
+                "properties": {"path": {"type": "string", "description": "relativer Pfad, z.B. 'scripts/tool_demo.py'"}},
                 "required": ["path"],
             },
         },
@@ -123,7 +123,7 @@ TOOLS = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "path": {"type": "string", "description": "relativer Pfad, z.B. 'tool_demo.py'"},
+                    "path": {"type": "string", "description": "relativer Pfad, z.B. 'scripts/tool_demo.py'"},
                     "old_str": {"type": "string", "description": "exakter, eindeutiger Textblock aus der Datei"},
                     "new_str": {"type": "string", "description": "der Ersatztext"},
                 },
@@ -202,8 +202,8 @@ def git_status_hint():
 
 
 DEV_TASK = (
-    "Du sollst tool_demo.py um ein Tool 'multiply_numbers(a, b)' erweitern, analog "
-    "zu 'add_numbers'. Vorgehen: (1) Lies tool_demo.py mit read_file. (2) Fuege mit "
+    "Du sollst scripts/tool_demo.py um ein Tool 'multiply_numbers(a, b)' erweitern, analog "
+    "zu 'add_numbers'. Vorgehen: (1) Lies scripts/tool_demo.py mit read_file. (2) Fuege mit "
     "apply_diff an DREI Stellen etwas hinzu — die Python-Funktion, den Schema-Eintrag "
     "in TOOLS, den Eintrag in DISPATCH. Nutze fuer jeden apply_diff einen kleinen, "
     "EINDEUTIGEN Anker (old_str woertlich aus der Datei, inkl. Einrueckung) und haenge "
@@ -218,8 +218,8 @@ def main():
     answer = chat(DEV_TASK)
     print(f"\nANTWORT:\n{answer}")
 
-    target = os.path.join(PROJECT_ROOT, "tool_demo.py")
-    print(f"\n{'-'*70}\nVERIFIKATION: py_compile auf tool_demo.py")
+    target = os.path.join(PROJECT_ROOT, "scripts", "tool_demo.py")
+    print(f"\n{'-'*70}\nVERIFIKATION: py_compile auf scripts/tool_demo.py")
     r = subprocess.run(["python3", "-m", "py_compile", target], capture_output=True, text=True)
     if r.returncode == 0:
         print("  -> OK, kompiliert sauber.")

@@ -2,9 +2,11 @@
 
 Konfigurationsdateien.
 
-Geplante Belegung:
+Belegung:
 - models.ini   (llama.cpp Router-Preset, Sampling-Parameter pro Modell)
 
-Wird models.ini hierher verschoben, an diesen Stellen den Pfad anpassen:
-- scripts/launch_router.command  (Variable PRESET, absoluter Pfad)
-- ggf. Agenten/Skripte, die models.ini direkt laden
+models.ini wird per absolutem Pfad referenziert von:
+- scripts/launch_router.command  (Variable PRESET) — bereits angepasst.
+
+Nach einem llama.cpp-Upgrade kurz testen, ob das INI-Format noch sauber laedt
+(curl http://localhost:8080/v1/models zeigt alle Eintraege).
