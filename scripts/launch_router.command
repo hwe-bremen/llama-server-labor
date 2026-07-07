@@ -16,6 +16,11 @@
 # Mode B: Lab-Komfortstarter. Rollback = Datei loeschen.
 # Beruehrt AskValentinAI / produktive Infrastruktur nicht.
 
+# Projektpfade relativ ableiten -> funktioniert auf jedem Geraet (MacBook,
+# Mac-mini, ...), unabhaengig vom Ordnernamen. Kein hartcodierter User-Pfad.
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$HERE/.." && pwd)"
+
 PORT=8080
 # 127.0.0.1 statt localhost: die Web-UI-MCP-Anbindung scheitert ueber localhost
 # oft an CORS. Konsistent die IP nutzen (fuer open UND curl).
@@ -85,7 +90,7 @@ fi
 # der INI, deshalb hier NICHT nochmal setzen (sonst doppelt).
 # --ui-mcp-proxy: CORS-Proxy, damit die Web-UI lokale MCP-Server erreichen darf
 #   (auch remote: der Proxy loest die MCP-URL serverseitig auf 127.0.0.1 auf).
-PRESET="/Users/hans-wernereberhardt/PycharmProjects/llama-server/config/models.ini"
+PRESET="$PROJECT_ROOT/config/models.ini"
 echo "Starte Router mit Preset: ${PRESET}"
 llama-server --port "${PORT}" ${HOST_ARG} --models-preset "${PRESET}" --ui-mcp-proxy &
 SERVER_PID=$!
