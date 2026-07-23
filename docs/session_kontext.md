@@ -15,6 +15,10 @@ privat = neues Tailnet** (`tail08de73`); alle alten Tailscale-Werte (Suffix,
   delete + git status/diff/log/commit. Traversal-geschützter Scope aufs
   Projekt-Root, `run_python` aus, read-only als Default. Transporte: stdio
   (Claude Desktop, Harness) und streamable-http (Web-UI, Port 8787).
+- **Web-Suche (DuckDuckGo)**: Neues Tool `web_search(query, max_results)` im
+  MCP-Server hinzugefügt. Nutzt `duckduckgo-search` (kein API-Key nötig).
+  Gibt Titel, URL und Beschreibung der Suchergebnisse zurück. Steht allen
+  Agenten zur Verfügung, die den MCP-Server nutzen.
 - **Reusable Agent-Basis** (`core/mcp_agent.py`) + dünner Harness
   (`agents/llama_harness.py`): lokales Modell als MCP-Agent, Modell-
   Autodiscovery (bevorzugt Mellum).
