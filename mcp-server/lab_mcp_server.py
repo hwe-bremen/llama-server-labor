@@ -170,6 +170,48 @@ def search_files(pattern: str, path: str = ".", max_results: int = 100) -> str:
     return "\n".join(hits) if hits else "Keine Treffer."
 
 
+@mcp.tool()
+def web_search(query: str, max_results: int = 10) -> str:
+    """Web-Suche mit DuckDuckGo.
+
+    Fuehrt eine Websuche durch und gibt die Top-Ergebnisse zurueck,
+    inkl. Titel, URL und kurzer Beschreibung.
+
+    Args:
+        query: Suchbegriff oder Suchfrage.
+        max_results: Anzahl der zurueckgegebenen Ergebnisse (Default: 10, Max: 20).
+    """
+    try:
+        from duckduckgo_search import DDGS
+    except ImportError:
+        return "Fehler: duckduckgo-search ist nicht installiert. Fuehre 'pip install duckduckgo-search' aus."
+
+    try:
+        max_results = min(max(max_results, 1), 20)  # Begrenzung auf 1-20 Ergebnisse
+        with DDGS() as ddgs:
+            results = list(ddgs.text(keywords=query, max_results=max_results))
+
+        if not results:
+            return f"Keine Ergebnisse fuer '{query}' gefunden."
+
+        lines = []
+        lines.append(f"Suchergebnisse fuer '{query}':\n")
+        for i, r in enumerate(results, 1):
+            title = r.get("title", "Kein Titel")
+            url = r.get("href", "Keine URL")
+            body = r.get("body", "Keine Beschreibung")
+            lines.append(f"{i}. {title}")
+            lines.append(f"   URL: {url}")
+            if body:
+                lines.append(f"   {body[:200]}")
+            lines.append("")
+
+        return "\n".join(lines)
+
+    except Exception as e:
+        return f"Fehler bei der Websuche: {e}"
+
+
 # --------------------------------------------------------------------------
 # Git-Tools (subprocess mit argv-Liste, cwd=Scope; kein shell=True)
 # --------------------------------------------------------------------------

@@ -16,9 +16,16 @@
 #   tailscale|all   -> direkter Bind (siehe launch_router.command; auf macOS ist
 #                      Serve zuverlaessiger als der Direct-Bind)
 #
+# Serve-Persistenz ueber Env LAB_KEEP_SERVE (nur im serve-Modus relevant):
+#   (nicht gesetzt/0) -> Serve wird beim Beenden (Ctrl+C) zurueckgesetzt (Default, sicher)
+#   1                 -> Serve bleibt aktiv, auch nach Beenden des Launchers
+#                        (iPad-Zugriff ohne laufendes Terminal). Manuell aus:
+#                        'tailscale serve reset'. Nach Reboot Router wieder starten.
+#
 # Beispiele:
-#   LAB_BIND=serve bash scripts/launch_lab.command          # remote, read-only
-#   LAB_BIND=serve bash scripts/launch_lab.command write    # remote, schreibfaehig
+#   LAB_BIND=serve bash scripts/launch_lab.command                    # remote, read-only
+#   LAB_BIND=serve bash scripts/launch_lab.command write              # remote, schreibfaehig
+#   LAB_BIND=serve LAB_KEEP_SERVE=1 bash scripts/launch_lab.command   # remote, Serve bleibt aktiv
 #
 # Mode B: Lab, beruehrt AskValentinAI nicht.
 set -uo pipefail
@@ -40,6 +47,7 @@ esac
 
 # --- Netzwerk-Modus: LAB_BIND=serve -> Router lokal + Serve davor ---
 SERVE_MODE=0
+KEEP_SERVE="${LAB_KEEP_SERVE:-0}"
 if [ "${LAB_BIND:-}" = "serve" ]; then
   SERVE_MODE=1
   export LAB_BIND=local   # llama-server bleibt localhost; Serve macht die Exposition
@@ -47,6 +55,7 @@ fi
 
 SUFFIX=""
 [ "$SERVE_MODE" = "1" ] && SUFFIX=" + Tailscale Serve"
+[ "$SERVE_MODE" = "1" ] && [ "$KEEP_SERVE" = "1" ] && SUFFIX="${SUFFIX} (bleibt aktiv)"
 echo "Lab-Modus: ${MODE_LABEL}${SUFFIX}"
 
 # --- Hygiene: Write-Warnung + Rollback-Check ---
@@ -74,10 +83,23 @@ else
 fi
 
 # --- 1b) Tailscale Serve (nur im serve-Modus) ---
+# Idempotent: setzt das Mapping 8080 -> .ts.net bei jedem Start neu, egal ob es
+# einen Reboot ueberlebt hat oder nicht. Zeigt die Remote-URL deutlich an.
 if [ "$SERVE_MODE" = "1" ]; then
   echo "Starte Tailscale Serve fuer Port ${ROUTER_PORT} (HTTPS ueber .ts.net) ..."
   if "$TS_CLI" serve --bg "${ROUTER_PORT}" 2>/tmp/lab_serve_err; then
     "$TS_CLI" serve status
+    SERVE_URL="$("$TS_CLI" serve status 2>/dev/null | grep -oE 'https://[a-zA-Z0-9.-]+\.ts\.net[^ ]*' | head -n1)"
+    if [ -n "$SERVE_URL" ]; then
+      echo
+      echo "  >> Remote-URL (iPad/iPhone im Tailnet): ${SERVE_URL}"
+    else
+      echo "  Hinweis: keine .ts.net-URL im Serve-Status gefunden — 'tailscale serve status' pruefen."
+    fi
+    if [ "$KEEP_SERVE" = "1" ]; then
+      echo "  Serve bleibt nach Beenden aktiv (LAB_KEEP_SERVE=1) — iPad-Zugriff auch ohne Launcher."
+      echo "  Manuell abschalten: ${TS_CLI} serve reset"
+    fi
   else
     echo "WARNUNG: 'tailscale serve' fehlgeschlagen:"
     sed 's/^/    /' /tmp/lab_serve_err
@@ -85,12 +107,15 @@ if [ "$SERVE_MODE" = "1" ]; then
   fi
 fi
 
-# --- Aufraeumen beim Beenden (Serve zuruecksetzen + MCP-Server stoppen) ---
+# --- Aufraeumen beim Beenden (MCP-Server stoppen; Serve nur ohne KEEP_SERVE) ---
 cleanup() {
-  if [ "$SERVE_MODE" = "1" ]; then
+  if [ "$SERVE_MODE" = "1" ] && [ "$KEEP_SERVE" != "1" ]; then
     echo
     echo "Setze Tailscale Serve zurueck (serve reset) ..."
     "$TS_CLI" serve reset 2>/dev/null
+  elif [ "$SERVE_MODE" = "1" ] && [ "$KEEP_SERVE" = "1" ]; then
+    echo
+    echo "Serve bleibt aktiv (LAB_KEEP_SERVE=1). Abschalten mit: ${TS_CLI} serve reset"
   fi
   if [ -n "${MCP_PID}" ]; then
     echo "Stoppe MCP-Server (Port ${MCP_PORT}) ..."

@@ -1,1 +1,2 @@
 mcp==1.28.1
+duckduckgo-search>=7.5.0
