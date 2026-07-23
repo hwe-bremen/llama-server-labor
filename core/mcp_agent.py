@@ -33,6 +33,25 @@ from mcp.client.stdio import stdio_client
 
 DEFAULT_BASE_URL = "http://localhost:8080/v1"
 
+# Default-Systemprompt fuer alle Agenten auf dieser Basis. Hintergrund:
+# kleinere/lokale Modelle brechen beim Schreiben groesserer Dateien mit
+# Anfuehrungszeichen/Escapes (Python-Docstrings, f-Strings) regelmaessig mit
+# ungueltigem JSON ab ("invalid string: missing closing quote"), weil
+# verschachteltes Escaping (Python-Escape *in* JSON-Escape) fehleranfaellig
+# ist. write_file bietet dafuer content_b64 (Base64) an, das strukturell
+# keine Quotes/Backslashes/Newlines enthaelt. Modelle nutzen das aber nicht
+# zuverlaessig nur aufgrund der Tool-Beschreibung -> explizite Anweisung hier.
+DEFAULT_SYSTEM_PROMPT = (
+    "Du bist ein Agent mit Zugriff auf Datei-, Such- und Git-Tools ueber MCP.\n\n"
+    "Wichtig beim Schreiben von Dateien (write_file): Wenn der Inhalt "
+    "Anfuehrungszeichen, Backslashes, mehrzeilige Strings oder Code enthaelt "
+    "(z.B. Python mit Docstrings oder f-Strings), nutze IMMER den Parameter "
+    "content_b64 (vollstaendiger Dateiinhalt, Base64-kodiert, UTF-8) statt "
+    "content. Base64 vermeidet JSON-Escaping-Fehler strukturell. Den Parameter "
+    "content (Klartext) nur fuer kurze, einfache Inhalte ohne Sonderzeichen "
+    "verwenden."
+)
+
 
 def default_logger(event: str, detail: str = "") -> None:
     """Simpler CLI-Logger; als on_event uebergebbar. Konsumenten koennen einen
@@ -84,6 +103,7 @@ class MCPAgent:
         readonly: bool = False,
         allow_python: bool = False,
         temperature: float = 0.2,
+        system_prompt: Optional[str] = None,
         on_event: Optional[Callable[[str, str], None]] = None,
     ):
         self.scope_root = Path(scope_root).resolve()
@@ -101,6 +121,9 @@ class MCPAgent:
         self.readonly = readonly
         self.allow_python = allow_python
         self.temperature = temperature
+        # None -> Default-Systemprompt (siehe oben). "" (leerer String) ->
+        # bewusst deaktiviert. Eigener String -> ersetzt den Default.
+        self.system_prompt = DEFAULT_SYSTEM_PROMPT if system_prompt is None else system_prompt
         self.on_event = on_event or default_logger
         self.history: list[dict] = []
         self._stack: Optional[AsyncExitStack] = None
@@ -181,6 +204,8 @@ class MCPAgent:
 
     async def _loop(self, task: str, keep_history: bool) -> str:
         messages = self.history if keep_history else []
+        if self.system_prompt and not any(m.get("role") == "system" for m in messages):
+            messages.insert(0, {"role": "system", "content": self.system_prompt})
         messages.append({"role": "user", "content": task})
         for _ in range(self.max_steps):
             try:
