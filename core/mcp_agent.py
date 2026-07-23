@@ -103,6 +103,7 @@ class MCPAgent:
         readonly: bool = False,
         allow_python: bool = False,
         temperature: float = 0.2,
+        max_tokens: Optional[int] = None,
         system_prompt: Optional[str] = None,
         on_event: Optional[Callable[[str, str], None]] = None,
     ):
@@ -121,6 +122,10 @@ class MCPAgent:
         self.readonly = readonly
         self.allow_python = allow_python
         self.temperature = temperature
+        # None -> nicht an den Client uebergeben (Server-Default greift).
+        # Explizit setzen, falls finish_reason="length" beobachtet wird
+        # (z.B. bei Thinking-Modellen, deren Denkkette das Budget aufbraucht).
+        self.max_tokens = max_tokens
         # None -> Default-Systemprompt (siehe oben). "" (leerer String) ->
         # bewusst deaktiviert. Eigener String -> ersetzt den Default.
         self.system_prompt = DEFAULT_SYSTEM_PROMPT if system_prompt is None else system_prompt
@@ -207,17 +212,31 @@ class MCPAgent:
         if self.system_prompt and not any(m.get("role") == "system" for m in messages):
             messages.insert(0, {"role": "system", "content": self.system_prompt})
         messages.append({"role": "user", "content": task})
-        for _ in range(self.max_steps):
+        for step in range(self.max_steps):
+            kwargs = dict(
+                model=self._resolved_model,
+                messages=messages,
+                tools=self._tools,
+                temperature=self.temperature,
+            )
+            if self.max_tokens is not None:
+                kwargs["max_tokens"] = self.max_tokens
             try:
-                resp = await self._client.chat.completions.create(
-                    model=self._resolved_model,
-                    messages=messages,
-                    tools=self._tools,
-                    temperature=self.temperature,
-                )
+                resp = await self._client.chat.completions.create(**kwargs)
             except Exception as e:
                 return f"[Modell-Fehler] {type(e).__name__}: {e}"
-            msg = resp.choices[0].message
+
+            choice = resp.choices[0]
+            msg = choice.message
+            reasoning = getattr(msg, "reasoning_content", None)
+            self.on_event(
+                "antwort",
+                f"schritt={step + 1} finish_reason={choice.finish_reason} "
+                f"content_len={len(msg.content or '')} "
+                f"reasoning_len={len(reasoning) if reasoning else 0} "
+                f"tool_calls={len(msg.tool_calls or [])}",
+            )
+
             if not msg.tool_calls:
                 if keep_history:
                     messages.append({"role": "assistant", "content": msg.content or ""})
