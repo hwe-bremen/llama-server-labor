@@ -28,6 +28,7 @@ Tailscale-ACLs auf das eine erlaubte Gerät (iPad) begrenzen.
 """
 from __future__ import annotations
 
+import base64
 import os
 import re
 import subprocess
@@ -292,20 +293,41 @@ if not READONLY:
 if not READONLY:
 
     @mcp.tool()
-    def write_file(path: str, content: str) -> str:
+    def write_file(path: str, content: str = "", content_b64: str = "") -> str:
         """Datei innerhalb des Scope-Ordners erstellen oder ueberschreiben.
         Fehlende Elternordner (im Scope) werden angelegt.
 
+        Fuer Inhalte mit vielen Anfuehrungszeichen/Escapes (z.B. Python-Code
+        mit Docstrings und f-Strings) `content_b64` verwenden: Base64-
+        kodierter UTF-8-Inhalt. Umgeht JSON-Escaping-Fehler kleinerer/
+        lokaler Modelle strukturell, da Base64 keine Quotes/Backslashes/
+        Newlines enthaelt. Ist `content_b64` gesetzt, hat es Vorrang vor
+        `content`.
+
         Args:
             path: Pfad relativ zum Scope-Root.
-            content: Vollstaendiger neuer Dateiinhalt.
+            content: Vollstaendiger neuer Dateiinhalt (Klartext).
+            content_b64: Vollstaendiger neuer Dateiinhalt, Base64-kodiert.
         """
         target = _resolve_in_scope(path)
         if target.is_dir():
             return f"Ist ein Verzeichnis: {_rel(target)}"
+
+        if content_b64:
+            try:
+                raw = base64.b64decode(content_b64, validate=True)
+            except Exception as e:
+                return f"Fehler: content_b64 ist kein gueltiges Base64: {e}"
+            try:
+                text = raw.decode("utf-8")
+            except UnicodeDecodeError as e:
+                return f"Fehler: content_b64 dekodiert nicht als UTF-8: {e}"
+        else:
+            text = content
+
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(content, encoding="utf-8")
-        return f"Geschrieben: {_rel(target)} ({len(content)} Zeichen)"
+        target.write_text(text, encoding="utf-8")
+        return f"Geschrieben: {_rel(target)} ({len(text)} Zeichen)"
 
 
 if ALLOW_DELETE:
