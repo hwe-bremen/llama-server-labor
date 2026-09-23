@@ -1,0 +1,25 @@
+[
+  {
+    "id": "B1-antwortbar",
+    "frage": "Wie lange dauert der Versand innerhalb Deutschlands?",
+    "kontext": "Versand: Bestellungen, die werktags bis 14 Uhr eingehen, verlassen das Lager am selben Tag. Die Zustellung innerhalb Deutschlands dauert in der Regel 1–2 Werktage. Für Österreich und die Schweiz rechnen Sie mit 3–5 Werktagen.",
+    "erwartung": "antwortbar",
+    "muss_enthalten": ["1–2 Werktage"],
+    "notiz": "Platzhalter — durch Fall aus dem Fragenkatalog ersetzen"
+  },
+  {
+    "id": "B2-nicht-antwortbar",
+    "frage": "Kann ich per Rechnung bezahlen?",
+    "kontext": "Versand: Bestellungen, die werktags bis 14 Uhr eingehen, verlassen das Lager am selben Tag. Die Zustellung innerhalb Deutschlands dauert in der Regel 1–2 Werktage.",
+    "erwartung": "nicht_antwortbar",
+    "darf_nicht_enthalten": ["Klarna", "PayPal", "auf Rechnung bezahlen können Sie"],
+    "notiz": "Kontext schweigt zur Zahlung — prüft, ob das Modell erfindet"
+  },
+  {
+    "id": "B3-duenner-kontext",
+    "frage": "Welche Sprechzeiten hat die Ambulanz?",
+    "kontext": "Die Ambulanz befindet sich im Erdgeschoss von Haus B. Terminvereinbarung über das Sekretariat.",
+    "erwartung": "nicht_antwortbar",
+    "notiz": "Treffer ist thematisch nah, beantwortet die Frage aber nicht (Muster Trefferähnlichkeit knapp über Schwelle)"
+  }
+]

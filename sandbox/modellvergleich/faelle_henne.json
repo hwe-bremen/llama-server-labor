@@ -1,0 +1,95 @@
+[
+  {
+    "id": "H01-vokabular-ablenker",
+    "frage": "Und was für Standard Versandkartons bietet ihr an?",
+    "kontext": "6er Wein Versandkarton STEHBOX KOMPAKT (Art. safe600): Versandsystem für 6 Weinflaschen stehend, Innenmaß 305 x 226 x 401 mm, zweiwellig, inkl. Einlage.\n\n12er Wein Versandkarton STEHBOX KOMPAKT (Art. safe1200): Versandsystem für 12 Weinflaschen stehend, zweiwellig, inkl. Einlage.\n\nWP-Faltkarton 2-wellig, Art. 040003000200d: Innenmaß 400 x 300 x 200 mm, FEFCO 0201, braun, unbedruckt. Standardkarton für den allgemeinen Versand.",
+    "erwartung": "antwortbar",
+    "muss_enthalten": ["WP-Faltkarton"],
+    "notiz": "Vokabular-konflikt: Kunde meint den braunen FEFCO-Karton."
+  },
+  {
+    "id": "H02-preis-fehlt-janein",
+    "frage": "Kostet der 6er Wein Versandkarton STEHBOX KOMPAKT unter 3 Euro?",
+    "kontext": "6er Wein Versandkarton STEHBOX KOMPAKT (Art. safe600): Versandsystem für 6 Weinflaschen stehend, Innenmaß 305 x 226 x 401 mm, zweiwellig, inkl. Einlage. Mindestabnahme 10 Stück.",
+    "erwartung": "nicht_antwortbar",
+    "darf_nicht_enthalten": ["3 Euro", "3,00", "günstig"],
+    "notiz": "Keine Preise im Auszug. Beginnt die Antwort mit 'Nein'?"
+  },
+  {
+    "id": "H03-widerspruch",
+    "frage": "Welches Innenmaß hat der 6er Wein Versandkarton STEHBOX KOMPAKT?",
+    "kontext": "6er Wein Versandkarton STEHBOX KOMPAKT (Art. safe600): Innenmaß 305 x 226 x 401 mm, zweiwellig.\n\nProduktberatung Flaschenversand: Der 6er STEHBOX KOMPAKT hat ein Innenmaß von 300 x 220 x 395 mm und eignet sich für Bordeaux- und Burgunderflaschen.",
+    "erwartung": "antwortbar",
+    "notiz": "Zwei Fundstellen widersprechen. Manuell: Widerspruch benannt?"
+  },
+  {
+    "id": "H04-mehrteilig-halb-belegt",
+    "frage": "Welche Maße hat der 2er Geschenkkarton Lino dunkelblau und ab welcher Stückzahl kann ich bestellen?",
+    "kontext": "2er Geschenkkarton Lino dunkelblau: Geschenkverpackung für 2 Flaschen, Außenmaß 360 x 190 x 95 mm, Oberfläche strukturiert, Farbe Dunkelblau, mit Folienprägung.",
+    "erwartung": "antwortbar",
+    "muss_enthalten": ["360"],
+    "notiz": "Nur der erste Teil ist belegt; Mindestmenge fehlt."
+  },
+  {
+    "id": "H05-rechnen-ueber-kontext",
+    "frage": "Womit versende ich 80 Bordeauxflaschen am besten?",
+    "kontext": "12er Wein Versandkarton STEHBOX KOMPAKT (Art. safe1200): für 12 Weinflaschen stehend, zweiwellig, inkl. Einlage.\n\n6er Wein Versandkarton STEHBOX KOMPAKT (Art. safe600): für 6 Weinflaschen stehend, zweiwellig, inkl. Einlage.\n\n18er Wein Versandkarton STEHBOX KOMPAKT (Art. safe1800): für 18 Weinflaschen stehend, zweiwellig.",
+    "erwartung": "antwortbar",
+    "notiz": "Rechnung ueber den Kontext: Aufteilung auf Gebinde."
+  },
+  {
+    "id": "H06-nummer-nicht-im-bestand",
+    "frage": "Bitte mehr Infos zu Art. 9999ZZ",
+    "kontext": "Artikel WK32382: Wellpapp-Zuschnitt, 380 x 280 mm, einwellig, braun.\n\nArtikel 1827KO: Kantenschutzwinkel, Länge 1000 mm, Schenkel 50 x 50 mm, Stärke 3 mm.",
+    "erwartung": "nicht_antwortbar",
+    "darf_nicht_enthalten": ["9999ZZ ist ein", "Der Artikel 9999ZZ ist"],
+    "notiz": "Nummer gibt es nicht; zwei aehnliche liegen daneben."
+  },
+  {
+    "id": "H07-farbfilter",
+    "frage": "Habt Ihr blaue 2er Geschenkkartons?",
+    "kontext": "2er Geschenkkarton Lino dunkelblau: Geschenkverpackung für 2 Flaschen, Farbe Dunkelblau, mit Folienprägung.\n\n2er Geschenkkarton Infinity dunkelblau: Geschenkverpackung für 2 Flaschen, Farbe Dunkelblau, mattes Finish.\n\n2er Geschenkkarton Lino grün: Geschenkverpackung für 2 Flaschen, Farbe Grün, mit Folienprägung.\n\n2er Geschenkkarton Weihnachtsfest natur: Geschenkverpackung für 2 Flaschen, Naturkarton mit Weihnachtsmotiv.",
+    "erwartung": "antwortbar",
+    "darf_nicht_enthalten": ["Lino grün", "Weihnachtsfest"],
+    "notiz": "Ablenker in Gruen und Weihnachtsmotiv."
+  },
+  {
+    "id": "H08-saison-abgrenzung",
+    "frage": "Habt ihr auch blaue Geschenkkartons mit Prägung aber ohne Weihnachtsbezug?",
+    "kontext": "2er Geschenkkarton Weihnachtsfest natur: Naturkarton mit Weihnachtsmotiv, Folienprägung, für 2 Flaschen.\n\n2er Geschenkkarton Lino dunkelblau: Farbe Dunkelblau, mit Folienprägung, ganzjähriges Sortiment, für 2 Flaschen.\n\n2er Geschenkkarton Infinity dunkelblau: Farbe Dunkelblau, mattes Finish ohne Prägung, für 2 Flaschen.",
+    "erwartung": "antwortbar",
+    "muss_enthalten": ["Lino dunkelblau"],
+    "notiz": "Drei Bedingungen gleichzeitig; nur ein Artikel passt."
+  },
+  {
+    "id": "H09-rueckbezug-ohne-vorturn",
+    "frage": "Und in rot?",
+    "kontext": "Klebeband PP leise, 50 mm x 66 m, transparent, Art. KB5066T.\n\nKlebeband PP leise, 50 mm x 66 m, braun, Art. KB5066B.\n\n2er Geschenkkarton Lino dunkelblau: Farbe Dunkelblau, mit Folienprägung.",
+    "erwartung": "nicht_antwortbar",
+    "notiz": "Rueckbezug ohne Vorturn. Manuell: Rueckfrage gestellt?"
+  },
+  {
+    "id": "H10-mitte-des-kontexts",
+    "frage": "Welche Länge hat der Kantenschutzwinkel?",
+    "kontext": "6er Wein Versandkarton STEHBOX KOMPAKT (Art. safe600): für 6 Weinflaschen stehend, Innenmaß 305 x 226 x 401 mm.\n\n12er Wein Versandkarton STEHBOX KOMPAKT (Art. safe1200): für 12 Weinflaschen stehend, zweiwellig.\n\n6er SAFETY BOX BIER/SAFT Versandkarton (Art. beer600): für 6 Bierflaschen 0,5 l, zweiwellig.\n\n18er SAFETY BOX BIER/SAFT Versandkarton (Art. Beer1800): für 18 Bierflaschen 0,5 l.\n\nArtikel 1827KO: Kantenschutzwinkel, Länge 1000 mm, Schenkel 50 x 50 mm, Stärke 3 mm, braun.\n\n6er Tragekarton Bierhantel, groß: Tragekarton für 6 Flaschen 0,5 l, Kraftpapier.\n\n6er Tragekarton Männerhandtasche 'groß' für 0,5 L: Tragekarton für 6 Flaschen, Kraftpapier, mit Griff.\n\nBoxer-Buchversandtasche BVA501: Buchverpackung, Innenmaß 302 x 215 x 80 mm, einwellig, selbstklebend.\n\nWP-Faltkarton 2-wellig, Art. 040003000200d: Innenmaß 400 x 300 x 200 mm, FEFCO 0201, braun.\n\nUmreifungsband PP, 12 mm x 1000 m, Reißfestigkeit 130 kg.",
+    "erwartung": "antwortbar",
+    "muss_enthalten": ["1000"],
+    "notiz": "Antwort steht in der Mitte von zehn Textstuecken."
+  },
+  {
+    "id": "H11-grenzfall-whisky",
+    "frage": "Ich such ein System speziell für 1l Whiskyflaschen",
+    "kontext": "SAFETY BOX SPIRITS Versandkarton: Versandsystem für Spirituosenflaschen, zweiwellig, mit Einlage, für Flaschen bis 0,7 l.\n\nSAFETY BOX BASIC (Art. 1safe): Universal-Versandsystem für eine Flasche, zweiwellig, Einlage anpassbar.\n\n6er Wein Versandkarton STEHBOX KOMPAKT (Art. safe600): für 6 Weinflaschen stehend.",
+    "erwartung": "nicht_antwortbar",
+    "darf_nicht_enthalten": ["SPIRITS ist für 1", "geeignet für 1l Whisky"],
+    "notiz": "Spirituosen-System geht nur bis 0,7 l."
+  },
+  {
+    "id": "H12-abgrenzung-produktnamen",
+    "frage": "Nein nicht die Versandtasche, ich will ausschließlich die Buchversandtasche sehen",
+    "kontext": "Boxer-Buchversandtasche BVA501: Buchverpackung aus Wellpappe, Innenmaß 302 x 215 x 80 mm, einwellig, selbstklebend, variable Höhe.\n\nVersandtasche Luftpolster, Gr. E, 240 x 275 mm, weiß, selbstklebend.\n\nVersandtasche Papier, 250 x 353 mm, braun, ohne Polster.",
+    "erwartung": "antwortbar",
+    "muss_enthalten": ["BVA501"],
+    "notiz": "Kundenkorrektur auf aehnlich benannten Typ."
+  }
+]
