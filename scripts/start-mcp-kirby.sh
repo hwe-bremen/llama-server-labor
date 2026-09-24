@@ -11,5 +11,7 @@ if ! git -C "$KIRBY_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
 fi
 export MCP_SCOPE_ROOT="$KIRBY_DIR" MCP_PORT=8788 MCP_HOST=127.0.0.1 \
        MCP_READONLY=1 MCP_ALLOW_PYTHON=0 MCP_TRANSPORT=streamable-http
+export MCP_NAME="kirby-bremer-kke" MCP_ALLOW_WEB=0 \
+       MCP_DENY="site/accounts,site/config,site/sessions,site/cache,.env,.license,media"
 echo "=== MCP Kirby | Scope: $MCP_SCOPE_ROOT | 127.0.0.1:$MCP_PORT | READONLY ==="
 exec "$REPO/.venv/bin/python" "$REPO/mcp-server/lab_mcp_server.py"

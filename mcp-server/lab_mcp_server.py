@@ -14,6 +14,9 @@ Konfiguration über Umgebungsvariablen (alle optional):
     MCP_READONLY     "1" = alle schreibenden Tools deaktivieren. Default: 0.
     MCP_ALLOW_DELETE "1" = delete_file aktiv. Default: 1.
     MCP_ALLOW_PYTHON "1" = run_python aktiv (bricht die Sandbox bewusst auf!).
+    MCP_ALLOW_WEB    "1" = web_search aktiv. Default: 1.
+    MCP_NAME         Servername in MCP-Clients. Default: llama-server-lab.
+    MCP_DENY         Sperrpfade relativ zum Scope-Root, kommagetrennt. Default: leer.
                      Default: 0 (aus).
     MCP_MAX_READ     Max. Lese-Bytes pro Datei. Default: 2_000_000.
 
@@ -53,8 +56,23 @@ READONLY = os.environ.get("MCP_READONLY", "0") == "1"
 ALLOW_DELETE = os.environ.get("MCP_ALLOW_DELETE", "1") == "1" and not READONLY
 ALLOW_PYTHON = os.environ.get("MCP_ALLOW_PYTHON", "0") == "1"
 MAX_READ = int(os.environ.get("MCP_MAX_READ", "2000000"))
+ALLOW_WEB = os.environ.get("MCP_ALLOW_WEB", "1") == "1"
+SERVER_NAME = os.environ.get("MCP_NAME", "llama-server-lab")
+# Sperrliste: gesperrte Pfade (und alles darunter), relativ zum Scope-Root.
+DENY_PATHS = [
+    (SCOPE_ROOT / p.strip()).resolve()
+    for p in os.environ.get("MCP_DENY", "").split(",")
+    if p.strip()
+]
 
-mcp = FastMCP("llama-server-lab", host=HOST, port=PORT)
+mcp = FastMCP(SERVER_NAME, host=HOST, port=PORT)
+
+
+def _tool_if(enabled: bool):
+    """Wie @mcp.tool(), registriert das Tool aber nur, wenn enabled True ist."""
+    if enabled:
+        return mcp.tool()
+    return lambda fn: fn
 
 
 # --------------------------------------------------------------------------
@@ -85,7 +103,21 @@ def _resolve_in_scope(rel_path: str) -> Path:
             f"Pfad '{rel_path}' liegt ausserhalb des Scope-Ordners "
             f"({SCOPE_ROOT}). Zugriff verweigert."
         )
+    if _is_denied(candidate):
+        raise ScopeError(
+            f"Pfad '{rel_path}' ist gesperrt (MCP_DENY). Zugriff verweigert."
+        )
     return candidate
+
+
+def _in_scope(p: Path) -> bool:
+    """True, wenn der (bereits aufgeloeste) Pfad p innerhalb von SCOPE_ROOT liegt."""
+    return p == SCOPE_ROOT or SCOPE_ROOT in p.parents
+
+
+def _is_denied(p: Path) -> bool:
+    """True, wenn p ein gesperrter Pfad ist oder darunter liegt."""
+    return any(p == d or d in p.parents for d in DENY_PATHS)
 
 
 def _rel(p: Path) -> str:
@@ -158,6 +190,11 @@ def search_files(pattern: str, path: str = ".", max_results: int = 100) -> str:
     for p in root.rglob("*"):
         if not p.is_file():
             continue
+        # rglob kennt weder Scope noch Sperrliste: pro Datei pruefen.
+        # Faengt Symlinks nach draussen und Suchen ab einem Elternordner.
+        rp = p.resolve()
+        if not _in_scope(rp) or _is_denied(p) or _is_denied(rp):
+            continue
         try:
             with p.open("r", encoding="utf-8", errors="ignore") as fh:
                 for lineno, line in enumerate(fh, 1):
@@ -171,7 +208,7 @@ def search_files(pattern: str, path: str = ".", max_results: int = 100) -> str:
     return "\n".join(hits) if hits else "Keine Treffer."
 
 
-@mcp.tool()
+@_tool_if(ALLOW_WEB)
 def web_search(query: str, max_results: int = 10) -> str:
     """Web-Suche mit DuckDuckGo.
 
@@ -400,6 +437,9 @@ def _banner() -> None:
     print(f"  readonly   : {READONLY}", file=sys.stderr)
     print(f"  delete     : {ALLOW_DELETE}", file=sys.stderr)
     print(f"  run_python : {ALLOW_PYTHON}", file=sys.stderr)
+    print(f"  web_search : {ALLOW_WEB}", file=sys.stderr)
+    print(f"  name       : {SERVER_NAME}", file=sys.stderr)
+    print(f"  deny       : {[_rel(d) for d in DENY_PATHS] or '-'}", file=sys.stderr)
     if TRANSPORT != "stdio" and HOST not in ("127.0.0.1", "localhost"):
         print(
             "  ! WARNUNG: gebunden ausserhalb localhost — kein Auth-Layer!\n"
