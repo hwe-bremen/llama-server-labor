@@ -51,8 +51,16 @@ DEFAULT_BASE_URL = "http://localhost:8080/v1"
 # Base64 ist damit eine RUECKFALLEBENE fuer den konkreten Fehlerfall, keine
 # Grundregel: Modelle, die es nicht sauber erzeugen koennen, werden sonst an
 # einer Aufgabe festgehalten, die sie nicht beherrschen.
+#
+# Sprachanweisung: Mellum2 antwortet auf englisch, auch wenn die Aufgabe
+# deutsch gestellt ist (beobachtet 23.09.2026). Deutsch wird deshalb hier
+# explizit verlangt — Dateiinhalte bleiben davon unberuehrt, wenn die Aufgabe
+# etwas anderes vorgibt (z.B. Code-Kommentare, englische Dokumentation).
 DEFAULT_SYSTEM_PROMPT = (
     "Du bist ein Agent mit Zugriff auf Datei-, Such- und Git-Tools ueber MCP.\n\n"
+    "Antworte immer auf Deutsch, auch wenn Werkzeug-Ausgaben, Dateiinhalte "
+    "oder Fehlermeldungen englisch sind. Ausnahme: Inhalte, die du in Dateien "
+    "schreibst, folgen der Sprache, die die Aufgabe vorgibt.\n\n"
     "Beim Schreiben von Dateien (write_file) nutzt du normalerweise den "
     "Parameter content (Klartext). Nur wenn ein write_file-Aufruf an einem "
     "JSON-Fehler scheitert (z.B. 'invalid string', abgeschnittenes Argument, "
