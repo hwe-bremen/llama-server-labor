@@ -13,6 +13,15 @@
 #   all                     -> 0.0.0.0 (ALLE Interfaces, inkl. lokales LAN!)
 # Bei Exposition ist die Tailscale-ACL (auf das eine Geraet begrenzt) Pflicht.
 #
+# Gleichzeitig geladene Modelle ueber Env LAB_MODELS_MAX (Default: 2):
+#   1 -> Vergleichstests: jedes Modell hat den ganzen Speicher, t/s-Werte sauber
+#   2 -> Alltag: schneller Wechsel gross/klein. Risiko: zwei grosse Modelle
+#        gleichzeitig -> Speicherdruck (Aktivitaetsanzeige gelb/rot)
+#   Beispiel: LAB_MODELS_MAX=1 bash scripts/launch_lab.command
+#
+# Dateizugriff (MCP-Server, Port 8787) startet NUR launch_lab.command.
+# Dieser Launcher allein startet nur den Router.
+#
 # Mode B: Lab-Komfortstarter. Rollback = Datei loeschen.
 # Beruehrt AskValentinAI / produktive Infrastruktur nicht.
 
@@ -25,6 +34,15 @@ PORT=8080
 # 127.0.0.1 statt localhost: die Web-UI-MCP-Anbindung scheitert ueber localhost
 # oft an CORS. Konsistent die IP nutzen (fuer open UND curl).
 URL="http://127.0.0.1:${PORT}"
+MCP_PORT="${MCP_PORT:-8787}"
+
+# --- Modell-Limit (Default 2, siehe Kopf) ---
+MODELS_MAX="${LAB_MODELS_MAX:-2}"
+case "${MODELS_MAX}" in
+  ''|*[!0-9]*)
+    echo "Ungueltiges LAB_MODELS_MAX '${MODELS_MAX}' (erwartet: Zahl) — nutze 2."
+    MODELS_MAX=2 ;;
+esac
 
 # --- Bind-Modus bestimmen (Netzwerk-Exposition bewusst) ---
 HOST_ARG=""
@@ -56,6 +74,7 @@ echo "=================================================="
 echo " llama-server ROUTER"
 echo " Port: ${PORT}"
 echo " Bind: ${BIND_INFO}"
+echo " Modelle gleichzeitig: ${MODELS_MAX}   (LAB_MODELS_MAX=1 fuer Vergleichstests)"
 echo "=================================================="
 
 # --- Laeuft schon ein Server auf der ZIEL-Adresse? Dann nur Browser oeffnen. ---
@@ -92,7 +111,8 @@ fi
 #   (auch remote: der Proxy loest die MCP-URL serverseitig auf 127.0.0.1 auf).
 PRESET="$PROJECT_ROOT/config/models.ini"
 echo "Starte Router mit Preset: ${PRESET}"
-llama-server --port "${PORT}" ${HOST_ARG} --models-preset "${PRESET}" --ui-mcp-proxy &
+llama-server --port "${PORT}" ${HOST_ARG} --models-preset "${PRESET}" \
+  --models-max "${MODELS_MAX}" --ui-mcp-proxy &
 SERVER_PID=$!
 
 # --- Router beim Schliessen des Fensters / Ctrl+C mit beenden ---
@@ -122,6 +142,15 @@ if [ "${READY}" -eq 1 ]; then
   open "${URL}"
 else
   echo "Router hat nach Wartezeit nicht geantwortet. Bitte Ausgabe pruefen."
+fi
+
+# --- Hinweis, falls kein MCP-Server laeuft (erst NACH dem Router-Start pruefen:
+#     launch_lab.command startet den MCP im Hintergrund, der braucht einen Moment) ---
+if ! lsof -i ":${MCP_PORT}" -sTCP:LISTEN >/dev/null 2>&1; then
+  echo
+  echo "HINWEIS: Kein MCP-Server auf Port ${MCP_PORT} — die Web-UI hat keinen Dateizugriff."
+  echo "  Fuer Dateizugriff stattdessen starten:  bash scripts/launch_lab.command"
+  echo "  oder zusaetzlich in eigenem Tab:        bash mcp-server/run_webui.sh"
 fi
 
 echo
