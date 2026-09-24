@@ -12,6 +12,17 @@ Konfiguration ueber Env:
   HARNESS_MODEL_HINT bevorzugtes Modell bei Auto-Wahl (Default Mellum)
   HARNESS_MAX_STEPS  (Default 8)
   HARNESS_READONLY=1 nur lesende Tools
+  HARNESS_SYSTEM_PROMPT       eigener Systemprompt (ersetzt den Default)
+  HARNESS_NO_SYSTEM_PROMPT=1  gar kein Systemprompt (schlaegt SYSTEM_PROMPT)
+
+Hintergrund zum Systemprompt (Befund 23.09.2026):
+  Der Default-Systemprompt in core/mcp_agent.py weist Modelle an, beim
+  Schreiben von Dateien IMMER content_b64 (Base64) zu nutzen — gedacht gegen
+  JSON-Escaping-Fehler. Mellum2-12B-Q4 befolgt das zwar, erzeugt aber
+  ungueltiges Base64: write_file scheitert wiederholt, das Modell gibt danach
+  eine LEERE Antwort zurueck. Qwen3.6-27B loest dieselbe Aufgabe mit content
+  im Klartext fehlerfrei. Die Anweisung ist also modellabhaengig hilfreich
+  oder schaedlich -> hier pro Lauf umschaltbar, statt global fest.
 
 Voraussetzung:
   - llama-server (Router) auf 8080 MIT --jinja
@@ -21,6 +32,10 @@ Voraussetzung:
 Start:
   python agents/llama_harness.py "Deine Aufgabe"
   python agents/llama_harness.py            # read-only Default-Task
+
+  # Gegentest ohne die Base64-Anweisung:
+  HARNESS_MODEL_HINT=Mellum HARNESS_NO_SYSTEM_PROMPT=1 \\
+    python agents/llama_harness.py "Schreibe X nach sandbox/y.md"
 """
 from __future__ import annotations
 
@@ -61,9 +76,25 @@ def _git_clean_hint() -> None:
         print(f"Git-Check uebersprungen: {e}")
 
 
+def _system_prompt_from_env() -> tuple[str | None, str]:
+    """Systemprompt-Modus aus Env ableiten.
+
+    Rueckgabe: (wert_fuer_MCPAgent, klartext_label_fuers_log).
+    MCPAgent-Konvention: None -> Default-Prompt, "" -> bewusst KEIN Prompt,
+    eigener String -> ersetzt den Default.
+    """
+    if os.environ.get("HARNESS_NO_SYSTEM_PROMPT") == "1":
+        return "", "aus (HARNESS_NO_SYSTEM_PROMPT=1)"
+    custom = os.environ.get("HARNESS_SYSTEM_PROMPT")
+    if custom:
+        return custom, f"eigener ({len(custom)} Zeichen)"
+    return None, "Default (inkl. content_b64-Anweisung)"
+
+
 def main() -> None:
     task = " ".join(sys.argv[1:]).strip() or DEFAULT_TASK
     base_url = os.environ.get("LLAMA_BASE_URL", DEFAULT_BASE_URL)
+    system_prompt, prompt_label = _system_prompt_from_env()
     agent = MCPAgent(
         scope_root=PROJECT_ROOT,
         base_url=base_url,
@@ -71,9 +102,11 @@ def main() -> None:
         model_hint=os.environ.get("HARNESS_MODEL_HINT", "Mellum"),
         max_steps=int(os.environ.get("HARNESS_MAX_STEPS", "8")),
         readonly=os.environ.get("HARNESS_READONLY", "0") == "1",
+        system_prompt=system_prompt,
     )
     print(f"Modell-Endpoint: {base_url}")
     print(f"Scope-Root     : {PROJECT_ROOT}")
+    print(f"Systemprompt   : {prompt_label}")
     _git_clean_hint()
     print(f"{'='*70}\nAUFGABE: {task}\n{'='*70}")
     answer = asyncio.run(agent.run(task))

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DNS Record Editor</title>
+    <link rel="stylesheet" href="dns_record_editor.css">
+</head>
+<body>
+
+<div class="modal">
+    <!-- Header -->
+    <div class="modal-header">
+        <div class="header-checkbox"></div>
+        <div class="header-value">www.askvalentinai.com</div>
+        <div class="header-value">CNAME</div>
+        <div class="header-value">w016f6b1.kasserver.com</div>
+        <div class="header-value proxy-badge">
+            <div class="cloud-icon"></div>
+            <span>Proxied</span>
+        </div>
+        <div class="header-value">Auto</div>
+        <div class="header-value">—</div>
+        <div class="header-value">—</div>
+        <div class="close-btn">Close</div>
+    </div>
+
+    <!-- Body -->
+    <div class="modal-body">
+        <div class="row">
+            <div class="input-group">
+                <label class="input-label">Name</label>
+                <input type="text" class="input-field" value="www">
+            </div>
+            <div class="input-group">
+                <label class="input-label">Type</label>
+                <div class="select-wrapper">
+                    <select class="select-field">
+                        <option>CNAME</option>
+                    </select>
+                    <div class="select-arrow">
+                        <svg width="10" height="6" viewBox="0 0 10 6" fill="none">
+                            <path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            <div class="input-group">
+                <label class="input-label">Target</label>
+                <input type="text" class="input-field" value="w016f6b1.kasserver.com">
+            </div>
+            <div class="input-group">
+                <label class="input-label">Proxy status</label>
+                <div class="toggle-container">
+                    <label class="toggle-switch">
+                        <input type="checkbox" checked>
+                        <span class="slider"></span>
+                    </label>
+                    <div class="proxy-text">
+                        <div class="cloud-icon" style="transform: scale(0.8);"></div>
+                        <span>Proxied</span>
+                    </div>
+                </div>
+            </div>
+            <div class="input-group">
+                <label class="input-label">TTL</label>
+                <div class="select-wrapper">
+                    <select class="select-field" style="background-color: #f9fafb;">
+                        <option>Auto</option>
+                    </select>
+                    <div class="select-arrow">
+                        <svg width="10" height="6" viewBox="0 0 10 6" fill="none">
+                            <path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="attributes-section">
+            <div class="attributes-header">
+                <button class="attributes-btn">
+                    <svg width="10" height="6" viewBox="0 0 10 6" fill="none">
+                        <path d="M9 5L5 1L1 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    Record Attributes
+                </button>
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#9ca3af">
+                    <rect x="1.5" y="1.5" width="4" height="4" rx="1" stroke-width="1.5"/>
+                    <rect x="8.5" y="1.5" width="4" height="4" rx="1" stroke-width="1.5"/>
+                    <rect x="1.5" y="8.5" width="4" height="4" rx="1" stroke-width="1.5"/>
+                    <rect x="8.5" y="8.5" width="4" height="4" rx="1" stroke-width="1.5"/>
+                </svg>
+            </div>
+            <p class="attributes-info">
+                The information provided here will not impact DNS record resolution and is only meant for your reference.
+            </p>
+
+            <div class="comment-group">
+                <label class="input-label">Comment <span style="color: var(--text-gray); font-weight: normal;">(optional)</span></label>
+                <input type="text" class="comment-input" placeholder="Enter your comment here (up to 100 characters).">
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="modal-footer">
+        <button class="btn btn-primary">Save</button>
+        <button class="btn btn-secondary">Cancel</button>
+        <button class="btn btn-danger">
+            <svg class="trash-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+            Delete
+        </button>
+    </div>
+</div>
+
+</body>
+</html>

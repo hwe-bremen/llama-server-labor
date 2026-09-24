@@ -39,17 +39,29 @@ DEFAULT_BASE_URL = "http://localhost:8080/v1"
 # ungueltigem JSON ab ("invalid string: missing closing quote"), weil
 # verschachteltes Escaping (Python-Escape *in* JSON-Escape) fehleranfaellig
 # ist. write_file bietet dafuer content_b64 (Base64) an, das strukturell
-# keine Quotes/Backslashes/Newlines enthaelt. Modelle nutzen das aber nicht
-# zuverlaessig nur aufgrund der Tool-Beschreibung -> explizite Anweisung hier.
+# keine Quotes/Backslashes/Newlines enthaelt.
+#
+# Messbefund 23.09.2026 (llama_harness, Aufgabe: models.ini lesen + Zusammen-
+# fassung schreiben) — "IMMER content_b64" war die falsche Anweisung:
+#   - Mellum2-12B-Q4 befolgt sie, erzeugt aber UNGUELTIGES Base64. write_file
+#     scheitert zweimal, das Modell denkt rund 24.000 Zeichen und liefert am
+#     Ende eine LEERE Antwort. Ohne Systemprompt loest dasselbe Modell die
+#     Aufgabe in 3 Schritten mit content im Klartext fehlerfrei.
+#   - Qwen3.6-27B schreibt content im Klartext ohne Escaping-Fehler.
+# Base64 ist damit eine RUECKFALLEBENE fuer den konkreten Fehlerfall, keine
+# Grundregel: Modelle, die es nicht sauber erzeugen koennen, werden sonst an
+# einer Aufgabe festgehalten, die sie nicht beherrschen.
 DEFAULT_SYSTEM_PROMPT = (
     "Du bist ein Agent mit Zugriff auf Datei-, Such- und Git-Tools ueber MCP.\n\n"
-    "Wichtig beim Schreiben von Dateien (write_file): Wenn der Inhalt "
-    "Anfuehrungszeichen, Backslashes, mehrzeilige Strings oder Code enthaelt "
-    "(z.B. Python mit Docstrings oder f-Strings), nutze IMMER den Parameter "
-    "content_b64 (vollstaendiger Dateiinhalt, Base64-kodiert, UTF-8) statt "
-    "content. Base64 vermeidet JSON-Escaping-Fehler strukturell. Den Parameter "
-    "content (Klartext) nur fuer kurze, einfache Inhalte ohne Sonderzeichen "
-    "verwenden."
+    "Beim Schreiben von Dateien (write_file) nutzt du normalerweise den "
+    "Parameter content (Klartext). Nur wenn ein write_file-Aufruf an einem "
+    "JSON-Fehler scheitert (z.B. 'invalid string', abgeschnittenes Argument, "
+    "Probleme mit Anfuehrungszeichen, Backslashes oder Zeilenumbruechen), "
+    "wiederholst du denselben Aufruf mit content_b64: dem vollstaendigen "
+    "Dateiinhalt, als UTF-8 gelesen und korrekt Base64-kodiert. Base64 "
+    "vermeidet Escaping-Fehler strukturell. Nutze content_b64 nur, wenn du "
+    "die Kodierung zeichengenau erzeugen kannst — sonst bleib bei content und "
+    "teile mit, woran der Schreibvorgang scheitert."
 )
 
 
