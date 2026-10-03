@@ -34,7 +34,8 @@ class Retriever:
     def index(self, docs: list[Doc], vectors: np.ndarray | None) -> None:
         raise NotImplementedError
 
-    def search(self, query: str, k: int) -> list[Hit]:
+    def search(self, query: str, k: int, qvec: np.ndarray | None = None) -> list[Hit]:
+        """qvec: vorberechneter Query-Vektor (spart den Embedding-Roundtrip in der Messung)."""
         raise NotImplementedError
 
 
@@ -45,7 +46,9 @@ class _DenseBase(Retriever):
         self.embedder = embedder
         self.docs: list[Doc] = []
 
-    def _qvec(self, query: str) -> np.ndarray:
+    def _qvec(self, query: str, qvec: np.ndarray | None = None) -> np.ndarray:
+        if qvec is not None:
+            return qvec.astype(np.float32)
         return self.embedder.embed([query])[0].astype(np.float32)
 
 
@@ -58,8 +61,8 @@ class FaissDense(_DenseBase):
         self.idx = faiss.IndexFlatIP(vectors.shape[1])
         self.idx.add(np.ascontiguousarray(vectors, dtype=np.float32))
 
-    def search(self, query, k):
-        q = self._qvec(query)[None, :]
+    def search(self, query, k, qvec=None):
+        q = self._qvec(query, qvec)[None, :]
         scores, ids = self.idx.search(q, k)
         return [Hit(self.docs[i].doc_id, float(s), r + 1)
                 for r, (s, i) in enumerate(zip(scores[0], ids[0])) if i >= 0]
@@ -90,8 +93,8 @@ class QdrantDense(_DenseBase):
         for i in range(0, len(points), 256):
             self.client.upsert(self.collection, points[i:i + 256], wait=True)
 
-    def search(self, query, k):
-        res = self.client.query_points(self.collection, query=self._qvec(query).tolist(),
+    def search(self, query, k, qvec=None):
+        res = self.client.query_points(self.collection, query=self._qvec(query, qvec).tolist(),
                                        limit=k, with_payload=["doc_id"])
         return [Hit(p.payload["doc_id"], float(p.score), r + 1)
                 for r, p in enumerate(res.points)]
@@ -100,13 +103,20 @@ class QdrantDense(_DenseBase):
 # ------------------------------------------------------------------ bm25 ---
 
 _TOKEN = re.compile(r"[a-zäöüß0-9]+(?:[-/,.][a-zäöüß0-9]+)*", re.I)
+_PART = re.compile(r"[-/,.]")
 
 
 def tokenize(text: str) -> list[str]:
-    """Kleinschreibung, Umlaute bleiben, Artikelnummern wie '32000ms', 'abc-123'
-    oder '0,75l' bleiben ein Token. Keine Stemming-/Kompositazerlegung – bewusst
-    einfach gehalten, damit die Baseline nachvollziehbar bleibt."""
-    return _TOKEN.findall(text.lower())
+    """Kleinschreibung, Umlaute bleiben. Verbundene Begriffe wie 'DPD-Zertifizierung',
+    'abc-123' oder '0,75l' liefern das Ganze UND die Teile ('dpd-zertifizierung',
+    'dpd', 'zertifizierung'), damit sowohl Artikelnummern als auch getrennt
+    geschriebene Komposita matchen. Kein Stemming – Baseline bleibt nachvollziehbar."""
+    out = []
+    for tok in _TOKEN.findall(text.lower()):
+        out.append(tok)
+        if _PART.search(tok):
+            out.extend(part for part in _PART.split(tok) if len(part) > 1)
+    return out
 
 
 class BM25(Retriever):
@@ -117,7 +127,7 @@ class BM25(Retriever):
         self.docs = docs
         self.bm = BM25Okapi([tokenize(d.text) for d in docs])
 
-    def search(self, query, k):
+    def search(self, query, k, qvec=None):
         scores = self.bm.get_scores(tokenize(query))
         top = np.argsort(-scores)[:k]
         return [Hit(self.docs[i].doc_id, float(scores[i]), r + 1)
@@ -145,8 +155,8 @@ class Hybrid(Retriever):
         self.dense.index(docs, vectors)
         self.lexical.index(docs, None)
 
-    def search(self, query, k):
-        return rrf([self.dense.search(query, self.candidates),
+    def search(self, query, k, qvec=None):
+        return rrf([self.dense.search(query, self.candidates, qvec),
                     self.lexical.search(query, self.candidates)], k)
 
 
@@ -169,7 +179,9 @@ def make_retriever(kind: str, embedder: Embedder) -> Retriever:
 RETRIEVERS = ("faiss", "qdrant", "bm25", "hybrid", "hybrid_faiss")
 
 
-def timed_search(r: Retriever, query: str, k: int) -> tuple[list[Hit], float]:
+def timed_search(r: Retriever, query: str, k: int,
+                 qvec: np.ndarray | None = None) -> tuple[list[Hit], float]:
+    """Reine Suchzeit in ms – ohne Query-Embedding, wenn qvec uebergeben wird."""
     t0 = time.perf_counter()
-    hits = r.search(query, k)
+    hits = r.search(query, k, qvec)
     return hits, (time.perf_counter() - t0) * 1000.0

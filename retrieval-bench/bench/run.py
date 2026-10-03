@@ -6,7 +6,7 @@ Beispiele (aus retrieval-bench/, venv aktiv):
   python -m bench.run --chunking lab --retriever bm25 --show 3
   python -m bench.run --chunking lab --retriever hybrid --embedder fake --show 3
 
-  # Echter Lauf (llama-server mit Embedding-Modell laeuft auf 8080):
+  # Echter Lauf (Embedding-Endpunkt per RB_EMBED_BASE_URL / RB_EMBED_MODEL):
   python -m bench.run --chunking avai --retriever faiss qdrant hybrid hybrid_faiss --embedder api
 
 Ergebnis: Tabelle auf stdout + JSON unter results/<timestamp>_<chunking>.json
@@ -68,6 +68,16 @@ def main(argv=None):
             print("   WARNUNG: fake-Embedder – Dense-Ergebnisse sind inhaltsleer (nur Pipeline-Test)")
         vectors = embedder.embed_docs(docs)
 
+    # Query-Vektoren einmal pro Frage berechnen und die Zeit getrennt ausweisen
+    qvecs, embed_ms = {}, []
+    if needs_vectors:
+        for q in questions:
+            t0 = time.perf_counter()
+            qvecs[q["question"]] = embedder.embed([q["question"]])[0]
+            embed_ms.append((time.perf_counter() - t0) * 1000.0)
+        print(f"== Query-Embedding ({embedder.name}): p50 {percentile(embed_ms, 50):.1f} ms, "
+              f"p95 {percentile(embed_ms, 95):.1f} ms – zaehlt NICHT in die Suchzeit unten")
+
     summary = []
     for kind in args.retriever:
         r = make_retriever(kind, embedder)
@@ -75,11 +85,14 @@ def main(argv=None):
         r.index(docs, vectors)
         t_index = time.perf_counter() - t0
         print(f"\n== Retriever {r.name}: Index in {t_index:.2f}s")
+        if questions:  # Warm-up: erste Suche traegt Kaltstart-Kosten, nicht in die Messung
+            r.search(questions[0]["question"], args.k, qvecs.get(questions[0]["question"]))
 
         rec, ndcg, lat, per_q = [], [], [], []
         for q in questions:
             for _ in range(args.repeat):
-                hits, ms = timed_search(r, q["question"], max(args.k, 10))
+                hits, ms = timed_search(r, q["question"], max(args.k, 10),
+                                        qvecs.get(q["question"]))
                 lat.append(ms)
             urls = [by_id[h.doc_id].url for h in hits]
             rel = q.get("relevant") or {}
@@ -97,15 +110,18 @@ def main(argv=None):
         row = {"retriever": r.name, "chunking": args.chunking, "embedder": embedder.name,
                "k": args.k, "n_docs": len(docs), "n_questions": len(questions),
                "n_labeled": len(labeled), "recall@k": mean(rec), "ndcg@k": mean(ndcg),
-               "lat_ms_p50": percentile(lat, 50), "lat_ms_p95": percentile(lat, 95),
+               "search_ms_p50": percentile(lat, 50), "search_ms_p95": percentile(lat, 95),
+               "query_embed_ms_p50": percentile(embed_ms, 50) if embed_ms else None,
                "index_s": t_index, "per_question": per_q}
         summary.append(row)
 
     print("\n== Zusammenfassung")
-    print(f"{'retriever':<24}{'recall@k':>10}{'ndcg@k':>10}{'p50 ms':>10}{'p95 ms':>10}")
+    print(f"{'retriever':<24}{'recall@k':>10}{'ndcg@k':>10}{'such p50':>10}{'such p95':>10}")
     for s in summary:
         print(f"{s['retriever']:<24}{s['recall@k']:>10.3f}{s['ndcg@k']:>10.3f}"
-              f"{s['lat_ms_p50']:>10.1f}{s['lat_ms_p95']:>10.1f}")
+              f"{s['search_ms_p50']:>10.2f}{s['search_ms_p95']:>10.2f}")
+    if embed_ms:
+        print(f"   + Query-Embedding p50 {percentile(embed_ms, 50):.1f} ms bei allen Dense-/Hybrid-Varianten")
     if not labeled:
         print("   (recall/ndcg = nan, weil noch keine Frage gelabelt ist – siehe eval/README.md)")
 
