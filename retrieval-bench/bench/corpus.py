@@ -3,7 +3,8 @@
 Varianten:
   avai  - die Chunk-Texte aus reference_embeddings.db (exakt die Grenzen,
           die in AskValentinAI liefen). Nur lesend (mode=ro). Vektoren aus
-          der DB werden bewusst NICHT geladen.
+          der DB werden bewusst NICHT geladen. URLs mit '---' werden repariert
+          (siehe repair_truncated_urls).
   lab   - eigenes Chunking aus den Roh-Markdowns in crawled_data/
           (absatzbasiert, Zielgroesse LAB_CHUNK_CHARS).
 
@@ -37,7 +38,54 @@ class Doc:
 
 # ---------------------------------------------------------------- avai ----
 
-def load_avai_chunks(db_path: Path = config.REFERENCE_DB) -> list[Doc]:
+def _norm(s: str) -> str:
+    return re.sub(r"\s+", " ", s).strip().lower()
+
+
+def repair_truncated_urls(docs: list[Doc], crawl_dir: Path = config.CRAWL_DIR) -> dict:
+    """Referenz-DB-Befund (2026-10-03): URLs mit '---' wurden beim Import am ersten
+    '---' abgeschnitten (…/flaschenversand---stehbox → …/flaschenversand), dadurch
+    fallen mehrere Seiten unter eine URL. Hier wird jeder betroffene Chunk ueber
+    seinen Text der passenden Crawl-Datei zugeordnet. Nur Lab-Datenpflege; die
+    Ursache liegt im Importer und gehoert nicht hierher."""
+    if not crawl_dir.exists():
+        return {"candidates": 0, "repaired": 0, "unresolved": 0}
+    crawl_urls: dict[str, str] = {}  # url -> normalisierter Volltext
+    for md in crawl_dir.glob("*.md"):
+        fm, body = parse_frontmatter(md.read_text(encoding="utf-8", errors="replace"))
+        if "---" in fm.get("url", ""):
+            crawl_urls[fm["url"]] = _norm(body)
+    truncated = {u.split("---", 1)[0] for u in crawl_urls}
+    by_prefix: dict[str, list[str]] = {}
+    for u in crawl_urls:
+        by_prefix.setdefault(u.split("---", 1)[0], []).append(u)
+
+    stats = {"candidates": 0, "repaired": 0, "unresolved": 0}
+    for d in docs:
+        if d.url not in truncated:
+            continue
+        stats["candidates"] += 1
+        nt = _norm(d.text)
+        hits: list[str] = []
+        # mehrere Textfenster probieren: Anfang lang → kurz, dann Mitte (robust gegen
+        # Titel-Praefixe oder abweichende Bereinigung beim AVAI-Import)
+        for probe in (nt[:120], nt[:60], nt[:40], nt[len(nt) // 2:len(nt) // 2 + 60]):
+            if len(probe) < 20:
+                continue
+            hits = [u for u in by_prefix[d.url] if probe in crawl_urls[u]]
+            if hits:
+                break
+        if len(hits) == 1 or (hits and len(by_prefix[d.url]) == 1):
+            d.meta["url_original"] = d.url
+            d.url = hits[0]
+            stats["repaired"] += 1
+        else:
+            d.meta["url_unresolved"] = True
+            stats["unresolved"] += 1
+    return stats
+
+
+def load_avai_chunks(db_path: Path = config.REFERENCE_DB, repair_urls: bool = True) -> list[Doc]:
     if not db_path.exists():
         raise FileNotFoundError(f"Referenz-DB fehlt: {db_path}")
     uri = f"file:{db_path}?mode=ro"
@@ -66,6 +114,11 @@ def load_avai_chunks(db_path: Path = config.REFERENCE_DB) -> list[Doc]:
         })
         docs.append(Doc(doc_id=f"avai:{rid}", text=text, url=url or "",
                         source=source or "", meta=meta))
+    if repair_urls:
+        st = repair_truncated_urls(docs)
+        if st["candidates"]:
+            print(f"   URL-Reparatur (avai): {st['repaired']}/{st['candidates']} Chunks "
+                  f"neu zugeordnet, {st['unresolved']} offen")
     return docs
 
 
@@ -196,7 +249,8 @@ def load_lab_chunks(crawl_dir: Path = config.CRAWL_DIR,
 
 
 def load_artikel_rows(xlsx: Path = config.ARTIKEL_XLSX) -> list[Doc]:
-    """Artikelliste als je ein Doc pro Zeile ('Spalte: Wert; ...'). Spalten unbekannt → generisch."""
+    """Artikelliste als je ein Doc pro Zeile ('Spalte: Wert; ...'). Spalten unbekannt → generisch.
+    TODO: Liste liegt im Langformat (eine Zeile = ein Attribut) → nach ArtikelNummer gruppieren."""
     if not xlsx.exists():
         return []
     import openpyxl  # lazy import

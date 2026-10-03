@@ -9,6 +9,9 @@ Beispiele (aus retrieval-bench/, venv aktiv):
   # Echter Lauf (Embedding-Endpunkt per RB_EMBED_BASE_URL / RB_EMBED_MODEL):
   python -m bench.run --chunking avai --retriever faiss qdrant hybrid hybrid_faiss --embedder api
 
+  # URL-Dedupe: 50 Kandidaten holen, max. 2 Chunks pro URL, dann Top-10
+  python -m bench.run --chunking avai --retriever faiss bm25 --embedder api --per-url 2
+
 Ergebnis: Tabelle auf stdout + JSON unter results/<timestamp>_<chunking>.json
 """
 from __future__ import annotations
@@ -38,6 +41,22 @@ def load_eval(path=config.EVAL_FILE) -> list[dict]:
     return items
 
 
+def dedupe_per_url(hits, by_id, per_url: int):
+    """Hoechstens per_url Chunks je URL behalten (Reihenfolge bleibt). Docs ohne URL
+    (z.B. Artikelzeilen) werden nicht zusammengefasst."""
+    seen: dict[str, int] = {}
+    out = []
+    for h in hits:
+        url = by_id[h.doc_id].url
+        if not url:
+            out.append(h)
+            continue
+        if seen.get(url, 0) < per_url:
+            seen[url] = seen.get(url, 0) + 1
+            out.append(h)
+    return out
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description="retrieval-bench Lauf")
     ap.add_argument("--chunking", choices=("avai", "lab"), required=True)
@@ -49,6 +68,11 @@ def main(argv=None):
     ap.add_argument("--show", type=int, default=0,
                     help="pro Frage die Top-N URLs ausgeben (hilft beim Labeln)")
     ap.add_argument("--repeat", type=int, default=1, help="Wiederholungen fuer Latenzmessung")
+    ap.add_argument("--per-url", type=int, default=0,
+                    help="max. Chunks pro URL in den Top-k (0 = aus). Holt --candidates Treffer, "
+                         "dedupliziert nach URL, schneidet dann auf k")
+    ap.add_argument("--candidates", type=int, default=50,
+                    help="Kandidaten vor dem URL-Dedupe (nur mit --per-url)")
     args = ap.parse_args(argv)
 
     print(f"== Korpus: chunking={args.chunking} include_artikel={args.include_artikel}")
@@ -88,12 +112,14 @@ def main(argv=None):
         if questions:  # Warm-up: erste Suche traegt Kaltstart-Kosten, nicht in die Messung
             r.search(questions[0]["question"], args.k, qvecs.get(questions[0]["question"]))
 
+        fetch_k = args.candidates if args.per_url else max(args.k, 10)
         rec, ndcg, lat, per_q = [], [], [], []
         for q in questions:
             for _ in range(args.repeat):
-                hits, ms = timed_search(r, q["question"], max(args.k, 10),
-                                        qvecs.get(q["question"]))
+                hits, ms = timed_search(r, q["question"], fetch_k, qvecs.get(q["question"]))
                 lat.append(ms)
+            if args.per_url:
+                hits = dedupe_per_url(hits, by_id, args.per_url)[:args.k]
             urls = [by_id[h.doc_id].url for h in hits]
             rel = q.get("relevant") or {}
             rk, nd = recall_at_k(urls, rel, args.k), ndcg_at_k(urls, rel, args.k)
@@ -108,14 +134,16 @@ def main(argv=None):
                     print(f"     {i}. {u}{mark}")
 
         row = {"retriever": r.name, "chunking": args.chunking, "embedder": embedder.name,
-               "k": args.k, "n_docs": len(docs), "n_questions": len(questions),
-               "n_labeled": len(labeled), "recall@k": mean(rec), "ndcg@k": mean(ndcg),
+               "k": args.k, "per_url": args.per_url or None, "n_docs": len(docs),
+               "n_questions": len(questions), "n_labeled": len(labeled),
+               "recall@k": mean(rec), "ndcg@k": mean(ndcg),
                "search_ms_p50": percentile(lat, 50), "search_ms_p95": percentile(lat, 95),
                "query_embed_ms_p50": percentile(embed_ms, 50) if embed_ms else None,
                "index_s": t_index, "per_question": per_q}
         summary.append(row)
 
-    print("\n== Zusammenfassung")
+    print("\n== Zusammenfassung" + (f" (per_url={args.per_url}, candidates={args.candidates})"
+                                     if args.per_url else ""))
     print(f"{'retriever':<24}{'recall@k':>10}{'ndcg@k':>10}{'such p50':>10}{'such p95':>10}")
     for s in summary:
         print(f"{s['retriever']:<24}{s['recall@k']:>10.3f}{s['ndcg@k']:>10.3f}"

@@ -1,0 +1,294 @@
+[
+ {
+  "retriever": "faiss",
+  "chunking": "avai",
+  "embedder": "api_bge-m3",
+  "k": 10,
+  "n_docs": 2500,
+  "n_questions": 6,
+  "n_labeled": 5,
+  "recall@k": 0.8,
+  "ndcg@k": 0.7881744826612198,
+  "search_ms_p50": 0.14291598927229643,
+  "search_ms_p95": 0.19975000759586692,
+  "query_embed_ms_p50": 121.66312499903142,
+  "index_s": 0.03047104098368436,
+  "per_question": [
+   {
+    "id": "q01",
+    "recall": 0.6666666666666666,
+    "ndcg": 0.6199062332840657,
+    "top_urls": [
+     "https://www.henneverpackung.de/de/snippets--safety-box-spirits",
+     "https://www.henneverpackung.de/de/flaschenversandkartons/safety-box-spirits/safety-box-spirits-komplett/1er-safety-box-spirits-spirituosen-versandkarton-spirits100",
+     "https://www.henneverpackung.de/de/flaschenversandsystem-fuer-spirituosenflaschen",
+     "https://www.henneverpackung.de/de/entdecken-flaschenversand",
+     "https://www.henneverpackung.de/de/snippets--safety-box-basic",
+     "https://www.henneverpackung.de/de/flaschenversandkartons/safety-box-spirits/safety-box-spirits-nur-umkarton/1er-safety-box-spirits-nur-umkarton-10spirits",
+     "https://www.henneverpackung.de/de/flaschenversandkartons",
+     "https://www.henneverpackung.de/de/flaschenversandkartons/safety-box-spirits/safety-box-spirits-einlage/3er-einlage-safety-box-spirits-nur-einlage-300ei"
+    ]
+   },
+   {
+    "id": "q02",
+    "recall": 0.6666666666666666,
+    "ndcg": 0.7625024946924551,
+    "top_urls": [
+     "https://www.henneverpackung.de/de/geschenkverpackungen/geschenkkartons/geschenkkartons-fuer-weinflaschen",
+     "https://www.henneverpackung.de/de/versandverpackungen-fuer-weinflaschen"
+    ]
+   },
+   {
+    "id": "q03",
+    "recall": 0.6666666666666666,
+    "ndcg": 0.6199062332840657,
+    "top_urls": [
+     "https://www.henneverpackung.de/de/flaschenversandkartons/stehbox-premium-reg",
+     "https://www.henneverpackung.de/de/flaschenversandkartons/stehbox-kompakt-reg",
+     "https://www.henneverpackung.de/de/flaschenversand",
+     "https://www.henneverpackung.de/de/versandverpackungen-fuer-weinflaschen",
+     "https://www.henneverpackung.de/de/flaschenversandkartons/stehbox-kompakt-reg/stehbox-kompakt-reg-nur-umkartons"
+    ]
+   },
+   {
+    "id": "q04",
+    "recall": 1.0,
+    "ndcg": 0.9385574520455129,
+    "top_urls": [
+     "https://www.henneverpackung.de/de/zertifizierungen-von-namhaften-versendern",
+     "https://www.henneverpackung.de/de/flaschenversandkartons/stehbox-dpd/dpd-reg-komplettsystem/6er-versandsystem-stehbox-dpd-dpd600kopa",
+     "https://www.henneverpackung.de/de/flaschenversandkartons/stehbox-dpd/dpd-reg-komplettsystem/1er-versandsystem-stehbox-dpd-dpd100",
+     "https://www.henneverpackung.de/de/flaschenversandkartons/stehbox-dpd/dpd-reg-komplettsystem/12er-versandsystem-stehbox-dpd-dpd1200kopa",
+     "https://www.henneverpackung.de/de/gepruefte-versandkartons-fuer-flaschen",
+     "https://www.henneverpackung.de/de/flaschenversandkartons/stehbox-dpd/dpd-reg-komplettsystem/2er-versandsystem-stehbox-dpd-dpd200",
+     "https://www.henneverpackung.de/de/flaschenversandkartons/stehbox-dpd/dpd-reg-komplettsystem/3er-versandsystem-stehbox-dpd-dpd300kopa",
+     "https://www.henneverpackung.de/de/zertifizierte-flaschen-versandkartons",
+     "https://www.henneverpackung.de/de/flaschenversand",
+     "https://www.henneverpackung.de/de/getraenkeverpackung-karton"
+    ]
+   },
+   {
+    "id": "q05",
+    "recall": 1.0,
+    "ndcg": 1.0,
+    "top_urls": [
+     "https://www.henneverpackung.de/de/geschenkverpackungen/schatullen",
+     "https://www.henneverpackung.de/de/geschenkverpackungen/schatullen/2er-schatulle-royal-granit-mit-folienfenster-22000ms",
+     "https://www.henneverpackung.de/de/geschenkverpackungen/schatullen/1er-schatulle-royal-granit-mit-folienfenster-12000ms",
+     "https://www.henneverpackung.de/de/geschenkverpackungen/schatullen/1er-schatulle-lino-rot-mit-folienfenster-12010ms"
+    ]
+   },
+   {
+    "id": "q06",
+    "recall": NaN,
+    "ndcg": NaN,
+    "top_urls": [
+     "https://www.henneverpackung.de/de/klebebaender-fuer-paketversand",
+     "https://www.henneverpackung.de/de",
+     "https://www.henneverpackung.de/de/buchverpackung",
+     "https://www.henneverpackung.de/de/verpackungsmittel/polstermaterial",
+     "https://www.henneverpackung.de/de/verpackungsmittel/boxer-versandtaschen",
+     "https://www.henneverpackung.de/de/boxer-versandtasche",
+     "https://www.henneverpackung.de/de/nachhaltiges-schutz--und-polstermaterial",
+     "https://www.henneverpackung.de/de/firmenhistorie-henne-verpackung"
+    ]
+   }
+  ]
+ },
+ {
+  "retriever": "bm25",
+  "chunking": "avai",
+  "embedder": "api_bge-m3",
+  "k": 10,
+  "n_docs": 2500,
+  "n_questions": 6,
+  "n_labeled": 5,
+  "recall@k": 0.6333333333333333,
+  "ndcg@k": 0.4202201593358888,
+  "search_ms_p50": 1.2432910152710974,
+  "search_ms_p95": 1.9392500398680568,
+  "query_embed_ms_p50": 121.66312499903142,
+  "index_s": 0.11661720799747854,
+  "per_question": [
+   {
+    "id": "q01",
+    "recall": 1.0,
+    "ndcg": 0.8229944305028294,
+    "top_urls": [
+     "https://www.henneverpackung.de/de/snippets--safety-box-spirits",
+     "https://www.henneverpackung.de/de/flaschenversandkartons/safety-box-spirits/safety-box-spirits-komplett/1er-safety-box-spirits-spirituosen-versandkarton-spirits100",
+     "https://www.henneverpackung.de/de/flaschenversandkartons/safety-box-spirits/safety-box-spirits-einlage/3er-einlage-safety-box-spirits-nur-einlage-300ei",
+     "https://www.henneverpackung.de/de/flaschenversandkartons/safety-box-spirits/safety-box-spirits-nur-umkarton/1er-safety-box-spirits-nur-umkarton-10spirits",
+     "https://www.henneverpackung.de/de/flaschenversandsystem-fuer-spirituosenflaschen",
+     "https://www.henneverpackung.de/de/flaschenversandkartons/safety-box-spirits",
+     "https://www.henneverpackung.de/de/flaschenversandkartons",
+     "https://www.henneverpackung.de/de/aufbauanleitungen"
+    ]
+   },
+   {
+    "id": "q02",
+    "recall": 0.6666666666666666,
+    "ndcg": 0.3569091680143339,
+    "top_urls": [
+     "https://www.henneverpackung.de/de/flaschenversandsystem-fuer-spirituosenflaschen",
+     "https://www.henneverpackung.de/de/versandverpackungen-fuer-weinflaschen",
+     "https://www.henneverpackung.de/de/geschenkverpackungen/geschenkkartons/geschenkkartons-vario-boxen/geschenkkarton-vario-5-offene-welle-natur-mit-1050fk",
+     "https://www.henneverpackung.de/de/flaschenversandystem-fuer-magnum-sekt-und-weinflaschen",
+     "https://www.henneverpackung.de/de/geschenkverpackungen/geschenkkartons/geschenkkartons-kraftpapier/2er-geschenkkarton-weingenuss-natur-32556wk",
+     "https://www.henneverpackung.de/de/geschenkverpackungen/geschenkkartons/geschenkkartons-fuer-weinflaschen"
+    ]
+   },
+   {
+    "id": "q03",
+    "recall": 0.6666666666666666,
+    "ndcg": 0.3107378158607799,
+    "top_urls": [
+     "https://www.henneverpackung.de/de/versandverpackungen-fuer-weinflaschen",
+     "https://www.henneverpackung.de/de/wein-sekt-champagner-zertifiziert-versenden",
+     "https://www.henneverpackung.de/de/flaschenversand",
+     "https://www.henneverpackung.de/de/flaschenversandkartons/stehbox-premium-reg",
+     "https://www.henneverpackung.de/de/flaschenversandkartons/stehbox-kompakt-reg",
+     "https://www.henneverpackung.de/de/flaschenversandkartons"
+    ]
+   },
+   {
+    "id": "q04",
+    "recall": 0.5,
+    "ndcg": 0.2507406824493034,
+    "top_urls": [
+     "https://www.henneverpackung.de/de/flaschenversandkartons",
+     "https://www.henneverpackung.de/de/flaschenversandkartons/safety-box-bier-classic",
+     "https://www.henneverpackung.de/de",
+     "https://www.henneverpackung.de/de/flaschenversandsysteme-in-vielen-groesseneinheiten",
+     "https://www.henneverpackung.de/de/getraenkeverpackung-karton",
+     "https://www.henneverpackung.de/de/zertifizierungen-von-namhaften-versendern",
+     "https://www.henneverpackung.de/de/geschenkverpackungen",
+     "https://www.henneverpackung.de/de/flaschenversandsystem-fuer-magnumflaschen",
+     "https://www.henneverpackung.de/de/flaschenversandkartons/stehbox-dpd/dpd-reg-nur-umkarton/3er-versandkarton-nur-umkarton-dpd-3dpd",
+     "https://www.henneverpackung.de/de/flaschenversandkartons/stehbox-dpd/dpd-reg-nur-umkarton/6er-versandkarton-nur-umkarton-dpd-6dpd"
+    ]
+   },
+   {
+    "id": "q05",
+    "recall": 0.3333333333333333,
+    "ndcg": 0.3597186998521971,
+    "top_urls": [
+     "https://www.henneverpackung.de/de/geschenkverpackungen",
+     "https://www.henneverpackung.de/de/geschenkverpackungen/schatullen",
+     "https://www.henneverpackung.de/de/praesentschatulle"
+    ]
+   },
+   {
+    "id": "q06",
+    "recall": NaN,
+    "ndcg": NaN,
+    "top_urls": [
+     "https://www.henneverpackung.de/de/firmenhistorie-henne-verpackung",
+     "https://www.henneverpackung.de/de/verpackungsmittel/beerenschalen",
+     "https://www.henneverpackung.de/de/nachhaltiges-schutz--und-polstermaterial",
+     "https://www.henneverpackung.de/de/verpackungsmittel/wellpappe-auf-rollen",
+     "https://www.henneverpackung.de/de/klebebaender-fuer-paketversand",
+     "https://www.henneverpackung.de/de/verpackungsmittel/boxer-buchverpackungen",
+     "https://www.henneverpackung.de/de/geschenkverpackungen/faltschachteln",
+     "https://www.henneverpackung.de/de/alles-fuers-praesent",
+     "https://www.henneverpackung.de/de/verpackungsmittel/schrenzpapier"
+    ]
+   }
+  ]
+ },
+ {
+  "retriever": "hybrid(faiss+bm25)",
+  "chunking": "avai",
+  "embedder": "api_bge-m3",
+  "k": 10,
+  "n_docs": 2500,
+  "n_questions": 6,
+  "n_labeled": 5,
+  "recall@k": 0.5666666666666667,
+  "ndcg@k": 0.5106014775366376,
+  "search_ms_p50": 1.4913330087438226,
+  "search_ms_p95": 2.3629579809494317,
+  "query_embed_ms_p50": 121.66312499903142,
+  "index_s": 0.11524058296345174,
+  "per_question": [
+   {
+    "id": "q01",
+    "recall": 0.6666666666666666,
+    "ndcg": 0.6199062332840657,
+    "top_urls": [
+     "https://www.henneverpackung.de/de/snippets--safety-box-spirits",
+     "https://www.henneverpackung.de/de/flaschenversandkartons/safety-box-spirits/safety-box-spirits-komplett/1er-safety-box-spirits-spirituosen-versandkarton-spirits100",
+     "https://www.henneverpackung.de/de/flaschenversandsystem-fuer-spirituosenflaschen",
+     "https://www.henneverpackung.de/de/flaschenversandkartons/safety-box-spirits/safety-box-spirits-nur-umkarton/1er-safety-box-spirits-nur-umkarton-10spirits",
+     "https://www.henneverpackung.de/de/flaschenversandkartons/safety-box-spirits/safety-box-spirits-einlage/3er-einlage-safety-box-spirits-nur-einlage-300ei",
+     "https://www.henneverpackung.de/de/entdecken-flaschenversand",
+     "https://www.henneverpackung.de/de/wein-sekt-champagner-zertifiziert-versenden",
+     "https://www.henneverpackung.de/de/flaschenversandkartons"
+    ]
+   },
+   {
+    "id": "q02",
+    "recall": 0.6666666666666666,
+    "ndcg": 0.6074915180456525,
+    "top_urls": [
+     "https://www.henneverpackung.de/de/versandverpackungen-fuer-weinflaschen",
+     "https://www.henneverpackung.de/de/geschenkverpackungen/geschenkkartons/geschenkkartons-fuer-weinflaschen",
+     "https://www.henneverpackung.de/de/geschenkverpackungen/geschenkkartons/geschenkkartons-kraftpapier/2er-geschenkkarton-weingenuss-natur-32556wk"
+    ]
+   },
+   {
+    "id": "q03",
+    "recall": 0.6666666666666666,
+    "ndcg": 0.4035099417625012,
+    "top_urls": [
+     "https://www.henneverpackung.de/de/flaschenversand",
+     "https://www.henneverpackung.de/de/flaschenversandkartons/stehbox-premium-reg",
+     "https://www.henneverpackung.de/de/versandverpackungen-fuer-weinflaschen",
+     "https://www.henneverpackung.de/de/flaschenversandkartons/stehbox-kompakt-reg",
+     "https://www.henneverpackung.de/de/flaschenversandkartons/stehbox-premium-reg/stehbox-premium-reg-nur-umkartons",
+     "https://www.henneverpackung.de/de/flaschenversandkartons/stehbox-kompakt-reg/stehbox-kompakt-reg-nur-umkartons"
+    ]
+   },
+   {
+    "id": "q04",
+    "recall": 0.5,
+    "ndcg": 0.35195904451706733,
+    "top_urls": [
+     "https://www.henneverpackung.de/de/getraenkeverpackung-karton",
+     "https://www.henneverpackung.de/de/flaschenversandkartons/safety-box-bier-classic",
+     "https://www.henneverpackung.de/de/zertifizierungen-von-namhaften-versendern",
+     "https://www.henneverpackung.de/de/flaschenversandkartons/stehbox-dpd/dpd-reg-nur-umkarton/6er-versandkarton-nur-umkarton-dpd-6dpd",
+     "https://www.henneverpackung.de/de/flaschenversandkartons",
+     "https://www.henneverpackung.de/de/flaschenversandkartons/stehbox-dpd/dpd-reg-nur-umkarton/12er-versandkarton-nur-umkarton-dpd-12dpd",
+     "https://www.henneverpackung.de/de/flaschenversandkartons/stehbox-dpd/dpd-reg-komplettsystem/3er-versandsystem-stehbox-dpd-dpd300kopa",
+     "https://www.henneverpackung.de/de/flaschenversandkartons/stehbox-dpd/dpd-reg-nur-umkarton/2er-versandkarton-nur-umkarton-dpd-2dpd"
+    ]
+   },
+   {
+    "id": "q05",
+    "recall": 0.3333333333333333,
+    "ndcg": 0.5701406500739014,
+    "top_urls": [
+     "https://www.henneverpackung.de/de/geschenkverpackungen/schatullen",
+     "https://www.henneverpackung.de/de/geschenkverpackungen"
+    ]
+   },
+   {
+    "id": "q06",
+    "recall": NaN,
+    "ndcg": NaN,
+    "top_urls": [
+     "https://www.henneverpackung.de/de/klebebaender-fuer-paketversand",
+     "https://www.henneverpackung.de/de/firmenhistorie-henne-verpackung",
+     "https://www.henneverpackung.de/de/boxer-versandtasche",
+     "https://www.henneverpackung.de/de/verpackungsmittel/e-commerce-versand",
+     "https://www.henneverpackung.de/de/alles-fuers-praesent",
+     "https://www.henneverpackung.de/de/verpackungsmittel/polstermaterial",
+     "https://www.henneverpackung.de/de/verpackungsmittel/boxer-versandtaschen",
+     "https://www.henneverpackung.de/de/wir-ueber-uns",
+     "https://www.henneverpackung.de/de/verpackungsmittel/e-commerce-versand/boxer-versandtaschen"
+    ]
+   }
+  ]
+ }
+]
