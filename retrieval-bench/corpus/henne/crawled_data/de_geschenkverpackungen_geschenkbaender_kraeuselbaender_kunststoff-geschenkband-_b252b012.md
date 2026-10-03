@@ -1,0 +1,50 @@
+---
+url: https://www.henneverpackung.de/de/geschenkverpackungen/geschenkbaender/kraeuselbaender/kunststoff-geschenkband-paper-synthetic-blau-4134ba
+title: "Kunststoff-Geschenkband Paper Synthetic, blau"
+description: "Geschenkband aus Kunststoff, in der Farbe Blau, reißfest, mit Rückseite in bordeaux. Eignet sich für jeden Anlass als Dekoration für viele Geschenkideen."
+page_type: product
+extraction: whitelist
+depth: 0
+crawled_at: 2026-09-06T10:08:30.226195+00:00
+synonyms: "blaues Geschenkband kaufen, Kunststoffband blau bordeaux, reißfestes Geschenkband blau, Geschenkband blau mit Rückseite, Paper Synthetic Geschenkband blau, blaues Band zum Verschenken, Geschenkkarton blau, Karton in blau, blauer Geschenkkarton, Verpackung in blau"
+facets:
+  bereich: geschenkverpackungen
+  system: geschenkbaender
+  artikelnummer: 4134BA
+  produkt: Geschenkband
+  farbe: Blau
+  material: Kunststoff
+  groesse: 10 mm
+  breite_innen_mm: 10
+  masse_quelle: tabelle
+---
+
+# Kunststoff-Geschenkband Paper Synthetic, blau
+
+*Kräusel- Geschenkband, in der Farbe blau matt, 10mm breit*
+
+![Kunststoff-Geschenkband Paper Synthetic, blau](https://www.henneverpackung.de/images/xlarge/kunststoff_geschenkband_paper_synthetic__blau_119751.webp)
+
+**Artikelnummer:** BA4134
+**Gewicht:** 0,20 kg
+**Anzahl auf Palette:** 9999999 Rolle
+**Mindestabnahme:** 1 Rolle
+**VE:** 1 Rolle
+**Innenmaß:** 10 mm x 250  lfm/Rolle
+
+### Beschreibung
+Geschenkband aus Kunststoff, in der Farbe Blau, reißfest, mit Rückseite in bordeaux. Eignet sich für jeden Anlass als Dekoration für viele Geschenkideen.
+
+### Eigenschaften
+| Eigenschaft | Wert |
+|---|---|
+| Produkt | Geschenkband |
+| Größe | 10 mm |
+| Farbe | Blau |
+| Material | Kunststoff |
+| Breite innen | 10 mm |
+
+### Dazu passend
+- [Geschenkkorb 4-Eck, Natur, mittel](https://www.henneverpackung.de/de/geschenkverpackungen/koerbe-steigen-schalen-dekoplatten/korb-4-eck/geschenkkorb-4-eck-natur-mittel-1001ko)
+- [Geschenkkorb 4-Eck, Natur, klein](https://www.henneverpackung.de/de/geschenkverpackungen/koerbe-steigen-schalen-dekoplatten/korb-4-eck/geschenkkorb-4-eck-natur-klein-1005ko)
+- [Stoffgeschenkband, gold, 25mm Breite](https://www.henneverpackung.de/de/geschenkverpackungen/geschenkbaender/stoff-baender/stoffgeschenkband-gold-25mm-breite-1006ba)

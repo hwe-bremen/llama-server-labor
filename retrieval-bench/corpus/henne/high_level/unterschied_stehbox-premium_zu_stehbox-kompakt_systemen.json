@@ -1,0 +1,154 @@
+{
+    "Übersicht": {
+        "Allgemeine Information": "Es gibt zwei Arten von Versandsystemen: STEHBOX® PREMIUM und STEHBOX® KOMPAKT. Die Auswahl der Einlage bestimmt, ob es sich um ein Premium- oder Kompakt-System handelt. Die Premium-Version bietet den höchsten Schutz und ist speziell für Wein, Sekt/Champagner, Spirituosen und verschiedene Flaschentypen zertifiziert. Die Kompakt-Version ist preisbewusster, bietet eine teilbare Einlage und eignet sich für eine breite Palette von Flaschengrößen."
+    },
+    "Produkte": [
+        {
+            "Produktname": "STEHBOX® PREMIUM",
+            "Versenderzertifizierung": [
+                "DHL",
+                "UPS"
+            ],
+            "Mindestbestellmenge": 30,
+            "Geprüfte Flaschensorten": [
+                {
+                    "Typ": "Bordeauxflasche",
+                    "Volumen": "0,75l"
+                },
+                {
+                    "Typ": "Burgunderflasche",
+                    "Volumen": "0,75l"
+                },
+                {
+                    "Typ": "Schlegelflasche",
+                    "Volumen": [
+                        "0,75l",
+                        "1l"
+                    ]
+                },
+                {
+                    "Typ": "Sekt-/Champagnerflasche",
+                    "Volumen": "0,75l"
+                },
+                {
+                    "Typ": "Spirituosenflasche",
+                    "Volumen": [
+                        "0,5l",
+                        "1l"
+                    ],
+                    "Form": [
+                        "mit Schraubverschluss",
+                        "mit Bügelverschluss"
+                    ]
+                },
+                {
+                    "Typ": "Saftflasche",
+                    "Volumen": "0,75l",
+                    "Form": "ähnlich Bordeauxflasche"
+                }
+            ],
+            "Erhältliche Größen": [
+                {
+                    "Stückzahl": 3,
+                    "Artikelnummer": "PREMI 300"
+                },
+                {
+                    "Stückzahl": 6,
+                    "Artikelnummer": "PREMI 600"
+                },
+                {
+                    "Stückzahl": 9,
+                    "Artikelnummer": "PREMI 900"
+                },
+                {
+                    "Stückzahl": 12,
+                    "Artikelnummer": "PREMI 1200"
+                },
+                {
+                    "Stückzahl": 15,
+                    "Artikelnummer": "PREMI 1500"
+                },
+                {
+                    "Stückzahl": 18,
+                    "Artikelnummer": "PREMI 1800"
+                }
+            ],
+            "Besonderes": "Gemischter Versand von unterschiedlichen Flaschenarten möglich",
+            "Anwendung der Einlage": "Flasche mit dem Hals nach oben hineinstellen. Die Flaschen müssen kräftig durch die zweiseitigen Einstecklaschen gedrückt werden, um einen sicheren Halt zu gewährleisten."
+        },
+        {
+            "Produktname": "STEHBOX® KOMPAKT",
+            "Versenderzertifizierung": [
+                "DHL",
+                "UPS"
+            ],
+            "Mindestbestellmenge": 30,
+            "Geprüfte Flaschensorten": [
+                {
+                    "Typ": "Bordeauxflasche",
+                    "Volumen": "0,75l"
+                },
+                {
+                    "Typ": "Burgunderflasche",
+                    "Volumen": "0,75l"
+                },
+                {
+                    "Typ": "Schlegelflasche",
+                    "Volumen": [
+                        "0,75l",
+                        "1l"
+                    ]
+                },
+                {
+                    "Typ": "Sekt-/Champagnerflasche",
+                    "Volumen": "0,75l"
+                },
+                {
+                    "Typ": "Saftflasche",
+                    "Volumen": "0,75l",
+                    "Form": "ähnlich Bordeauxflasche"
+                }
+            ],
+            "Erhältliche Größen": [
+                {
+                    "Stückzahl": 1,
+                    "Artikelnummer": "KOPA 100"
+                },
+                {
+                    "Stückzahl": 2,
+                    "Artikelnummer": "KOPA 200"
+                },
+                {
+                    "Stückzahl": 3,
+                    "Artikelnummer": "KOPA 300"
+                },
+                {
+                    "Stückzahl": 4,
+                    "Artikelnummer": "KOPA 400"
+                },
+                {
+                    "Stückzahl": 6,
+                    "Artikelnummer": "KOPA 600"
+                },
+                {
+                    "Stückzahl": 9,
+                    "Artikelnummer": "KOPA 900"
+                },
+                {
+                    "Stückzahl": 12,
+                    "Artikelnummer": "KOPA 1200"
+                },
+                {
+                    "Stückzahl": 15,
+                    "Artikelnummer": "KOPA 1500"
+                },
+                {
+                    "Stückzahl": 18,
+                    "Artikelnummer": "KOPA 1800"
+                }
+            ],
+            "Besonderes": "Gemischter Versand von unterschiedlichen Flaschenarten möglich",
+            "Anwendung der Einlage": "Die Einlagen sollten zuerst in den Karton gestellt und dann mit Flaschen befüllt werden. Die korrekte Verklebung muss mit Kunststoffklebeband erfolgen."
+        }
+    ]
+}

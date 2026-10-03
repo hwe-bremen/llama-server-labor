@@ -1,0 +1,6 @@
+numpy
+faiss-cpu
+qdrant-client
+rank_bm25
+openpyxl
+httpx

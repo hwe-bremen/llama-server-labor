@@ -21,3 +21,7 @@ env/
 tmp/
 sandbox/
 .idea/
+
+# --- retrieval-bench: Binaerbestand und Embedding-Cache (results/ bleibt im Git) ---
+retrieval-bench/corpus/henne/reference_embeddings.db
+retrieval-bench/cache/

@@ -1,0 +1,55 @@
+---
+url: https://www.henneverpackung.de/de/geschenkverpackungen/tueten-tragetaschen/tueten-offene-welle/3er-papiertuete-feine-welle-cream-3614tu
+title: "3er Papiertüte feine Welle cream"
+description: "Präsenttüte aus feiner Welle, in der Farbe Cream mit edlem Glanzeffekt, Sichtfenster und Tragekordel. Eignet sich für jeden Anlass als Geschenkverpackung für z.B. drei Flaschen Wein oder Sekt."
+page_type: product
+extraction: whitelist
+depth: 0
+crawled_at: 2026-09-06T09:29:56.419090+00:00
+synonyms: "Papiertüte mit Fenster Cream, Geschenktüte Flaschen Wein, Cream Papiertüte Tragekordel, Papiertüte Geschenkverpackung Cream, Wellenpapiertüte mit Sichtfenster, Papiertüte Flaschen Geschenk, Geschenkkarton cream, Karton in cream, creamer Geschenkkarton, Verpackung in cream"
+facets:
+  bereich: geschenkverpackungen
+  system: tueten-tragetaschen
+  artikelnummer: 3614TU
+  produkt: Geschenktüte
+  farbe: Cream
+  material: offene Welle
+  groesse: 3er
+  laenge_innen_mm: 360
+  breite_innen_mm: 270
+  hoehe_innen_mm: 85
+  masse_quelle: tabelle
+---
+
+# 3er Papiertüte feine Welle cream
+
+*Geschenktüte aus feiner Welle, mit Folienfenster, in der Farbe Cream, mit Glanzeffekt*
+
+![3er Papiertüte feine Welle cream](https://www.henneverpackung.de/images/xlarge/3er_papiertuete_feine_welle_cream_121617.webp)
+
+**Artikelnummer:** TU3614
+**Gewicht:** 0,11 kg
+**Anzahl auf Palette:** 1800 Stück
+**Mindestabnahme:** 20 Stück
+**VE:** 20 Stück
+**Innenmaß:** Offene G-Welle
+270 x 85 x 360 mm (L/B/H)
+
+### Beschreibung
+Präsenttüte aus feiner Welle, in der Farbe Cream mit edlem Glanzeffekt, Sichtfenster und Tragekordel. Eignet sich für jeden Anlass als Geschenkverpackung für z.B. drei Flaschen Wein oder Sekt.
+
+### Eigenschaften
+| Eigenschaft | Wert |
+|---|---|
+| Produkt | Geschenktüte |
+| Größe | 3er |
+| Farbe | Cream |
+| Material | offene Welle |
+| Länge innen | 360 mm |
+| Breite innen | 270 mm |
+| Höhe innen | 85 mm |
+
+### Dazu passend
+- [Geschenkkorb 4-Eck, Natur, mittel](https://www.henneverpackung.de/de/geschenkverpackungen/koerbe-steigen-schalen-dekoplatten/korb-4-eck/geschenkkorb-4-eck-natur-mittel-1001ko)
+- [Geschenkkorb 4-Eck, Natur, klein](https://www.henneverpackung.de/de/geschenkverpackungen/koerbe-steigen-schalen-dekoplatten/korb-4-eck/geschenkkorb-4-eck-natur-klein-1005ko)
+- [Geschenkkorb 4-Eck, Bordeaux, klein](https://www.henneverpackung.de/de/geschenkverpackungen/koerbe-steigen-schalen-dekoplatten/korb-4-eck/geschenkkorb-4-eck-bordeaux-klein-1015ko)

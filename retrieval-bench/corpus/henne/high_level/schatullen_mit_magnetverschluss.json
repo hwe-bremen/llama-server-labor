@@ -1,0 +1,92 @@
+{
+  "url": "https://www.henneverpackung.de/de/geschenkverpackungen/schatullen",
+  "title": "Schatullen mit Magnetverschluss",
+  "meta_description": "Magnetverschlussschatullen flach geliefert – ideal für Wein-, Sektflaschen und andere Präsente. Platzsparend, stabil und elegant.",
+  "content": {
+    "headings": {
+      "main": "Schatullen mit Magnetverschluss",
+      "sub": [
+        "Beschreibung",
+        "Produkte"
+      ]
+    },
+    "paragraphs": [
+      "Unsere Schatullen haben einen Magnetverschluss. Sie werden flach liegend und somit platzsparend geliefert. Dank des Magnetverschlusses sind sie schnell aufgerichtet.",
+      "Die Schatullen eignen sich besonders gut für zwei Wein- oder Sektflaschen, sowie für andere Präsente, die in dem Fachmaß Platz finden."
+    ],
+    "lists": {
+      "unordered": [
+        "Flachliegend geliefert",
+        "Mit stabilem Magnetverschluss",
+        "Geeignet für Wein- und Sektflaschen",
+        "Erhältlich mit und ohne Folienfenster"
+      ],
+      "ordered": []
+    },
+    "images": [
+      "https://www.henneverpackung.de/de/geschenkverpackungen/schatullen/vario-3-schatulle-lino-rot-mit-folienfenster-32000ms",
+      "https://www.henneverpackung.de/images/large/1er_schatulle_royal_granit__mit_folienfenster_153862.jpg"
+    ],
+    "tables": [
+      {
+        "title": "Produktübersicht Schatullen mit Magnetverschluss",
+        "headers": ["Name", "Artikelnummer", "Innenmaß (L/B/H)", "Preis pro Stück", "URL"],
+        "rows": [
+          ["1er Schatulle Lino rot", "MS13000", "365 x 95 x 95 mm", "2,24 €", "https://www.henneverpackung.de/de/geschenkverpackungen/schatullen/1er-schatulle-lino-rot-13000ms"],
+          ["1er Schatulle Lino rot mit Folienfenster", "MS12010", "365 x 95 x 95 mm", "2,52 €", "https://www.henneverpackung.de/de/geschenkverpackungen/schatullen/1er-schatulle-lino-rot-mit-folienfenster-12010ms"],
+          ["1er Schatulle Royal Granit mit Folienfenster", "MS12000", "365 x 95 x 95 mm", "2,52 €", "https://www.henneverpackung.de/de/geschenkverpackungen/schatullen/1er-schatulle-royal-granit-mit-folienfenster-12000ms"],
+          ["2er Schatulle Royal Granit mit Folienfenster", "MS22000", "365 x 185 x 90 mm", "3,36 €", "https://www.henneverpackung.de/de/geschenkverpackungen/schatullen/2er-schatulle-royal-granit-mit-folienfenster-22000ms"],
+          ["Vario 3 Schatulle Lino rot mit Folienfenster", "MS32000", "250 x 250 x 100 mm", "2,94 €", "https://www.henneverpackung.de/de/geschenkverpackungen/schatullen/vario-3-schatulle-lino-rot-mit-folienfenster-32000ms"]
+        ]
+      }
+    ],
+    "additional_info": {
+      "products": [
+        {
+          "name": "1er Schatulle Lino rot",
+          "description": "1er Schatulle mit Lino Strukturoberfläche und Magnetverschluss",
+          "url": "https://www.henneverpackung.de/de/geschenkverpackungen/schatullen/1er-schatulle-lino-rot-13000ms",
+          "artikelnummer": "MS13000",
+          "innenmass": "365 x 95 x 95 mm (L/B/H)",
+          "preis": "2,24 € / Stück"
+        },
+        {
+          "name": "1er Schatulle Lino, rot, mit Folienfenster",
+          "description": "1er Schatulle mit Magnetverschluss und Strukturoberfläche",
+          "url": "https://www.henneverpackung.de/de/geschenkverpackungen/schatullen/1er-schatulle-lino-rot-mit-folienfenster-12010ms",
+          "artikelnummer": "MS12010",
+          "innenmass": "365 x 95 x 95 mm (L/B/H)",
+          "preis": "2,52 € / Stück"
+        },
+        {
+          "name": "1er Schatulle Royal Granit, mit Folienfenster",
+          "description": "Schatulle mit Magnetverschluss für eine Flasche in Grau",
+          "url": "https://www.henneverpackung.de/de/geschenkverpackungen/schatullen/1er-schatulle-royal-granit-mit-folienfenster-12000ms",
+          "artikelnummer": "MS12000",
+          "innenmass": "365 x 95 x 95 mm (L/B/H)",
+          "preis": "2,52 € / Stück"
+        },
+        {
+          "name": "2er Schatulle Royal Granit, mit Folienfenster",
+          "description": "Schatulle mit Magnetverschluss für zwei Flaschen in Grau",
+          "url": "https://www.henneverpackung.de/de/geschenkverpackungen/schatullen/2er-schatulle-royal-granit-mit-folienfenster-22000ms",
+          "artikelnummer": "MS22000",
+          "innenmass": "365 x 185 x 90 mm (L/B/H)",
+          "preis": "3,36 € / Stück"
+        },
+        {
+          "name": "Vario 3 Schatulle Lino rot, mit Folienfenster",
+          "description": "Vario Schatulle mit Lino Struktur, Magnetverschluss und Folienfenster",
+          "url": "https://www.henneverpackung.de/de/geschenkverpackungen/schatullen/vario-3-schatulle-lino-rot-mit-folienfenster-32000ms",
+          "artikelnummer": "MS32000",
+          "innenmass": "250 x 250 x 100 mm (L/B/H)",
+          "preis": "2,94 € / Stück"
+        }
+      ]
+    }
+  },
+  "metadata": {
+    "category": "Geschenkverpackungen",
+    "tags": ["Schatullen", "Magnetverschluss", "Weinverpackung", "Geschenke"]
+  }
+}

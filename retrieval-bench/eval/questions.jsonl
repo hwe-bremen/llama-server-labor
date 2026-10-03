@@ -1,0 +1,9 @@
+# Eval-Set: eine Frage pro Zeile (JSON). Zeilen mit # sind Kommentare.
+# "relevant": URL -> Grad (3 = direkter Beleg, 2 = hilfreich, 1 = am Rande). Leer = noch nicht gelabelt.
+# Labeln: python -m bench.run --chunking lab --retriever bm25 --show 10  zeigt Kandidaten-URLs pro Frage.
+{"id": "q01", "type": "exakt", "question": "Ist die SAFETY BOX SPIRITS für Apothekerflaschen geeignet?", "relevant": {}}
+{"id": "q02", "type": "sinngemaess", "question": "Welche Verpackung eignet sich für zwei Weinflaschen als Geschenk?", "relevant": {}}
+{"id": "q03", "type": "sinngemaess", "question": "Was ist der Unterschied zwischen Stehbox Premium und Stehbox Kompakt?", "relevant": {}}
+{"id": "q04", "type": "exakt", "question": "Gibt es Flaschenversandkartons mit DPD-Zertifizierung?", "relevant": {}}
+{"id": "q05", "type": "high_level", "question": "Welche Schatullen haben einen Magnetverschluss und werden flach geliefert?", "relevant": {}}
+{"id": "q06", "type": "ohne_beleg", "question": "Bietet Henne Verpackung auch Kühlversand für Lebensmittel an?", "relevant": {}}
