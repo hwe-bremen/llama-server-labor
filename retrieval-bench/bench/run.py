@@ -1,6 +1,6 @@
 """CLI: einen Benchmark-Lauf ausfuehren.
 
-Beispiele (aus retrieval-bench/, venv aktiv):
+Beispiele (aus retrieval-bench/, venv aktiv – oder bequemer: bash retrieval-bench/rb.command run lab):
 
   # Pipeline-Test ohne Modell:
   python -m bench.run --chunking lab --retriever bm25 --show 3
@@ -12,6 +12,7 @@ Beispiele (aus retrieval-bench/, venv aktiv):
   # URL-Dedupe: 50 Kandidaten holen, max. 2 Chunks pro URL, dann Top-10
   python -m bench.run --chunking avai --retriever faiss bm25 --embedder api --per-url 2
 
+Weitere Stellschrauben per Umgebung: RB_RRF_K (Default 60), RB_BM25_STEM (Default 1).
 Ergebnis: Tabelle auf stdout + JSON unter results/<timestamp>_<chunking>.json
 """
 from __future__ import annotations
@@ -134,16 +135,18 @@ def main(argv=None):
                     print(f"     {i}. {u}{mark}")
 
         row = {"retriever": r.name, "chunking": args.chunking, "embedder": embedder.name,
-               "k": args.k, "per_url": args.per_url or None, "n_docs": len(docs),
-               "n_questions": len(questions), "n_labeled": len(labeled),
-               "recall@k": mean(rec), "ndcg@k": mean(ndcg),
+               "k": args.k, "per_url": args.per_url or None, "rrf_k": config.RRF_K,
+               "bm25_stem": config.BM25_STEM, "n_docs": len(docs), "n_questions": len(questions),
+               "n_labeled": len(labeled), "recall@k": mean(rec), "ndcg@k": mean(ndcg),
                "search_ms_p50": percentile(lat, 50), "search_ms_p95": percentile(lat, 95),
                "query_embed_ms_p50": percentile(embed_ms, 50) if embed_ms else None,
                "index_s": t_index, "per_question": per_q}
         summary.append(row)
 
-    print("\n== Zusammenfassung" + (f" (per_url={args.per_url}, candidates={args.candidates})"
-                                     if args.per_url else ""))
+    opts = f"rrf_k={config.RRF_K}, bm25_stem={int(config.BM25_STEM)}"
+    if args.per_url:
+        opts += f", per_url={args.per_url}, candidates={args.candidates}"
+    print(f"\n== Zusammenfassung ({opts})")
     print(f"{'retriever':<24}{'recall@k':>10}{'ndcg@k':>10}{'such p50':>10}{'such p95':>10}")
     for s in summary:
         print(f"{s['retriever']:<24}{s['recall@k']:>10.3f}{s['ndcg@k']:>10.3f}"

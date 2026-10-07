@@ -4,3 +4,4 @@ qdrant-client
 rank_bm25
 openpyxl
 httpx
+snowballstemmer

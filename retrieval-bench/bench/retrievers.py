@@ -2,7 +2,7 @@
 
   faiss   - FAISS IndexFlatIP (exakte Cosine-Suche auf normalisierten Vektoren)
   qdrant  - Qdrant Dense (eingebettet ':memory:' oder Server per RB_QDRANT_URL)
-  bm25    - lexikalisch (rank_bm25, einfache deutsche Tokenisierung)
+  bm25    - lexikalisch (rank_bm25; mit RB_BM25_STEM=1 deutsches Stemming + Akzentfaltung)
   hybrid  - Reciprocal Rank Fusion aus qdrant + bm25
   hybrid_faiss - RRF aus faiss + bm25 (Kontrollgruppe: Hybrid ohne Qdrant)
 
@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import re
 import time
+import unicodedata
 from dataclasses import dataclass
 
 import numpy as np
@@ -102,33 +103,52 @@ class QdrantDense(_DenseBase):
 
 # ------------------------------------------------------------------ bm25 ---
 
-_TOKEN = re.compile(r"[a-zäöüß0-9]+(?:[-/,.][a-zäöüß0-9]+)*", re.I)
+_TOKEN = re.compile(r"[^\W_]+(?:[-/,.][^\W_]+)*")  # Unicode-Wortzeichen, auch â/é/ñ
 _PART = re.compile(r"[-/,.]")
+_STEMMER = None
 
 
-def tokenize(text: str) -> list[str]:
-    """Kleinschreibung, Umlaute bleiben. Verbundene Begriffe wie 'DPD-Zertifizierung',
-    'abc-123' oder '0,75l' liefern das Ganze UND die Teile ('dpd-zertifizierung',
-    'dpd', 'zertifizierung'), damit sowohl Artikelnummern als auch getrennt
-    geschriebene Komposita matchen. Kein Stemming – Baseline bleibt nachvollziehbar."""
+def _stem_fold(tokens: list[str]) -> list[str]:
+    """Deutsches Snowball-Stemming (wellige→wellig, Kartons→karton, Tüten→tut) und
+    anschliessend Akzente/Umlaute entfernen (Château→chateau). Wird auf Dokumente und
+    Query gleich angewendet, daher konsistent."""
+    global _STEMMER
+    if _STEMMER is None:
+        import snowballstemmer
+        _STEMMER = snowballstemmer.stemmer("german")
+    out = []
+    for t in _STEMMER.stemWords(tokens):
+        t = unicodedata.normalize("NFKD", t)
+        out.append("".join(c for c in t if not unicodedata.combining(c)).replace("ß", "ss"))
+    return out
+
+
+def tokenize(text: str, stem: bool = config.BM25_STEM) -> list[str]:
+    """Kleinschreibung. Verbundene Begriffe wie 'DPD-Zertifizierung', 'abc-123' oder
+    '0,75l' liefern das Ganze UND die Teile ('dpd-zertifizierung', 'dpd',
+    'zertifizierung'), damit sowohl Artikelnummern als auch getrennt geschriebene
+    Komposita matchen. Mit stem=True zusaetzlich Stemming + Akzent-Normalisierung
+    (siehe _stem_fold); stem=False ist die rohe Baseline."""
     out = []
     for tok in _TOKEN.findall(text.lower()):
         out.append(tok)
         if _PART.search(tok):
             out.extend(part for part in _PART.split(tok) if len(part) > 1)
-    return out
+    return _stem_fold(out) if stem else out
 
 
 class BM25(Retriever):
-    name = "bm25"
+    def __init__(self, stem: bool = config.BM25_STEM):
+        self.stem = stem
+        self.name = "bm25+stem" if stem else "bm25"
 
     def index(self, docs, vectors=None):
         from rank_bm25 import BM25Okapi
         self.docs = docs
-        self.bm = BM25Okapi([tokenize(d.text) for d in docs])
+        self.bm = BM25Okapi([tokenize(d.text, self.stem) for d in docs])
 
     def search(self, query, k, qvec=None):
-        scores = self.bm.get_scores(tokenize(query))
+        scores = self.bm.get_scores(tokenize(query, self.stem))
         top = np.argsort(-scores)[:k]
         return [Hit(self.docs[i].doc_id, float(scores[i]), r + 1)
                 for r, i in enumerate(top) if scores[i] > 0]

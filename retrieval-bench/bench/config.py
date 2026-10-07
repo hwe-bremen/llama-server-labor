@@ -35,5 +35,8 @@ QDRANT_URL = os.environ.get("RB_QDRANT_URL", ":memory:")
 LAB_CHUNK_CHARS = int(os.environ.get("RB_LAB_CHUNK_CHARS", "1200"))
 LAB_CHUNK_OVERLAP_PARAS = int(os.environ.get("RB_LAB_CHUNK_OVERLAP_PARAS", "1"))
 
+# BM25: deutsches Snowball-Stemming + Akzent-Normalisierung (1 = an, 0 = rohe Tokens wie bisher)
+BM25_STEM = os.environ.get("RB_BM25_STEM", "1") == "1"
+
 # Reciprocal Rank Fusion
 RRF_K = int(os.environ.get("RB_RRF_K", "60"))
