@@ -7,6 +7,8 @@
 #   bash retrieval-bench/rb.command inspect               # Korpus-Bestandsaufnahme
 #   bash retrieval-bench/rb.command answer lab --model "<id>" [--retriever faiss hybrid_faiss] [--questions q01 q06]
 #                                                         # Antwortstufe: Top-k an lokales LLM (Router :8080)
+#   bash retrieval-bench/rb.command proxy                 # RAG-Proxy vor dem Router: Web-UI auf :8090 oeffnen
+#                                                         # (RB_CHUNKING=avai|lab RB_RETRIEVER=hybrid_faiss|faiss RB_K=5)
 #   bash retrieval-bench/rb.command shell                 # Subshell mit aktivem venv im richtigen Ordner
 #
 # Retriever/Optionen fuer 'run' per Umgebungsvariable:
@@ -59,6 +61,16 @@ case "$cmd" in
     fi
     python -m bench.answer --chunking "$c" --per-url "$PER_URL" "$@"
     ;;
+  proxy)
+    if ! curl -sf "${RB_EMBED_BASE_URL}/models" >/dev/null 2>&1; then
+      echo "Embedding-Endpunkt ${RB_EMBED_BASE_URL} antwortet nicht – laeuft Ollama?" >&2; exit 1
+    fi
+    LLM="${RB_LLM_BASE_URL:-http://127.0.0.1:8080/v1}"
+    if ! curl -sf "${LLM}/models" >/dev/null 2>&1; then
+      echo "LLM-Endpunkt ${LLM} antwortet nicht – laeuft der Router (scripts/launch_lab.command)?" >&2; exit 1
+    fi
+    RB_PER_URL="$PER_URL" python rag_proxy.py "$@"
+    ;;
   shell)   exec "${SHELL:-bash}" -i ;;
-  *)       sed -n '2,15p' "$0" ;;
+  *)       sed -n '2,17p' "$0" ;;
 esac
