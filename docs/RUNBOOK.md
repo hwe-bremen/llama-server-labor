@@ -139,7 +139,7 @@ bash mcp-server/run_http.sh         # MCP-Server für den MCP-Inspector-Test
 | Variable / Argument        | Wirkung                                                       |
 |----------------------------|--------------------------------------------------------------|
 | `launch_lab.command write` | Frontend-Modell darf schreiben + löschen (sonst read-only)   |
-| `MCP_READONLY=0/1`         | read-only-Gate des MCP-Servers (Argument von launch_lab gewinnt) |
+| `MCP_READONLY=0/1`         | read-only-gate des MCP-Servers (Argument von launch_lab gewinnt) |
 | `LAB_BIND=serve`           | **Remote empfohlen:** Router lokal + Tailscale Serve (HTTPS)  |
 | `LAB_BIND=tailscale`       | direkter Bind an die Tailscale-IP (funktioniert, Serve robuster) |
 | `LAB_BIND=all`             | `0.0.0.0`, alle Interfaces inkl. LAN (breit, nur bewusst)     |

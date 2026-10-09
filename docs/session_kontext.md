@@ -3,75 +3,69 @@
 Wiedereinstiegspunkt: Wo stehen wir, was ist offen, wie kommt man rein.
 Ergänzt `docs/RUNBOOK.md` (Bedienung) um den *Stand* und die *nächsten Schritte*.
 
-Letzte Session: 2026-07-22 · Branch `main`. **Account-Migration geschäftlich →
-privat = neues Tailnet** (`tail08de73`); alle alten Tailscale-Werte (Suffix,
-100.x-IPs) ersetzt. iPad-Zugriff über Serve/HTTPS am iPad bestätigt.
+Letzte Session: 2026-10-09 · Branch `main`. **retrieval-bench abgeschlossen bis
+zum Chat-Test:** Retrieval-Benchmark (FAISS/Qdrant/BM25/Hybrid), Antwortstufe mit
+Qwen3.6 und Apertus, RAG-Proxy vor dem Router für echte Chats im Web-UI. Details:
+`docs/runbook-retrieval-bench.md` und Projekt-Notiz `retrieval-bench-notizen.md`.
+Davor (2026-09-24): Kirby-MCP als zweite MCP-Instanz, `docs/runbook-mcp-kirby.md`.
 
 ---
 
 ## Wo wir stehen (erledigt & committet)
 
+- **retrieval-bench** (`retrieval-bench/`, eigenes venv, Launcher `rb.command`):
+  - Korpus: Henne-Katalogdaten (öffentlich, stillgelegter Demo-Mandant), einmalig
+    kopiert; Referenz-DB mit AskValentinAI-Chunks nur lesend, URLs mit `---`
+    per Textabgleich repariert. Zwei Chunking-Varianten `avai` / `lab`.
+  - Eval-Set: 25 Fragen, 24 gelabelt (URL-Ebene, Grade 1–3), 19 davon von Hawe
+    mit vorher bekannter Zielseite.
+  - Retrieval-Benchmark (`bench.run`): Qdrant dense = FAISS dense; Hybrid nur
+    mit deutschem Stemming und RRF-k ≤ 30 besser (+7 Recall auf avai, ±0 auf lab);
+    URL-Dedupe vor dem k-Schnitt ist Pflicht. Latenz: Embedding dominiert (~115 ms),
+    Suche < 3 ms.
+  - Antwortstufe (`bench.answer`): Qwen3.6 27B ohne Thinking ~24/25 richtig bei
+    beiden Retrievern und k=5 wie k=3 → Retrieval-Unterschied in den Antworten
+    nicht nachweisbar. Apertus 8B nicht tragfähig (Abschreiben, Überläufe,
+    Halluzination). Thinking ohne Budget unbrauchbar; `--no-think` greift.
+  - RAG-Proxy (`rag_proxy.py`, Port 8090): Web-UI mit Henne-Wissen, Quellenliste,
+    Chat-Log. Erster Chat 4/6 gut; Folgefragen ohne Thema → `RB_HISTORY_TURNS`
+    (Vorfrage fließt in die Suche ein), Mengenfragen über mehrere Produkte an der Grenze.
+- **Kirby-MCP** (2026-09-24): zweite Instanz von `lab_mcp_server.py` (Port 8788,
+  read-only, Sperrliste) für ein Kirby-Testprojekt; `models.ini`: Qwen3.6
+  `ctx-size 65536` für Cline. Siehe `docs/runbook-mcp-kirby.md`.
 - **MCP-Server** (`mcp-server/lab_mcp_server.py`): Tools list/read/search/write/
-  delete + git status/diff/log/commit. Traversal-geschützter Scope aufs
-  Projekt-Root, `run_python` aus, read-only als Default. Transporte: stdio
+  delete + git status/diff/log/commit, `web_search` (DuckDuckGo). Traversal-
+  geschützter Scope, `run_python` aus, read-only als Default. Transporte: stdio
   (Claude Desktop, Harness) und streamable-http (Web-UI, Port 8787).
-- **Web-Suche (DuckDuckGo)**: Neues Tool `web_search(query, max_results)` im
-  MCP-Server hinzugefügt. Nutzt `duckduckgo-search` (kein API-Key nötig).
-  Gibt Titel, URL und Beschreibung der Suchergebnisse zurück. Steht allen
-  Agenten zur Verfügung, die den MCP-Server nutzen.
-- **Reusable Agent-Basis** (`core/mcp_agent.py`) + dünner Harness
-  (`agents/llama_harness.py`): lokales Modell als MCP-Agent, Modell-
-  Autodiscovery (bevorzugt Mellum).
-- **Web-UI-Anbindung**: llama.cpp-Web-UI spricht den MCP-Server über den
-  `--ui-mcp-proxy` an (URL in der UI: `http://127.0.0.1:8787/mcp` + Toggle
-  „use llama-server proxy"). Lokal und remote bestätigt.
-- **Orchestrator** (`scripts/launch_lab.command`): startet MCP-Server + Router
-  mit einem Aufruf. Modi:
-  - Zugriff: `read` (Default) / `write` (1. Argument), plus Doppelklick-Wrapper
-    `launch_lab_write.command`.
-  - Netzwerk via `LAB_BIND`: `local` (Default) / `tailscale` (Direct-Bind) /
-    `serve` (Router lokal + Tailscale Serve, HTTPS) / `all`.
-- **Router-Fix** (`scripts/launch_router.command`): öffnet 127.0.0.1 statt
-  localhost (CORS); prüft die Ziel-URL statt nur den Port (Bind-Wechsel-Fallstrick).
-- **Remote-Zugang (iPad/iPhone)**: funktioniert (2026-07-22 am iPad bestätigt).
-  Zwei Wege — Direct-Bind (`LAB_BIND=tailscale`, URL `http://100.89.16.112:8080`)
-  und Tailscale Serve (URL `https://macbook-pro-von-hans-werner.tail08de73.ts.net`).
-  Aktuell aktiv: **Serve** (HTTPS, kein Neustart nötig); lief im neuen Tailnet auf
-  Anhieb sauber (Serve aktivierte sich beim ersten `serve --bg 8080` selbst).
-- **Tailscale-ACL**: Vorlage `config/tailscale-acl-example.json` weiterhin gültig,
-  aber im **neuen** Tailnet noch NICHT angewandt — Tags existieren dort nicht,
-  frisches Tailnet = Default allow-all. Für Ein-Personen-Tailnet optional.
-- **Doku**: `Readme/` → `docs/` migriert, `docs/RUNBOOK.md` auf Stand.
+  `write_file` akzeptiert `content_b64` (Escaping-Probleme kleiner Modelle).
+- **Reusable Agent-Basis** (`core/mcp_agent.py`) + Harness (`agents/llama_harness.py`);
+  Weekly-Digest-Agent (`agents/weekly_digest.py`, RSS, SQLite, launchd).
+- **Web-UI-Anbindung**: llama.cpp-Web-UI spricht MCP-Server über `--ui-mcp-proxy` an.
+- **Orchestrator** (`scripts/launch_lab.command`): MCP-Server + Router mit einem
+  Aufruf; `read`/`write`; `LAB_BIND` `local`/`tailscale`/`serve`/`all`.
+- **Remote-Zugang (iPad/iPhone)** über Tailscale Serve (HTTPS) bestätigt.
+- **Doku**: `docs/RUNBOOK.md`, `docs/runbook-mcp-kirby.md`, `docs/runbook-retrieval-bench.md`.
 
 ---
 
 ## Offene Punkte (bewusst, für die nächste Session)
 
-1. **ACL-Härtung scharf stellen.** In der (alten) Policy-Vorlage steckt noch die
-   Übergangsregel `{ "action":"accept", "src":["autogroup:owner"], "dst":["*:*"] }`
-   (verhindert Aussperren beim Taggen). Solange sie drin ist, greift die
-   „nur getaggte Clients auf 8080"-Isolation **nicht scharf**.
-   - **Blocker/Entscheidung:** Tailscale-SSH war aktiv. Wird SSH zwischen den
-     eigenen Geräten gebraucht? Wenn ja → vor dem Entfernen der owner-Regel eine
-     eigene SSH-Regel ergänzen. Wenn nein → owner-Regel ersatzlos entfernen,
-     dann per `Preview rules` gegenprüfen: 8080 = accept, 22 = deny.
-   - **Update 2026-07-22:** Durch den Account-Wechsel auf privat ist das ein
-     neues, leeres Tailnet (allow-all, keine Tags/Policy gesetzt). Härtung startet
-     damit bei Null — erst Geräte taggen (`tag:llm-server` / `tag:llm-client`),
-     dann Vorlage einspielen. Priorität niedrig (Ein-Personen-Tailnet, privat,
-     WireGuard-verschlüsselt, von außen nicht erreichbar).
-
-2. **Mac Mini (Büro) einbinden.** Weiterhin geplant.
-   - Als **Server**: Repo klonen/pullen → `cd mcp-server && bash setup.sh` →
-     `LAB_BIND=serve bash scripts/launch_lab.command` → im Admin `tag:llm-server`
-     taggen (sobald ACL/Tags im neuen Tailnet gesetzt sind). Ergibt eigene
-     `.ts.net`-URL.
-   - Als **Client**: Tailscale mit dem **privaten** Account anmelden, Server-URL
-     öffnen. (Achtung: nicht versehentlich den alten geschäftlichen Account.)
-
-3. **Serve + HTTPS am iPad final glätten** — im neuen Tailnet erledigt/bestätigt.
-   Reststolpersteine bleiben iPad-seitig: iCloud Private Relay aus, URL frisch
-   tippen (nicht aus Verlauf), notfalls Chrome statt Safari.
+1. **retrieval-bench — Chat-Test fortsetzen.** Lino-Folgefrage mit
+   `RB_HISTORY_TURNS=1` wiederholen; reicht das nicht → Frage per Modell
+   umformulieren lassen (zweiter kurzer Aufruf, ~3–5 s). Fachliche Prüfung der
+   Qwen-Antworten (Artikelnummern, Maße) im Report
+   `retrieval-bench/results/answers_20261009_184838_avai.md`.
+2. **retrieval-bench — Korpus vervollständigen.** high_level-Dokumente
+   (PDF/JSON/DOCX) in den Lader; Artikelliste nach ArtikelNummer gruppieren
+   (liegt im Langformat); lab-Chunking in der Antwortstufe.
+3. **Transfer nach AskValentinAI** (dort, nicht hier): `---`-URL-Fehler im Index
+   (19 Seiten), Hybrid nur mit Stemming + RRF-k ≤ 30, Thinking-Budget,
+   Verzichtsverhalten messen. Eval-Set-Methode („Seite zuerst, Frage danach")
+   übertragbar.
+4. **ACL-Härtung** im privaten Tailnet weiterhin offen (Ein-Personen-Tailnet,
+   Priorität niedrig). SSH-Entscheidung vor Entfernen der owner-Regel.
+5. **Mac Mini (Büro)** als Server/Client einbinden; Rolle noch offen.
+   Für retrieval-bench dort: Referenz-DB von Hand kopieren (nicht im Git).
 
 ---
 
@@ -83,71 +77,70 @@ bash scripts/launch_lab.command            # read-only, Router+MCP lokal
 bash scripts/launch_lab.command write      # schreibfähig
 ```
 
-Remote (iPad) — Serve/HTTPS (aktuell erprobter Weg, kein Neustart nötig):
+retrieval-bench (Ollama muss laufen):
 ```
-bash scripts/launch_lab.command                                        # nur falls Router noch nicht läuft
+bash retrieval-bench/rb.command check                       # Eval-Set
+bash retrieval-bench/rb.command run lab avai                # Retrieval-Benchmark
+bash retrieval-bench/rb.command compare                     # Aufschlüsselung
+RB_PER_URL=1 bash retrieval-bench/rb.command answer avai \
+  --model "unsloth/Qwen3.6-27B-MTP-GGUF:Q4_K_XL" --no-think  # Antwortstufe (Router läuft)
+RB_PER_URL=1 bash retrieval-bench/rb.command proxy          # Chat: http://127.0.0.1:8090
+```
+
+Remote (iPad) — Serve/HTTPS:
+```
 /Applications/Tailscale.app/Contents/MacOS/Tailscale serve --bg 8080
-/Applications/Tailscale.app/Contents/MacOS/Tailscale serve status      # zeigt die .ts.net-URL
-# iPad: https://macbook-pro-von-hans-werner.tail08de73.ts.net
+/Applications/Tailscale.app/Contents/MacOS/Tailscale serve status
 ```
 
-Remote (iPad) — Direct-Bind/IP (Fallback, braucht Server-Neustart):
-```
-pkill -f llama-server
-/Applications/Tailscale.app/Contents/MacOS/Tailscale serve reset
-LAB_BIND=tailscale bash scripts/launch_lab.command
-# iPad: http://100.89.16.112:8080
-```
-
-Modellwahl: bei „Server unavailable" / langsamem Laden im UI-Dropdown das
-leichteste Modell nehmen — `JetBrains/Mellum2-…-Q4_K_M:Q4_K_M`. Große Modelle
-(`Qwen3.6-27B`, `gemma-4-26B`) können beim On-demand-Laden hängen/OOM auslösen.
+Modellwahl: Qwen3.6 27B nur mit `--no-think` bzw. `enable_thinking=false` für
+RAG-Antworten; Mellum braucht `reasoning-budget` (in `models.ini` gesetzt);
+Gemma 4 26B (33 GB) nicht parallel zu Ollama laden.
 
 ---
 
 ## Wichtige Fakten / Referenzen
 
-- Repo: Branch `main` (von `master` umbenannt), mit `origin`-Remote.
-- Tailnet: `tail08de73.ts.net` (privat, Owner `hf9hsgw9th@`). **Vorher**
-  geschäftlich: `tail7f9148.ts.net` / `plan2-hw@dobben-united.de` — durch die
-  Account-Migration komplett neues Tailnet: Suffix, alle 100.x-IPs, Tags und
-  Policy sind neu bzw. leer.
-- Geräte (neu): `macbook-pro-von-hans-werner` (100.89.16.112), `ipad165`
-  (100.112.7.40), `iphone181` (100.106.12.65).
-- Tailscale-CLI-Pfad (macOS): `/Applications/Tailscale.app/Contents/MacOS/Tailscale`
-  (kein `tailscale` im PATH; ggf. Alias in `~/.zshrc`).
-- MagicDNS + HTTPS-Certificates: im neuen Tailnet aktiv (Serve lieferte gültiges
-  HTTPS-Cert auf Anhieb). Falls je „Serve not enabled" → einmal bestätigen, danach
-  läuft's.
-- Serve abschalten: `tailscale serve reset` (bzw. `tailscale serve --https=443 off`).
-- MCP-Server-Lebenscheck: `curl http://127.0.0.1:8787/mcp` → „Not Acceptable /
-  text/event-stream" bzw. 406 = läuft.
-- Router-Lebenscheck: `curl -sI http://127.0.0.1:8080/health` → 200.
+- Repo: Branch `main`, `origin`-Remote. Push per `git push` (bzw. `gh`).
+- Tailnet: `tail08de73.ts.net` (privat). Geräte: `macbook-pro-von-hans-werner`
+  (100.89.16.112), `ipad165` (100.112.7.40), `iphone181` (100.106.12.65).
+- Tailscale-CLI-Pfad (macOS): `/Applications/Tailscale.app/Contents/MacOS/Tailscale`.
+- Ports: Router 8080 · Lab-MCP 8787 · Kirby-MCP 8788 · RAG-Proxy 8090 · Ollama 11434.
+- Lebenschecks: `curl http://127.0.0.1:8787/mcp` → 406 = läuft;
+  `curl -sI http://127.0.0.1:8080/health` → 200; `curl -s http://127.0.0.1:11434/v1/models`.
+- Embedding-Modell: bge-m3 über Ollama (`/v1/embeddings`), 1.024 Dim.; Ollama
+  aktuelle Version (nicht mehr 0.11.11).
+- Modell-IDs im Router: `unsloth/Qwen3.6-27B-MTP-GGUF:Q4_K_XL`,
+  `jondale/Apertus-8B-Instruct-2509-GGUF:Q4_K_M`,
+  `JetBrains/Mellum2-12B-A2.5B-Thinking-GGUF-Q6_K:Q6_K`.
 
 ---
 
-## Betriebsnotizen / Stolpersteine (aus dieser Session)
+## Betriebsnotizen / Stolpersteine
 
-- **Account-Migration = neues Tailnet (2026-07-22):** Wechsel geschäftlich→privat
-  erzeugt ein frisches Tailnet — Suffix, alle Geräte-IPs, Tags und Policy sind
-  neu/leer. Vor Remote-Zugriff immer `tailscale status` (+ `serve status`) prüfen,
-  nicht auf notierte IPs verlassen. Serve aktiviert sich beim ersten `serve --bg`
-  im neuen Tailnet selbst („Serve is not enabled" → „Success").
-- **Bind-Wechsel-Falle**: läuft noch eine Instanz auf einer anderen Bind-Adresse
-  (localhost vs. Tailscale-IP), erst `pkill -f llama-server`, dann neu. Banner
-  `Bind:` prüfen.
-- **iPad-Safari** zickte (Private Relay/Cache) — Chrome ging. Bei Problemen die
-  `.ts.net`/IP-URL frisch eintippen, nicht aus dem Verlauf.
-- **`git mv`-Falle**: die Datei heißt `docs/RUNBOOK.md` (Großschreibung).
-- **origin-Remote**: Push ist eine bewusste Entscheidung. Falls das Remote
-  öffentlich ist — die ACL-Vorlage und diese Kontextdatei enthalten Tailnet-Name,
-  Gerätenamen und `100.x`-Tailscale-IPs. Das sind keine Passwörter/Secrets (die
-  IPs sind nur im Tailnet nutzbar), aber bewusst wahrnehmen.
-- **MCP-Server (`llama-server-lab`, stdio via Claude Desktop)** ging während der
-  Session mehrfach in Timeout, nachdem Prozesse neu gestartet wurden. Für
-  direkten Datei-/Git-Zugriff über Claude ggf. Claude Desktop neu starten;
-  sonst Datei-Handoff über `/mnt/user-data/outputs/`. Nach einem Neustart den
-  Scope-Pfad im Config-Eintrag prüfen (muss auf `…/llama-server` zeigen).
+- **PyCharm-Terminal startet im Repo-Root mit Projekt-venv.** retrieval-bench
+  hat ein eigenes venv → immer über `bash retrieval-bench/rb.command …`, nie
+  `python -m bench.run` direkt aus dem Root.
+- **Launcher nie überschreiben, während er läuft** (Bash liest Skripte
+  stückweise → Syntaxfehler am Ende des Laufs).
+- **llama-server liefert das Web-UI nur als gzip** und antwortet ohne
+  `Accept-Encoding: gzip` mit 415. Ein Reverse-Proxy muss den Header
+  durchreichen; httpx setzt ihn ungefragt selbst, wenn man ihn weglässt.
+  Nach einer kaputten Antwort hält der Browser-Cache die Seite fest → privates
+  Fenster oder `?v=2`.
+- **Thinking-Modelle:** ohne Budget/Schalter frisst die Denkphase das Token-
+  Limit, Antwort bleibt leer. `chat_template_kwargs.enable_thinking=false` wird
+  vom Router ausgewertet.
+- **Eval-Labels** nicht aus Retriever-Kandidaten vergeben — bevorteilt messbar
+  genau diesen Retriever. Seite zuerst, Frage danach.
+- **RRF mit k=60** macht aus Hybrid „Schnittmenge zuerst" — k 10–30 nehmen.
+- **Bind-Wechsel-Falle**: läuft noch eine Instanz auf einer anderen Bind-Adresse,
+  erst `pkill -f llama-server`, dann neu. Banner `Bind:` prüfen.
+- **MCP-Server (`llama-server-lab`, stdio via Claude Desktop)** geht nach
+  Prozess-Neustarts in Timeout; Claude Desktop neu starten.
+- **`write_file` über MCP** setzt kein Ausführungsbit → `chmod +x` für `.command`.
+- **origin-Remote**: Kontextdateien enthalten Tailnet-Name, Gerätenamen und
+  Tailscale-IPs — keine Secrets, aber bewusst wahrnehmen.
 
 ---
 
@@ -155,4 +148,5 @@ leichteste Modell nehmen — `JetBrains/Mellum2-…-Q4_K_M:Q4_K_M`. Große Model
 
 Reines Lab. Kein AskValentinAI-Code, keine echten Mandanten-/Kundendaten, nichts
 Produktives. Sobald ein Vorhaben das berührt → gehört ins AskValentinAI-Projekt,
-nicht hierher.
+nicht hierher. Der Henne-Korpus ist eine einmalige Kopie öffentlicher Katalogdaten
+eines stillgelegten Demo-Mandanten; keine Importpfade zurück ins AskValentinAI-Repo.
