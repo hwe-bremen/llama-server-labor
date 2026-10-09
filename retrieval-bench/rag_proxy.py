@@ -2,9 +2,10 @@
 
 Web-UI ueber den Proxy oeffnen (Standard http://127.0.0.1:8090) – alle Anfragen
 werden 1:1 an den Router weitergereicht; nur POST /v1/chat/completions wird
-abgefangen: letzte Nutzerfrage -> Hybrid-Retrieval -> Top-k-Chunks als
-System-Kontext -> Router. Antwort wird gestreamt durchgereicht, am Ende haengt
-der Proxy eine Quellenliste an. Jede Runde landet in results/chatlog_<datum>.jsonl.
+abgefangen: letzte Nutzerfrage (+ vorherige, s. RB_HISTORY_TURNS) -> Hybrid-
+Retrieval -> Top-k-Chunks als System-Kontext -> Router. Antwort wird gestreamt
+durchgereicht, am Ende haengt der Proxy eine Quellenliste an. Jede Runde landet
+in results/chatlog_<datum>.jsonl.
 
   python rag_proxy.py                      # avai-Chunking, hybrid, k=5
   RB_CHUNKING=lab RB_RETRIEVER=faiss RB_K=3 python rag_proxy.py
@@ -42,9 +43,16 @@ K = int(os.environ.get("RB_K", "5"))
 PER_URL = int(os.environ.get("RB_PER_URL", "1"))
 NO_THINK = os.environ.get("RB_NO_THINK", "1") == "1"
 APPEND_SOURCES = os.environ.get("RB_APPEND_SOURCES", "1") == "1"
+# Folgefragen ("Gibt es die auch in Rot?") tragen das Thema nicht selbst: fuer die SUCHE werden die
+# letzten N vorherigen Nutzerfragen mit angehaengt (0 = nur die aktuelle Frage). Das Modell sieht
+# weiterhin die unveraenderte Historie.
+HISTORY_TURNS = int(os.environ.get("RB_HISTORY_TURNS", "1"))
 
-HOP_HEADERS = {"connection", "keep-alive", "transfer-encoding", "content-length", "host",
-               "accept-encoding", "content-encoding"}
+# Durchreichen: Accept-Encoding des Browsers BEHALTEN – llama-server liefert sein Web-UI nur als gzip und
+# antwortet ohne "Accept-Encoding: gzip" mit 415. Die komprimierten Bytes gehen 1:1 samt Content-Encoding
+# an den Browser. Nur beim Chat-Endpunkt wird Accept-Encoding entfernt, damit JSON/SSE lesbar ankommen.
+REQ_HOP = {"connection", "keep-alive", "transfer-encoding", "content-length", "host"}
+RESP_HOP = {"connection", "keep-alive", "transfer-encoding", "content-length", "server", "date"}
 
 
 class Rag:
@@ -56,8 +64,8 @@ class Rag:
         vectors = self.embedder.embed_docs(self.docs)
         self.retriever = make_retriever(RETRIEVER, self.embedder)
         self.retriever.index(self.docs, vectors)
-        print(f"[rag] {len(self.docs)} Docs, Retriever {self.retriever.name}, k={K}, per_url={PER_URL}",
-              flush=True)
+        print(f"[rag] {len(self.docs)} Docs, Retriever {self.retriever.name}, k={K}, per_url={PER_URL}, "
+              f"history_turns={HISTORY_TURNS}", flush=True)
 
     def context(self, question: str) -> tuple[str, list[str]]:
         hits = self.retriever.search(question, 50)
@@ -73,14 +81,26 @@ RAG: Rag | None = None
 CLIENT = httpx.Client(base_url=ROUTER, timeout=httpx.Timeout(900.0, connect=10.0))
 
 
-def last_user_text(messages: list[dict]) -> str:
-    for m in reversed(messages):
-        if m.get("role") == "user":
-            c = m.get("content")
-            if isinstance(c, list):  # multimodal-Format
-                return " ".join(p.get("text", "") for p in c if isinstance(p, dict))
-            return c or ""
-    return ""
+def _text(m: dict) -> str:
+    c = m.get("content")
+    if isinstance(c, list):  # multimodal-Format
+        return " ".join(p.get("text", "") for p in c if isinstance(p, dict))
+    return c or ""
+
+
+def user_texts(messages: list[dict]) -> list[str]:
+    return [_text(m).strip() for m in messages if m.get("role") == "user" and _text(m).strip()]
+
+
+def retrieval_query(messages: list[dict], history_turns: int = HISTORY_TURNS) -> tuple[str, str]:
+    """(aktuelle Frage, Suchanfrage). Die Suchanfrage haengt bis zu history_turns vorherige
+    Nutzerfragen VOR die aktuelle – die aktuelle steht am Ende und bleibt damit gewichtet."""
+    texts = user_texts(messages)
+    if not texts:
+        return "", ""
+    current = texts[-1]
+    prev = texts[max(0, len(texts) - 1 - history_turns):-1] if history_turns > 0 else []
+    return current, " ".join(prev + [current])
 
 
 def log_round(entry: dict):
@@ -98,12 +118,12 @@ class Handler(BaseHTTPRequestHandler):
 
     # -- generisches Durchreichen ------------------------------------------
     def _forward(self, body: bytes | None):
-        headers = {k: v for k, v in self.headers.items() if k.lower() not in HOP_HEADERS}
+        headers = {k: v for k, v in self.headers.items() if k.lower() not in REQ_HOP}
         try:
             with CLIENT.stream(self.command, self.path, headers=headers, content=body) as r:
                 self.send_response(r.status_code)
                 for k, v in r.headers.items():
-                    if k.lower() not in HOP_HEADERS:
+                    if k.lower() not in RESP_HOP:
                         self.send_header(k, v)
                 self.end_headers()
                 for chunk in r.iter_raw():
@@ -113,6 +133,9 @@ class Handler(BaseHTTPRequestHandler):
             self.send_error(502, f"Router nicht erreichbar: {e}")
 
     def do_GET(self):
+        self._forward(None)
+
+    def do_HEAD(self):
         self._forward(None)
 
     def do_OPTIONS(self):
@@ -135,9 +158,9 @@ class Handler(BaseHTTPRequestHandler):
         except json.JSONDecodeError:
             return self._forward(body)
         messages = payload.get("messages") or []
-        question = last_user_text(messages).strip()
+        question, query = retrieval_query(messages)
         t0 = time.perf_counter()
-        sources_block, urls = RAG.context(question) if question else ("", [])
+        sources_block, urls = RAG.context(query) if query else ("", [])
         t_retrieval = time.perf_counter() - t0
 
         system = SYSTEM_PROMPT + "\n\n" + sources_block
@@ -147,8 +170,9 @@ class Handler(BaseHTTPRequestHandler):
         if NO_THINK:
             payload.setdefault("chat_template_kwargs", {})["enable_thinking"] = False
         stream = bool(payload.get("stream"))
-        headers = {k: v for k, v in self.headers.items() if k.lower() not in HOP_HEADERS}
+        headers = {k: v for k, v in self.headers.items() if k.lower() not in REQ_HOP | {"accept-encoding"}}
         headers["Content-Type"] = "application/json"
+        headers["Accept-Encoding"] = "identity"  # sonst setzt httpx selbst gzip und das JSON kaeme komprimiert
         data = json.dumps(payload).encode("utf-8")
 
         answer_parts: list[str] = []
@@ -160,7 +184,7 @@ class Handler(BaseHTTPRequestHandler):
             with CLIENT.stream("POST", "/v1/chat/completions", headers=headers, content=data) as r:
                 self.send_response(r.status_code)
                 for k, v in r.headers.items():
-                    if k.lower() not in HOP_HEADERS:
+                    if k.lower() not in RESP_HOP:
                         self.send_header(k, v)
                 self.end_headers()
                 if not stream:
@@ -209,6 +233,7 @@ class Handler(BaseHTTPRequestHandler):
             answer = "".join(answer_parts)
             answer = re.sub(r"<think>.*?</think>\s*", "", answer, flags=re.S)
             log_round({"ts": datetime.now().isoformat(timespec="seconds"), "question": question,
+                       "retrieval_query": query if query != question else None,
                        "chunking": CHUNKING, "retriever": RAG.retriever.name, "k": K,
                        "context_urls": urls, "retrieval_s": round(t_retrieval, 3),
                        "model": payload.get("model"), "answer": answer.strip(),
