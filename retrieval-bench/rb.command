@@ -5,6 +5,8 @@
 #   bash retrieval-bench/rb.command run lab avai          # Benchmark fuer ein oder mehrere Chunkings
 #   bash retrieval-bench/rb.command compare               # juengste Ergebnisse aufschluesseln
 #   bash retrieval-bench/rb.command inspect               # Korpus-Bestandsaufnahme
+#   bash retrieval-bench/rb.command answer lab --model "<id>" [--retriever faiss hybrid_faiss] [--questions q01 q06]
+#                                                         # Antwortstufe: Top-k an lokales LLM (Router :8080)
 #   bash retrieval-bench/rb.command shell                 # Subshell mit aktivem venv im richtigen Ordner
 #
 # Retriever/Optionen fuer 'run' per Umgebungsvariable:
@@ -45,6 +47,18 @@ case "$cmd" in
         --repeat "$REPEAT" --per-url "$PER_URL" $EXTRA
     done
     ;;
+  answer)
+    [[ $# -gt 0 ]] || { echo "answer braucht Chunking (lab|avai) und --model <id> [...]" >&2; exit 1; }
+    c="$1"; shift
+    if ! curl -sf "${RB_EMBED_BASE_URL}/models" >/dev/null 2>&1; then
+      echo "Embedding-Endpunkt ${RB_EMBED_BASE_URL} antwortet nicht – laeuft Ollama?" >&2; exit 1
+    fi
+    LLM="${RB_LLM_BASE_URL:-http://127.0.0.1:8080/v1}"
+    if ! curl -sf "${LLM}/models" >/dev/null 2>&1; then
+      echo "LLM-Endpunkt ${LLM} antwortet nicht – laeuft der Router (scripts/launch_lab.command)?" >&2; exit 1
+    fi
+    python -m bench.answer --chunking "$c" --per-url "$PER_URL" "$@"
+    ;;
   shell)   exec "${SHELL:-bash}" -i ;;
-  *)       sed -n '2,13p' "$0" ;;
+  *)       sed -n '2,15p' "$0" ;;
 esac
