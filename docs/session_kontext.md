@@ -3,9 +3,14 @@
 Wiedereinstiegspunkt: Wo stehen wir, was ist offen, wie kommt man rein.
 Ergänzt `docs/RUNBOOK.md` (Bedienung) um den *Stand* und die *nächsten Schritte*.
 
-Letzte Session: 2026-10-09 · Branch `main`. **retrieval-bench abgeschlossen bis
-zum Chat-Test:** Retrieval-Benchmark (FAISS/Qdrant/BM25/Hybrid), Antwortstufe mit
-Qwen3.6 und Apertus, RAG-Proxy vor dem Router für echte Chats im Web-UI. Details:
+Letzte Session: 2026-10-11 · Branch `main`. **Neues Nachbar-Repo `local-memory`**
+(`~/PycharmProjects/local-memory`, eigenes Git ohne Remote): lokales, modellunabhängiges
+Langzeitgedächtnis für lokale LLMs — bewusst getrennt vom Lab-Repo, teilt nur den
+Router. Erster Abend: fünf Grundfälle mit Qwen3.6 bestanden. Notiz im Claude-Projekt
+`local-memory-notizen.md`, Bedienung im README dort.
+Davor (2026-10-09): **retrieval-bench abgeschlossen bis zum Chat-Test:**
+Retrieval-Benchmark (FAISS/Qdrant/BM25/Hybrid), Antwortstufe mit Qwen3.6 und Apertus,
+RAG-Proxy vor dem Router für echte Chats im Web-UI. Details:
 `docs/runbook-retrieval-bench.md` und Projekt-Notiz `retrieval-bench-notizen.md`.
 Davor (2026-09-24): Kirby-MCP als zweite MCP-Instanz, `docs/runbook-mcp-kirby.md`.
 
@@ -13,6 +18,11 @@ Davor (2026-09-24): Kirby-MCP als zweite MCP-Instanz, `docs/runbook-mcp-kirby.md
 
 ## Wo wir stehen (erledigt & committet)
 
+- **local-memory** (Nachbar-Repo, nicht hier): Proxy :8091 vor dem Router mit
+  Gedächtnis-Kontext (`memory/*.md`, profile/preferences immer, Rest per Hybrid-
+  Retrieval), `memorize` destilliert Fakten aus Chatlog zu `append`/`replace`/`delete`-
+  Ops (Trockenlauf Standard, Git-Snapshot vor `--apply`). Retrieval-Module aus
+  retrieval-bench **kopiert**, nicht importiert.
 - **retrieval-bench** (`retrieval-bench/`, eigenes venv, Launcher `rb.command`):
   - Korpus: Henne-Katalogdaten (öffentlich, stillgelegter Demo-Mandant), einmalig
     kopiert; Referenz-DB mit AskValentinAI-Chunks nur lesend, URLs mit `---`
@@ -66,6 +76,9 @@ Davor (2026-09-24): Kirby-MCP als zweite MCP-Instanz, `docs/runbook-mcp-kirby.md
    Priorität niedrig). SSH-Entscheidung vor Entfernen der owner-Regel.
 5. **Mac Mini (Büro)** als Server/Client einbinden; Rolle noch offen.
    Für retrieval-bench dort: Referenz-DB von Hand kopieren (nicht im Git).
+6. **local-memory** (im Nachbar-Repo): Apertus 8B als Extraktionsmodell testen;
+   ~10 echte Gespräche über den Proxy, dann Streichquote in `memory/` zählen;
+   Konfliktfälle (Widerspruch im Chat, Personen). Siehe Projekt-Notiz.
 
 ---
 
@@ -87,6 +100,13 @@ RB_PER_URL=1 bash retrieval-bench/rb.command answer avai \
 RB_PER_URL=1 bash retrieval-bench/rb.command proxy          # Chat: http://127.0.0.1:8090
 ```
 
+local-memory (Nachbar-Repo; Ollama + Router müssen laufen):
+```
+bash ~/PycharmProjects/local-memory/lm.command test         # Pipeline ohne Modell
+bash ~/PycharmProjects/local-memory/lm.command proxy        # Chat mit Gedächtnis: http://127.0.0.1:8091
+bash ~/PycharmProjects/local-memory/lm.command memorize     # Trockenlauf über neue Chat-Runden
+```
+
 Remote (iPad) — Serve/HTTPS:
 ```
 /Applications/Tailscale.app/Contents/MacOS/Tailscale serve --bg 8080
@@ -105,7 +125,8 @@ Gemma 4 26B (33 GB) nicht parallel zu Ollama laden.
 - Tailnet: `tail08de73.ts.net` (privat). Geräte: `macbook-pro-von-hans-werner`
   (100.89.16.112), `ipad165` (100.112.7.40), `iphone181` (100.106.12.65).
 - Tailscale-CLI-Pfad (macOS): `/Applications/Tailscale.app/Contents/MacOS/Tailscale`.
-- Ports: Router 8080 · Lab-MCP 8787 · Kirby-MCP 8788 · RAG-Proxy 8090 · Ollama 11434.
+- Ports: Router 8080 · Lab-MCP 8787 · Kirby-MCP 8788 · RAG-Proxy 8090 ·
+  Gedächtnis-Proxy 8091 (local-memory) · Ollama 11434.
 - Lebenschecks: `curl http://127.0.0.1:8787/mcp` → 406 = läuft;
   `curl -sI http://127.0.0.1:8080/health` → 200; `curl -s http://127.0.0.1:11434/v1/models`.
 - Embedding-Modell: bge-m3 über Ollama (`/v1/embeddings`), 1.024 Dim.; Ollama
@@ -120,7 +141,8 @@ Gemma 4 26B (33 GB) nicht parallel zu Ollama laden.
 
 - **PyCharm-Terminal startet im Repo-Root mit Projekt-venv.** retrieval-bench
   hat ein eigenes venv → immer über `bash retrieval-bench/rb.command …`, nie
-  `python -m bench.run` direkt aus dem Root.
+  `python -m bench.run` direkt aus dem Root. Gleiches gilt für `lm.command` im
+  Nachbar-Repo — der Launcher wechselt selbst ins richtige Verzeichnis.
 - **Launcher nie überschreiben, während er läuft** (Bash liest Skripte
   stückweise → Syntaxfehler am Ende des Laufs).
 - **llama-server liefert das Web-UI nur als gzip** und antwortet ohne
@@ -150,3 +172,5 @@ Reines Lab. Kein AskValentinAI-Code, keine echten Mandanten-/Kundendaten, nichts
 Produktives. Sobald ein Vorhaben das berührt → gehört ins AskValentinAI-Projekt,
 nicht hierher. Der Henne-Korpus ist eine einmalige Kopie öffentlicher Katalogdaten
 eines stillgelegten Demo-Mandanten; keine Importpfade zurück ins AskValentinAI-Repo.
+`local-memory` enthält private Fakten über Hawe und bleibt deshalb ein lokales Repo
+ohne Remote — getrennt vom Lab-Repo, kein gemeinsamer Zustand.
