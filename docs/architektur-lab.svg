@@ -1,0 +1,195 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="900" viewBox="0 0 1280 900" font-family="-apple-system, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arr" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#555"/>
+    </marker>
+    <marker id="arr-g" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#2e7d32"/>
+    </marker>
+    <marker id="arr-o" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#e65100"/>
+    </marker>
+    <style>
+      .t  { font-size: 14px; fill: #222; }
+      .ts { font-size: 12px; fill: #555; }
+      .tb { font-size: 15px; font-weight: 600; fill: #222; }
+      .h  { font-size: 22px; font-weight: 700; fill: #222; }
+      .sub{ font-size: 13px; fill: #666; }
+      .port { font-size: 13px; font-weight: 700; fill: #fff; }
+      .box { rx: 10; ry: 10; stroke-width: 1.5; }
+      .edge { fill: none; stroke: #555; stroke-width: 1.8; marker-end: url(#arr); }
+      .edge-g { fill: none; stroke: #2e7d32; stroke-width: 1.8; marker-end: url(#arr-g); }
+      .edge-o { fill: none; stroke: #e65100; stroke-width: 1.8; marker-end: url(#arr-o); }
+      .edge-d { stroke-dasharray: 6 5; }
+      .lbl { font-size: 11.5px; fill: #444; }
+    </style>
+  </defs>
+
+  <rect width="1280" height="900" fill="#fafafa"/>
+  <text x="40" y="44" class="h">Lab-Architektur — Module, Ports, Abhängigkeiten</text>
+  <text x="40" y="66" class="sub">MacBook Pro M4 (zuhause). Pfeile = „ruft auf / sendet an". Durchgezogen = Laufzeit, gestrichelt = Start durch Launcher. Stand 12.10.2026</text>
+
+  <!-- Spaltenüberschriften -->
+  <text x="40"  y="110" class="tb" fill="#666">CLIENTS</text>
+  <text x="330" y="110" class="tb" fill="#666">ZUGANG (Proxys)</text>
+  <text x="760" y="110" class="tb" fill="#666">KERNDIENSTE (nur 127.0.0.1)</text>
+
+  <!-- ===== CLIENTS ===== -->
+  <rect x="40" y="130" width="230" height="96" class="box" fill="#fff" stroke="#999"/>
+  <text x="56" y="156" class="tb">MacBook: Browser · OpenCode</text>
+  <text x="56" y="176" class="ts">Browser → :8080 / :8090 / :8091</text>
+  <text x="56" y="194" class="ts">OpenCode (opencode.json) →</text>
+  <text x="56" y="212" class="ts">:8091/v1 (Gedächtnis) oder :8080/v1</text>
+
+  <rect x="40" y="250" width="230" height="96" class="box" fill="#fff" stroke="#999"/>
+  <text x="56" y="276" class="tb">iPad · iPhone · Mac mini (Büro)</text>
+  <text x="56" y="296" class="ts">Browser oder OpenCode am Mini:</text>
+  <text x="56" y="314" class="ts">https://macbook-pro-….ts.net[/v1]</text>
+  <text x="56" y="332" class="ts">Tailnet-only (kein Funnel)</text>
+
+  <rect x="40" y="390" width="230" height="78" class="box" fill="#fff" stroke="#999"/>
+  <text x="56" y="416" class="tb">Claude Desktop</text>
+  <text x="56" y="436" class="ts">Lab-MCP per stdio (Dateien lesen/</text>
+  <text x="56" y="454" class="ts">schreiben im Repo-Scope, keine Shell)</text>
+
+  <!-- ===== ZUGANG ===== -->
+  <!-- Tailscale Serve -->
+  <rect x="330" y="250" width="200" height="96" class="box" fill="#eef3ff" stroke="#3f51b5"/>
+  <text x="346" y="276" class="tb">Tailscale Serve</text>
+  <text x="346" y="296" class="ts">HTTPS :443 → localhost-Port</text>
+  <text x="346" y="314" class="ts">Ziel 8080 (ohne) oder</text>
+  <text x="346" y="332" class="ts">8091 (mit Gedächtnis, LAB_MEMORY=1)</text>
+
+  <!-- RAG-Proxy Henne -->
+  <rect x="330" y="400" width="380" height="120" class="box" fill="#fff3e0" stroke="#e65100"/>
+  <rect x="330" y="400" width="64" height="26" rx="10" fill="#e65100"/>
+  <text x="340" y="419" class="port">8090</text>
+  <text x="408" y="419" class="tb">RAG-Proxy Henne</text>
+  <text x="346" y="446" class="ts">retrieval-bench/rag_proxy.py — Korpus: Henne-Katalog</text>
+  <text x="346" y="464" class="ts">Hybrid-Retrieval (FAISS + BM25) → Quellen in System-Prompt</text>
+  <text x="346" y="482" class="ts">Antwort + Quellenliste · Chatlog · Experiment mit Ende</text>
+  <text x="346" y="506" class="lbl" fill="#e65100">Repo: llama-server/retrieval-bench · rb.command</text>
+
+  <!-- Gedächtnis-Proxy -->
+  <rect x="330" y="560" width="380" height="150" class="box" fill="#e8f5e9" stroke="#2e7d32"/>
+  <rect x="330" y="560" width="64" height="26" rx="10" fill="#2e7d32"/>
+  <text x="340" y="579" class="port">8091</text>
+  <text x="408" y="579" class="tb">Gedächtnis-Proxy</text>
+  <text x="346" y="606" class="ts">local-memory/lm/proxy.py — profile + preferences immer,</text>
+  <text x="346" y="624" class="ts">Top-3 Abschnitte per Hybrid-Retrieval → System-Prompt</text>
+  <text x="346" y="642" class="ts">Chatlog → results/ → memorize (Fakten → memory/*.md)</text>
+  <text x="346" y="660" class="ts">Client-Prompt bleibt (OpenCode), Gedächtnis wird angehängt</text>
+  <text x="346" y="678" class="ts">Nur Nutzer-Runden über 8091 landen im Chatlog.</text>
+  <text x="346" y="696" class="lbl" fill="#2e7d32">Repo: ~/PycharmProjects/local-memory (lokal, kein Remote)</text>
+
+  <!-- memory files -->
+  <rect x="330" y="740" width="380" height="64" class="box" fill="#fff" stroke="#2e7d32" stroke-dasharray="4 3"/>
+  <text x="346" y="764" class="tb">memory/*.md  (das Gedächtnis selbst)</text>
+  <text x="346" y="784" class="ts">Klartext, [stated]-Zeilen, Git = Rollback · modellunabhängig</text>
+
+  <!-- ===== KERNDIENSTE ===== -->
+  <!-- Router -->
+  <rect x="760" y="130" width="470" height="150" class="box" fill="#e3f2fd" stroke="#1565c0"/>
+  <rect x="760" y="130" width="64" height="26" rx="10" fill="#1565c0"/>
+  <text x="770" y="149" class="port">8080</text>
+  <text x="838" y="149" class="tb">llama-server Router (+ Web-UI)</text>
+  <text x="776" y="176" class="ts">config/models.ini · lädt Modelle on-demand (max. 2 gleichzeitig)</text>
+  <text x="776" y="194" class="ts">Qwen3.6 27B (Chat, no-think) · Apertus 8B · Mellum2 · Gemma 4</text>
+  <text x="776" y="212" class="ts">OpenAI-API /v1/chat/completions · --ui-mcp-proxy für MCP-Server</text>
+  <text x="776" y="230" class="ts">Keine eigene Auth → nur localhost; Exposition nur über Serve</text>
+  <text x="776" y="262" class="lbl" fill="#1565c0">Kontrollgruppe: Chat auf 8080 = Modell ohne Zusatzwissen</text>
+
+  <!-- Ollama -->
+  <rect x="760" y="320" width="220" height="92" class="box" fill="#f3e5f5" stroke="#6a1b9a"/>
+  <rect x="760" y="320" width="74" height="26" rx="10" fill="#6a1b9a"/>
+  <text x="770" y="339" class="port">11434</text>
+  <text x="846" y="339" class="tb">Ollama</text>
+  <text x="776" y="366" class="ts">bge-m3 Embeddings (1024 Dim.)</text>
+  <text x="776" y="384" class="ts">/v1/embeddings — für beide Proxys</text>
+  <text x="776" y="402" class="ts">und für memorize/recall</text>
+
+  <!-- Lab-MCP -->
+  <rect x="1010" y="320" width="180" height="92" class="box" fill="#fffde7" stroke="#f9a825"/>
+  <rect x="1010" y="320" width="64" height="26" rx="10" fill="#f9a825"/>
+  <text x="1020" y="339" class="port">8787</text>
+  <text x="1084" y="339" class="tb">Lab-MCP</text>
+  <text x="1026" y="366" class="ts">lab_mcp_server.py</text>
+  <text x="1026" y="384" class="ts">für Web-UI + Claude Desktop</text>
+  <text x="1026" y="402" class="ts">read-only, Scope-Guard</text>
+
+  <!-- Kirby-MCP -->
+  <rect x="1010" y="440" width="180" height="70" class="box" fill="#fff" stroke="#bbb" stroke-dasharray="4 3"/>
+  <rect x="1010" y="440" width="64" height="26" rx="10" fill="#9e9e9e"/>
+  <text x="1020" y="459" class="port">8788</text>
+  <text x="1084" y="459" class="tb" fill="#777">Kirby-MCP</text>
+  <text x="1026" y="486" class="ts">optional; in UI eingetragen,</text>
+  <text x="1026" y="502" class="ts">aber aus → Log-Fehler, harmlos</text>
+
+  <!-- ===== LAUNCHER ===== -->
+  <text x="760" y="560" class="tb" fill="#666">LAUNCHER (was startet was)</text>
+  <rect x="760" y="580" width="470" height="224" class="box" fill="#fff" stroke="#999"/>
+  <text x="776" y="606" class="tb">scripts/launch_lab.command</text>
+  <text x="776" y="624" class="ts">→ Lab-MCP 8787 + Router 8080 (lokal). Optionen:</text>
+  <text x="790" y="642" class="ts">LAB_BIND=serve → + Tailscale Serve · LAB_MEMORY=1 → + Gedächtnis-Proxy 8091</text>
+  <text x="776" y="670" class="tb">scripts/launch_lab_remote.command  (Büro-Tag, Doppelklick)</text>
+  <text x="776" y="688" class="ts">= launch_lab + Serve → 8091 + Serve bleibt + caffeinate (kein Ruhezustand)</text>
+  <text x="776" y="716" class="tb">retrieval-bench/rb.command proxy</text>
+  <text x="776" y="734" class="ts">→ RAG-Proxy Henne 8090 (braucht Router + Ollama)</text>
+  <text x="776" y="762" class="tb">local-memory/lm.command proxy | memorize | recall</text>
+  <text x="776" y="780" class="ts">→ Gedächtnis-Proxy 8091 bzw. Schreib-/Leseseite (braucht Router + Ollama)</text>
+
+  <!-- Ollama starten -->
+  <text x="776" y="836" class="ts" fill="#6a1b9a">Ollama läuft als eigener Dienst (Menüleiste / ollama serve) — kein Launcher startet es.</text>
+
+  <!-- ===== EDGES ===== -->
+  <!-- Browser -> Router -->
+  <path class="edge" d="M270,150 C 500,150 600,165 760,165"/>
+  <!-- Browser -> 8090 -->
+  <path class="edge-o" d="M270,185 C 304,185 304,430 330,430"/>
+  <!-- Browser -> 8091 -->
+  <path class="edge-g" d="M270,205 C 290,205 290,585 330,590"/>
+  <!-- Remote -> Serve -->
+  <path class="edge" d="M270,298 L330,298"/>
+  <!-- Serve -> Router -->
+  <path class="edge" d="M530,270 C 640,270 680,200 760,200"/>
+  <text x="590" y="258" class="lbl">Ziel 8080 (ohne Gedächtnis)</text>
+  <!-- Serve -> 8091 -->
+  <path class="edge-g" d="M345,346 C 318,370 318,590 330,612"/>
+  <text x="352" y="372" class="lbl" fill="#2e7d32">Ziel 8091 (LAB_MEMORY=1)</text>
+  <!-- Claude Desktop -> Lab-MCP (stdio) -->
+  <path class="edge edge-d" d="M270,440 C 300,440 300,538 330,538 L 1235,538 C 1250,538 1250,530 1250,366 L 1192,366"/>
+  <text x="745" y="532" class="lbl">stdio (eigener Prozess, kein Port)</text>
+  <!-- 8090 -> Router -->
+  <path class="edge-o" d="M710,440 C 740,440 740,240 760,240"/>
+  <!-- 8090 -> Ollama -->
+  <path class="edge-o" d="M710,470 C 735,470 740,380 760,380"/>
+  <!-- 8091 -> Router -->
+  <path class="edge-g" d="M710,600 C 745,600 748,250 760,250"/>
+  <!-- 8091 -> Ollama -->
+  <path class="edge-g" d="M710,630 C 745,630 748,398 760,398"/>
+  <!-- 8091 <-> memory -->
+  <path class="edge-g" d="M520,740 L520,712"/>
+  <text x="530" y="730" class="lbl" fill="#2e7d32">liest (Proxy) · schreibt (memorize)</text>
+  <!-- Router -> Lab-MCP (ui-mcp-proxy) -->
+  <path class="edge" d="M1120,280 L1120,320"/>
+  <text x="1128" y="305" class="lbl">UI-MCP-Proxy</text>
+  <!-- Router -> Kirby -->
+  <path class="edge edge-d" d="M1205,280 L1205,475 L1192,475"/>
+
+  <!-- Legende -->
+  <rect x="40" y="520" width="230" height="140" class="box" fill="#fff" stroke="#ddd"/>
+  <text x="56" y="544" class="tb">Legende</text>
+  <rect x="56" y="556" width="14" height="14" fill="#e3f2fd" stroke="#1565c0"/><text x="78" y="568" class="ts">llama-server (Lab-Repo)</text>
+  <rect x="56" y="578" width="14" height="14" fill="#fff3e0" stroke="#e65100"/><text x="78" y="590" class="ts">retrieval-bench (im Lab-Repo)</text>
+  <rect x="56" y="600" width="14" height="14" fill="#e8f5e9" stroke="#2e7d32"/><text x="78" y="612" class="ts">local-memory (eigenes Repo)</text>
+  <rect x="56" y="622" width="14" height="14" fill="#f3e5f5" stroke="#6a1b9a"/><text x="78" y="634" class="ts">Ollama (extern)</text>
+  <rect x="56" y="644" width="14" height="14" fill="#eef3ff" stroke="#3f51b5"/><text x="78" y="656" class="ts">Tailscale (extern)</text>
+
+  <!-- Merksatz -->
+  <rect x="40" y="690" width="230" height="114" class="box" fill="#fff8e1" stroke="#f9a825"/>
+  <text x="56" y="714" class="tb">Merksätze</text>
+  <text x="56" y="736" class="ts">8080 = Modell pur (Kontrollgruppe)</text>
+  <text x="56" y="754" class="ts">8090 = Henne-Wissen</text>
+  <text x="56" y="772" class="ts">8091 = dein Gedächtnis</text>
+  <text x="56" y="790" class="ts">Remote nur über Serve, nie Direct-Bind</text>
+</svg>
