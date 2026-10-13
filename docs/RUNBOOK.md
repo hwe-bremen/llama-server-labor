@@ -427,6 +427,13 @@ python3 scripts/toolcheck.py        # Diagnose-Proxy 8089 → 8080: Tool-Schemas
   VPN am Gerät prüfen. (iPad-Safari war so ein Fall; Chrome ging.)
 - **MCP-Server-Check:** `curl http://127.0.0.1:8787/mcp` → Antwort
   „Not Acceptable / text/event-stream" (bzw. HTTP 406) heißt: der Server lauscht.
+- **Trotz `write` keine Schreib-Tools in der Web-UI** (Modell nennt nur list/read/search/git_*):
+  erst prüfen, was wirklich läuft —
+  `PID=$(lsof -ti :8787 -sTCP:LISTEN); ps eww -p $PID | tr ' ' '\n' | grep MCP_READONLY`.
+  `=1` → alter Read-only-Server blockiert den Port: `kill $PID`, Launcher mit `write` neu starten
+  (Fenster 1 muss `READONLY : 0` zeigen, nicht „MCP-Server laeuft bereits").
+  `=0` → die Web-UI zeigt eine gecachte Tool-Liste: MCP-Eintrag 8787 aus/an (oder neu anlegen,
+  Proxy-Toggle per Stift wieder an), Seite neu laden, **neuen Chat** beginnen.
 - **Tailnet-Verbindung prüfen:** `tailscale status` (Geräte + Account),
   `tailscale ping <gerät>` (reine Peer-Verbindung, unabhängig vom Port).
 - **`command not found: tailscale`:** vollen Pfad nutzen oder den zsh-Alias setzen.
