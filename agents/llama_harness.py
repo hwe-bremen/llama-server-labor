@@ -7,9 +7,13 @@ Die eigentliche Logik lebt in core/mcp_agent.py (auch von anderen Agenten
 nutzbar).
 
 Konfiguration ueber Env:
-  LLAMA_BASE_URL     (Default http://localhost:8080/v1)
+  LLAMA_BASE_URL     feste Endpoint-URL (schlaegt die Gedaechtnis-Automatik)
+  HARNESS_MEMORY     1 (Default) = ueber den Gedaechtnis-Proxy :8091, falls erreichbar;
+                     0 = direkt an den Router :8080 (ohne Gedaechtnis)
+  HARNESS_MEMORY_URL (Default http://127.0.0.1:8091/v1)
   HARNESS_MODEL      exakte Modell-ID; leer/local -> Auto-Discovery
-  HARNESS_MODEL_HINT bevorzugtes Modell bei Auto-Wahl (Default Mellum)
+  HARNESS_MODEL_HINT bevorzugtes Modell bei Auto-Wahl (Default: Qwen mit Gedaechtnis,
+                     Mellum ohne – Mellum las den Gedaechtniskontext im Test 12.10. falsch)
   HARNESS_MAX_STEPS  (Default 8)
   HARNESS_READONLY=1 nur lesende Tools
   HARNESS_SYSTEM_PROMPT       eigener Systemprompt (ersetzt den Default)
@@ -25,7 +29,8 @@ Hintergrund zum Systemprompt (Befund 23.09.2026):
   oder schaedlich -> hier pro Lauf umschaltbar, statt global fest.
 
 Voraussetzung:
-  - llama-server (Router) auf 8080 MIT --jinja
+  - llama-server (Router) auf 8080 MIT --jinja; fuers Gedaechtnis zusaetzlich der
+    Proxy aus ~/PycharmProjects/local-memory (laeuft mit launch_lab_remote.command)
   - mcp-server/.venv existiert (mcp-server/setup.sh)
   - im Ausfuehrungs-venv: pip install openai mcp
 
@@ -76,6 +81,33 @@ def _git_clean_hint() -> None:
         print(f"Git-Check uebersprungen: {e}")
 
 
+MEMORY_URL_DEFAULT = "http://127.0.0.1:8091/v1"
+
+
+def _resolve_endpoint() -> tuple[str, bool, str]:
+    """Endpoint waehlen: explizite URL > Gedaechtnis-Proxy (falls erreichbar) > Router.
+
+    Rueckgabe: (base_url, gedaechtnis_aktiv, klartext_label_fuers_log).
+    Der Proxy haengt das Gedaechtnis an den System-Prompt des Harness an (merge-Modus)
+    und reicht Tools unveraendert durch; geloggt wird nur die Aufgabe, nicht die Tool-Schritte.
+    """
+    explicit = os.environ.get("LLAMA_BASE_URL")
+    if explicit:
+        return explicit, explicit.rstrip("/").endswith(":8091/v1"), "explizit (LLAMA_BASE_URL)"
+    if os.environ.get("HARNESS_MEMORY", "1") == "0":
+        return DEFAULT_BASE_URL, False, "aus (HARNESS_MEMORY=0)"
+    mem = os.environ.get("HARNESS_MEMORY_URL", MEMORY_URL_DEFAULT)
+    status = mem.rstrip("/").removesuffix("/v1") + "/lm/status"
+    try:
+        import urllib.request
+        with urllib.request.urlopen(status, timeout=2) as r:
+            if r.status == 200:
+                return mem, True, "an (Gedaechtnis-Proxy)"
+    except Exception:
+        pass
+    return DEFAULT_BASE_URL, False, "Proxy nicht erreichbar -> ohne Gedaechtnis"
+
+
 def _system_prompt_from_env() -> tuple[str | None, str]:
     """Systemprompt-Modus aus Env ableiten.
 
@@ -93,18 +125,20 @@ def _system_prompt_from_env() -> tuple[str | None, str]:
 
 def main() -> None:
     task = " ".join(sys.argv[1:]).strip() or DEFAULT_TASK
-    base_url = os.environ.get("LLAMA_BASE_URL", DEFAULT_BASE_URL)
+    base_url, memory_on, memory_label = _resolve_endpoint()
+    model_hint = os.environ.get("HARNESS_MODEL_HINT") or ("Qwen" if memory_on else "Mellum")
     system_prompt, prompt_label = _system_prompt_from_env()
     agent = MCPAgent(
         scope_root=PROJECT_ROOT,
         base_url=base_url,
         model=os.environ.get("HARNESS_MODEL") or None,
-        model_hint=os.environ.get("HARNESS_MODEL_HINT", "Mellum"),
+        model_hint=model_hint,
         max_steps=int(os.environ.get("HARNESS_MAX_STEPS", "8")),
         readonly=os.environ.get("HARNESS_READONLY", "0") == "1",
         system_prompt=system_prompt,
     )
     print(f"Modell-Endpoint: {base_url}")
+    print(f"Gedaechtnis    : {memory_label}")
     print(f"Scope-Root     : {PROJECT_ROOT}")
     print(f"Systemprompt   : {prompt_label}")
     _git_clean_hint()
