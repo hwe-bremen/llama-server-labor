@@ -232,6 +232,7 @@ class MCPAgent:
         if self.system_prompt and not any(m.get("role") == "system" for m in messages):
             messages.insert(0, {"role": "system", "content": self.system_prompt})
         messages.append({"role": "user", "content": task})
+        said: list[str] = []   # Text, den das Modell neben Tool-Calls schreibt (sonst verloren)
         for step in range(self.max_steps):
             kwargs = dict(
                 model=self._resolved_model,
@@ -260,7 +261,9 @@ class MCPAgent:
             if not msg.tool_calls:
                 if keep_history:
                     messages.append({"role": "assistant", "content": msg.content or ""})
-                return msg.content or ""
+                return "\n\n".join(said + [msg.content or ""]).strip()
+            if (msg.content or "").strip():
+                said.append(msg.content.strip())
             messages.append(
                 {
                     "role": "assistant",
