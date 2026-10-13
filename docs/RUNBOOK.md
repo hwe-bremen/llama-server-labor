@@ -220,21 +220,32 @@ private Fakten). Zwei Hälften:
 ```bash
 LM=~/PycharmProjects/local-memory/lm.command
 bash $LM test                       # Pipeline-Test ohne Modell (muss OK melden)
-bash $LM status                     # Dateien und Zeilen
+bash $LM status                     # Dateien, offene Vorschläge, Nachtlauf
 bash $LM proxy                      # Gedächtnis-Proxy einzeln (sonst: LAB_MEMORY=1 im Launcher)
-bash $LM memorize                   # neue Chat-Runden → Vorschläge (Trockenlauf)
-bash $LM memorize --apply           # schreiben (Git-Snapshot davor)
-bash $LM diff                       # was hat das Modell gelernt?
-bash $LM keep "memory: …"           # behalten   |   bash $LM undo   # verwerfen
-bash $LM reload                     # laufenden Proxy nach Änderungen an memory/ neu laden
-bash $LM recall "Frage"             # was würde das Retrieval liefern?
-bash $LM memorize --text "User: … Assistant: …"   # Einzelsatz testen
+
+# Kreislauf
+bash $LM memorize                   # neue Chat-Runden → Vorschläge (nichts wird geschrieben)
+bash $LM pending                    # Vorschläge ansehen
+bash $LM accept                     # übernehmen (Git-Snapshot davor)
+bash $LM edit                       # Vorschlag im Editor umformulieren, danach accept
+bash $LM reject                     # verwerfen – die Runden gelten als entschieden
+bash $LM reload                     # laufenden Proxy neu laden
+
+# Pflege und Messung
+bash $LM review                     # ganze Dateien aufräumen lassen (Doppelungen, Widersprüche) → Vorschläge
+bash $LM evalret                    # Retrieval-Eval: findet die Suche die richtigen Abschnitte? (hit@1…6)
+bash $LM diff | keep "msg" | undo   # Gedächtnis-Änderungen prüfen / committen / verwerfen
+
+# Nachtlauf (launchd, nur Trockenlauf; braucht Router + Ollama, also Büro-Launcher offen lassen)
+bash $LM nightly install            # täglich 03:30 (LM_NIGHTLY_AT=HH:MM)
+bash $LM nightly status | uninstall
 ```
 
 Regeln: nur `[stated]`-Zeilen (der Nutzer hat es gesagt), keine Vermutungen,
 nichts Verfallendes, nichts Sensibles — der Prompt dazu liegt in
 `prompts/memorize.md`, das Dateiformat in `memory/README.md`. Metrik ist die
-**Streichquote** nach ~10 Gesprächen. Details: Projekt-Notiz `local-memory-notizen.md`.
+**Streichquote** nach ~10 Gesprächen. Details: `docs/notizen-local-memory.md`.
+Solange Vorschläge offen sind, startet kein neuer `memorize`/`review`-Lauf – erst entscheiden.
 Der Gedächtnis-Proxy hat keine Schreib-Tools; `write`/read-only des Launchers
 betrifft nur den MCP-Server, nicht `memory/`.
 

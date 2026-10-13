@@ -1,6 +1,6 @@
 # local-memory – Notizen
 
-Stand: 12.10.2026 · eigenes Repo `~/PycharmProjects/local-memory` (lokal, kein Remote) · M4 MacBook Pro
+Stand: 13.10.2026 · eigenes Repo `~/PycharmProjects/local-memory` (lokal, kein Remote) · M4 MacBook Pro
 Kopie der Projekt-Notiz aus dem Claude-Projekt „LLM-Lokal-Labor". Bedienung: `docs/RUNBOOK.md` (Szenario F/G), Bild: `docs/architektur-lab.svg`.
 
 ## Vorhaben
@@ -81,6 +81,37 @@ Zweiter Datenpunkt unterhalb 27B (12B-Klasse), eine Frage, Coding-Modell – als
 Vorbehalt: `enable_thinking=false` ist ein Qwen-Schalter; ob Mellums Template ihn versteht oder per
 `reasoning-budget` gedacht hat, ist offen – „beide ohne Thinking" ist nicht garantiert.
 Konsequenz: Qwen für den Gedächtnis-Chat; Mellum am Mini nur als lokaler Coding-Fallback.
+
+## Erste Modell-Vorschläge und iPad-Test (13.10.2026)
+
+**Erste eigene Vorschläge des Modells** (aus dem Scout-Agent-Gespräch vom 12.10.): 2 Zeilen, beide
+überarbeitungsbedürftig → verworfen. Kern richtig (Hawe will einen wöchentlichen LLM-Scout), aber
+(a) Details aus Assistenten-Antworten übernommen (Pfad `agents/llm_scout/`, „Markdown-Infopaper",
+Modell-ID), (b) Absicht als Tat formuliert („Baut …", obwohl nichts gebaut war – Qwen hatte das
+Schreiben nur simuliert). Erste Streichquote: 2/2.
+
+**iPad-Test:** 2 Runden über Serve → 8091 korrekt geloggt, verlaufsbewusste Suchanfrage greift.
+Aber das Retrieval verfehlte die launchd-Stelle (`lab-stack#komponenten`/`#offen`) – Runde 2 kippte
+deshalb auf einen unbegründeten Vorschlag (APScheduler/Hintergrund-Thread). Antwortzeit 60–77 s
+(lange Antworten, nicht das Gedächtnis: Retrieval 0,2–0,4 s).
+
+**Messung (BM25 allein, 13 Abschnitte, 14 Fragen in `eval/questions.jsonl`):** hit@1 0,43 ·
+hit@3 0,57 · hit@5 0,93. Die iPad-Frage findet BM25 gar nicht („wiederkehrend" vs. „launchd").
+Hybrid mit Embeddings noch zu messen (`lm.command evalret`), danach LM_K entscheiden.
+
+## Ausbau (13.10.2026)
+
+- `prompts/memorize.md`: neue Regeln „Keine Details aus Assistenten-Antworten", „Absicht ist nicht
+  Tat", „nichts ergänzen", „bestehende Abschnitte verwenden"; Inventar nennt jetzt die Abschnitte.
+- Werkzeug-Hinweis in beiden System-Prompt-Varianten: Werkzeuge im Gedächtnis sind die des Nutzers,
+  nicht die des Modells; nie behaupten, etwas ausgeführt zu haben.
+- Vorschlags-Kreislauf: `pending` / `accept` / `edit` / `reject`; `reject` schreibt den Stand fort;
+  solange Vorschläge offen sind, startet kein neuer Lauf.
+- `review`: ganze Datei aufräumen (Doppelungen, Widersprüche, Verfallenes) – nur replace/delete in
+  dieser Datei, Unklares als Frage.
+- `evalret` + `eval/questions.jsonl`: Retrieval-Eval für das Gedächtnis (hit@k je Retriever).
+- `nightly install`: launchd-Job, täglich Trockenlauf um 03:30, Log in `results/nightly.log`.
+- Tests auf eigenes Temp-Verzeichnis (`LM_RESULTS_DIR`), Smoke-Test um 13 Prüfungen erweitert.
 
 ## Beobachtungen / Vorbehalte
 
