@@ -113,6 +113,41 @@ Hybrid mit Embeddings noch zu messen (`lm.command evalret`), danach LM_K entsche
 - `nightly install`: launchd-Job, täglich Trockenlauf um 03:30, Log in `results/nightly.log`.
 - Tests auf eigenes Temp-Verzeichnis (`LM_RESULTS_DIR`), Smoke-Test um 13 Prüfungen erweitert.
 
+## Messung und Abschluss 13.10. (Abend)
+
+**evalret mit Embeddings** (14 Fragen, 13 Abschnitte):
+
+| Retriever | hit@1 | @2 | @3 | @4 | @5 | @6 |
+|---|---|---|---|---|---|---|
+| faiss (bge-m3) | **0,79** | 0,86 | 0,86 | 0,86 | 0,86 | 0,93 |
+| bm25+stem | 0,43 | 0,57 | 0,57 | 0,71 | 0,93 | 0,93 |
+| hybrid (RRF 20) | 0,57 | 0,79 | 0,86 | **0,93** | 0,93 | 0,93 |
+
+- Dense ist auf kurzen Faktzeilen an der Spitze stärker; Hybrid fängt auf Rang 3–4 auf (wie im Henne-Bench:
+  Versicherung in den hinteren Rängen). Entscheidung: **hybrid, `LM_K` Default 4** (13/14 im Kontext).
+- m02 („wiederkehrender Job") verfehlt von allen drei: Vokabellücke („launchd" ↔ „zeitgesteuert").
+  Bewusst nicht durch Synonyme im Gedächtnis „repariert" (wäre Messung-Tuning); nur echte Fakten ergänzen.
+- Vorbehalt: 14 selbst gelabelte Fragen, eine Frage = 7 Prozentpunkte.
+
+**memorize Vorher/Nachher** (gleiche Scout-Runden, geschärfter Prompt): 7 Runden → 1 Op statt 2 falscher.
+„Plant …" statt „Baut …", Modell-ID/Pfade aus Assistenten-Antworten übersprungen (mit Begründung),
+Cron-Frage und MCP-Fehlschlag als Zwischenstand verworfen, Ablage im passenden Abschnitt (Offen).
+Per `edit` auf den aktuellen Stand gebracht (Scout inzwischen gebaut) und übernommen.
+
+**review:** Startbestand → 0 Ops (plausibel, kuratierter Import). Gegenprobe in Temp-Kopie mit eingebauter
+Doppelung und Widerspruch (32 vs. 24 GB): Doppelung gelöscht, Widerspruch zur richtigen Zahl aufgelöst –
+allerdings selbst entschieden statt unter „fragen" (hier per Mehrheit naheliegend; nicht darauf verlassen,
+`pending` bleibt die Kontrolle). Leer-Ersetzungen (replace auf denselben Text) werden jetzt im Code verworfen.
+
+**Fixes:** SyntaxWarning im Proxy (`return` im `finally`, Python 3.14) behoben.
+Commits local-memory: `08ff109` (proxy, k=4), `839a99f` (memory: Scout), `cc1ac00` (review-Filter).
+
+**Routine ab jetzt:** chatten über 8091 → nachts 03:30 Trockenlauf → morgens `pending` → `accept`/`edit`/`reject`
+→ etwa monatlich `review`.
+
+**Bedienungs-Lehre:** Befehlsblöcke immer mit `cd …` beginnen; zwei Fenster (1 = Launcher, 2 = Befehle).
+Nach Mac-Neustart ggf. Proxy von Hand: `bash lm.command proxy`.
+
 ## Beobachtungen / Vorbehalte
 
 - Qwen ergänzte „48 GB" zu „48 GB RAM" – harmlos, aber Muster für stille Anreicherung. Falls häufiger:
@@ -140,7 +175,7 @@ Hybrid mit Embeddings noch zu messen (`lm.command evalret`), danach LM_K entsche
 
 ## Weiterverfolgen
 
-1. Startbestand einmal durchlesen = erste Streichquote vor dem ersten Modell-Schreibvorgang.
+1. ~~Startbestand durchlesen~~ erledigt; evalret + LM_K=4 erledigt; review-Gegenprobe erledigt (13.10.).
 2. 10 echte Gespräche über den Proxy (Web-UI und OpenCode), dann Streichquote zählen.
 3. Apertus 8B (und Mellum) als Extraktionsmodell: schafft es die fünf Fälle? (`LM_MODEL=…`)
 4. Konflikt-Fälle: Nutzer widerspricht Bestand im Chat; zwei Fakten in einer Zeile; Personen (`people/`).
