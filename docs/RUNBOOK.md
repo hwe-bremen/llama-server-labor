@@ -20,6 +20,7 @@ jeweils read-only oder write). Alles andere sind Einzelteile, die diese intern a
 | lokal chatten **mit** Gedächtnis                               | `LAB_MEMORY=1 bash scripts/launch_lab.command`              | Browser `http://127.0.0.1:8091` |
 | vom Büro/iPad aus chatten, mit Gedächtnis (**Büro-Tag**)       | `bash scripts/launch_lab_remote.command` (Doppelklick geht) | Browser `https://macbook-pro-….ts.net` |
 | mit **OpenCode** im Terminal am lokalen Modell arbeiten        | Launcher wie oben; `~/.config/opencode/opencode.jsonc` (Vorlage: `local-memory/examples/`) | `opencode` im Projektordner |
+| mit **Rollen** chatten (`@review`, `@research`) — role-split   | `MCP_WRITE_ROOTS=docs/projekt_management,docs/research LAB_MEMORY=1 bash scripts/launch_lab.command write`, dann im 2. Terminal `bash role-split/role.command` | Browser `http://127.0.0.1:8092` (Szenario H) |
 | das Henne-RAG-Experiment chatten                               | `RB_PER_URL=1 bash retrieval-bench/rb.command proxy` (Router muss laufen) | Browser `http://127.0.0.1:8090` |
 | dem Gedächtnis beibringen, was im Chat gesagt wurde            | `bash ~/PycharmProjects/local-memory/lm.command memorize` (Trockenlauf) → `… memorize --apply` | – |
 | das Frontend-Modell Dateien schreiben/löschen lassen           | Argument `write` anhängen: `bash scripts/launch_lab.command write` bzw. `bash scripts/launch_lab_remote.command write` — Doppelklick: `launch_lab_write.command` / `launch_lab_remote_write.command` | wie oben |
@@ -29,12 +30,13 @@ schreiben. **`chmod +x`** (einmalig) = die `.command`-Datei darf per Doppelklick
 Das eine hat mit dem anderen nichts zu tun.
 
 Merksätze:
-- **8080 = Modell pur** (Kontrollgruppe) · **8090 = Henne-Wissen** · **8091 = dein Gedächtnis**.
-- Nur Chats über **8091** landen im Gedächtnis-Chatlog. 8080 ist „ohne Mitschrift".
+- **8080 = Modell pur** (Kontrollgruppe) · **8090 = Henne-Wissen** · **8091 = dein Gedächtnis** · **8092 = Rollen + Gedächtnis**.
+- Nur Chats über **8091** (und damit auch **8092**) landen im Gedächtnis-Chatlog. 8080 ist „ohne Mitschrift".
 - **Remote nur über Tailscale Serve** (`LAB_BIND=serve` bzw. der Büro-Launcher).
   Ohne diesen Schalter ist die `.ts.net`-Adresse tot, egal was sonst läuft.
 - **Ollama muss vorher laufen** (Menüleisten-App). Kein Launcher startet es.
 - Beenden: **Ctrl+C im Launcher-Fenster** stoppt Router, MCP-Server und Gedächtnis-Proxy zusammen.
+  Den Rollen-Proxy (8092) separat mit Ctrl+C in seinem Fenster.
 - Launcher **nie überschreiben, während er läuft** (Bash liest Skripte stückweise).
 - Hinweistexte aus dem Chat sind keine Befehle: `zsh: command not found: Starte` heißt,
   ein Satz wurde ins Terminal eingefügt.
@@ -51,7 +53,7 @@ Merksätze:
 - **Falsch:** `http://127.0.0.1:8080` (das ist der Router/das Modell) → Fehler
   `404 File Not Found` beim `initialize`.
 - Der Eintrag liegt im **Browser-Speicher pro Adresse** (Origin = Schema + Host + Port):
-  `127.0.0.1:8080`, `127.0.0.1:8091` und die `.ts.net`-Adresse haben **je eigene** Einträge,
+  `127.0.0.1:8080`, `127.0.0.1:8091`, `127.0.0.1:8092` und die `.ts.net`-Adresse haben **je eigene** Einträge,
   ebenso jeder Browser und jedes Gerät. Privates Fenster oder „Website-Daten löschen" leeren ihn.
   Darum immer **dieselbe Adresse als Lesezeichen** nutzen (Büro/iPad: `.ts.net`, Mac: `8091`).
 - Nach Wechsel read ↔ write oder MCP-Neustart: Eintrag aus/an, Seite neu laden, **neuer Chat**.
@@ -73,11 +75,12 @@ Merksätze:
 | Komponente              | Port / Transport       | Repo / Datei                         | Zweck                                                     |
 |-------------------------|------------------------|--------------------------------------|-----------------------------------------------------------|
 | llama-server Router     | 8080 (HTTP, localhost) | `scripts/launch_router.command`, `config/models.ini` | Chat-UI, OpenAI-API, MCP-CORS-Proxy (`--ui-mcp-proxy`) |
-| Lab-MCP (Tools)         | 8787 (streamable-http) | `mcp-server/lab_mcp_server.py`       | Datei-Tools für die Web-UI (Scope: Projekt-Root)          |
+| Lab-MCP (Tools)         | 8787 (streamable-http) | `mcp-server/lab_mcp_server.py`       | Datei-Tools für die Web-UI (Scope: Projekt-Root; optional Schreibgrenze `MCP_WRITE_ROOTS`) |
 | Lab-MCP (Tools)         | stdio                  | dito                                 | Tools für Claude Desktop und den llama-Harness            |
 | Kirby-MCP (optional)    | 8788                   | `scripts/start-mcp-kirby.sh`         | zweite MCP-Instanz für das Kirby-Testprojekt              |
 | RAG-Proxy Henne         | 8090 (localhost)       | `retrieval-bench/rag_proxy.py`       | Chat mit Henne-Katalogwissen (Experiment)                 |
 | Gedächtnis-Proxy        | 8091 (localhost)       | `~/PycharmProjects/local-memory/lm/proxy.py` | Chat/OpenCode mit Langzeitgedächtnis (`memory/*.md`) |
+| Rollen-Proxy (role-split) | 8092 (localhost)     | `role-split/role_proxy.py`, `role-split/roles/*.md` | `@review` / `@research` / `@aus` → Rollen-Prompt, dann weiter an 8091 |
 | Ollama                  | 11434                  | eigener Dienst                       | bge-m3-Embeddings für beide Proxys und für memorize/recall|
 | Tailscale Serve         | 443 (HTTPS, Tailnet)   | Tailscale-App                        | leitet `https://<mac>.ts.net` auf 8080 oder 8091          |
 | OpenCode (Client)       | –                      | `~/.config/opencode/opencode.jsonc` oder `opencode.json` im Projekt | Terminal-Coding-Agent, spricht die OpenAI-API des Routers/Proxys |
@@ -85,7 +88,7 @@ Merksätze:
 | toolcheck (Diagnose)    | 8089 (localhost)       | `scripts/toolcheck.py`               | zeigt, welche Tool-Schemas ein Agent an den Router schickt |
 
 Scope aller MCP-Tools: das Projekt-Root, Traversal-geschützt. `run_python` ist aus.
-Read-only ist der Default; Schreibzugriff wird bewusst aktiviert. Beide Proxys sind
+Read-only ist der Default; Schreibzugriff wird bewusst aktiviert. Alle Proxys sind
 reine Reverse-Proxys vor dem Router: sie binden nur an 127.0.0.1 und schreiben nur
 in ihre eigenen `results/`-Ordner (der Gedächtnis-Proxy zusätzlich nie selbst in
 `memory/` — das tut nur `memorize`).
@@ -98,6 +101,8 @@ in ihre eigenen `results/`-Ordner (der Gedächtnis-Proxy zusätzlich nie selbst 
   `docs/runbook-retrieval-bench.md`.
 - local-memory: `cd ~/PycharmProjects/local-memory && bash setup.sh && bash lm.command test`
   (eigenes Repo, eigenes venv; `test` muss `OK` melden).
+- role-split: kein venv nötig (nur Standardbibliothek); `bash role-split/role.command test`
+  muss `OK` melden.
 - Ollama mit `bge-m3` (`ollama pull bge-m3`), Ollama-App läuft.
 - Claude Desktop: `llama-server-lab`-Eintrag in `claude_desktop_config.json`
   (stdio, `MCP_SCOPE_ROOT` = Projekt-Root). Läuft danach automatisch.
@@ -301,6 +306,33 @@ sendet OpenCode das nicht — denkt Qwen dort endlos, das Preset drosseln. Mellu
 am Mini denkt per `reasoning-budget 8192` (Preset). Der Router bedient Anfragen
 nacheinander: Büro-Chat und OpenCode teilen sich das Modell.
 
+Für role-split (Szenario H) liegt im Repo der Projekt-Agent `.opencode/agents/umsetzung.md`
+(im TUI mit Tab wählen). OpenCode bleibt dabei auf 8091; der Rollen-Proxy 8092 ist nur für die Web-UI.
+
+---
+
+## Szenario H — Rollen im Chat (role-split)
+
+Experiment: Review-Instanz in der Web-UI, Umsetzung in OpenCode, Übergabe über
+`docs/projekt_management/`. Der Rollen-Proxy (8092) setzt per `@review`, `@research`,
+`@aus` den passenden System-Prompt und reicht an den Gedächtnis-Proxy (8091) weiter.
+Der Web-UI-MCP bekommt eine **Schreibgrenze**: Die Review-Instanz darf nur Übergabe-Dokumente
+schreiben, keinen Code, und nicht committen.
+
+```bash
+# Terminal 1
+MCP_WRITE_ROOTS=docs/projekt_management,docs/research LAB_MEMORY=1 bash scripts/launch_lab.command write
+# Terminal 2 (nach "[lm] Proxy auf … 8091")
+bash role-split/role.command            # serve; außerdem: test | check
+# Browser: http://127.0.0.1:8092 — MCP-Eintrag dort einmalig neu anlegen
+```
+
+Banner-Pflicht: `WRITE_ROOTS : docs/projekt_management,docs/research`. Prüfen am laufenden Server:
+`PID=$(lsof -ti :8787 -sTCP:LISTEN); ps eww -p $PID | tr ' ' '\n' | grep -E 'MCP_(READONLY|WRITE_ROOTS)'`.
+
+Alle Befehle, Chat-Trigger, Ablauf, Probe-Satz und Troubleshooting: **`docs/runbook-role-split.md`**.
+Hintergrund und Testplan: `role-split/README.md`.
+
 ---
 
 ## Neues Gerät dazuhängen (z.B. Mac Mini Büro)
@@ -334,9 +366,11 @@ bash mcp-server/run_http.sh         # MCP-Server für den MCP-Inspector-Test
 bash scripts/start-mcp-kirby.sh     # Kirby-MCP, 8788 (siehe docs/runbook-mcp-kirby.md)
 bash scripts/start-m2.sh            # Router am Mac mini (models-m2.ini)
 python3 scripts/toolcheck.py        # Diagnose-Proxy 8089 → 8080: Tool-Schemas eines Agenten prüfen
+bash role-split/role.command        # Rollen-Proxy 8092 → 8091 (Szenario H)
 ```
 
-`run_webui.sh` read-only ist Default; Schreibzugriff: `MCP_READONLY=0 bash mcp-server/run_webui.sh`.
+`run_webui.sh` read-only ist Default; Schreibzugriff: `MCP_READONLY=0 bash mcp-server/run_webui.sh`;
+nur in bestimmte Ordner: zusätzlich `MCP_WRITE_ROOTS=docs/projekt_management,docs/research`.
 
 ---
 
@@ -346,6 +380,7 @@ python3 scripts/toolcheck.py        # Diagnose-Proxy 8089 → 8080: Tool-Schemas
 |----------------------------|--------------------------------------------------------------|
 | `… .command write`         | Frontend-Modell darf schreiben + löschen (sonst read-only); gilt für `launch_lab` und `launch_lab_remote` |
 | `MCP_READONLY=0/1`         | read-only-gate des MCP-Servers (Argument von launch_lab gewinnt) |
+| `MCP_WRITE_ROOTS=a,b`      | Schreibgrenze: `write_file`/`delete_file` nur unter diesen Ordnern, `git_commit` aus; Lesen bleibt frei. Gilt nur für den so gestarteten Prozess |
 | `LAB_BIND=serve`           | **Remote empfohlen:** Router lokal + Tailscale Serve (HTTPS)  |
 | `LAB_KEEP_SERVE=1`         | Serve bleibt nach Ctrl+C aktiv (Router muss trotzdem laufen)  |
 | `LAB_MEMORY=1`             | Gedächtnis-Proxy 8091 mitstarten; Serve zeigt dann auf 8091   |
@@ -354,6 +389,7 @@ python3 scripts/toolcheck.py        # Diagnose-Proxy 8089 → 8080: Tool-Schemas
 | `LAB_BIND=all`             | `0.0.0.0`, alle Interfaces inkl. LAN (breit, nur bewusst)     |
 | `LAB_BIND` (unset)         | nur localhost (Default)                                       |
 | `HARNESS_MODEL` / `HARNESS_READONLY` | Modellwahl bzw. read-only für den Harness          |
+| `ROLE_UPSTREAM` / `ROLE_PORT` / `ROLE_HOST` | Rollen-Proxy: Ziel (Default 8091), Port (8092), Bind (127.0.0.1) |
 | `RB_*`                     | retrieval-bench, siehe `docs/runbook-retrieval-bench.md`      |
 | `LM_*`                     | local-memory, siehe README dort (`LM_MODEL`, `LM_K`, `LM_RETRIEVER`, `LM_SYSTEM_MODE`, …) |
 
@@ -365,7 +401,10 @@ python3 scripts/toolcheck.py        # Diagnose-Proxy 8089 → 8080: Tool-Schemas
 - Vor schreibenden Läufen committen (Rollback). Harness, Write-Launcher und
   `memorize --apply` warnen bzw. snapshotten bei unsauberem Git-Baum.
 - Tools sind Traversal-geschützt auf das Projekt-Root begrenzt; `run_python` aus.
-- Beide Proxys binden nur an 127.0.0.1 und sind reine Durchreicher; sie haben
+- Mit `MCP_WRITE_ROOTS` zusätzlich auf einzelne Ordner begrenzt (role-split). Die Grenze
+  steht im Server, nicht nur im Prompt — aber nur, wenn **dieser** Server-Prozess mit der
+  Variable gestartet wurde. Ein weiterbenutzter alter Server auf 8787 hat sie nicht.
+- Alle Proxys binden nur an 127.0.0.1 und sind reine Durchreicher; sie haben
   keine Schreib-Tools. Nach außen geht nur, was Serve weiterreicht.
 - OpenCode bringt eigene Datei-Tools mit und arbeitet im Ordner, in dem es
   gestartet wird — gleiche Regel wie beim Harness: vorher committen.
@@ -419,6 +458,8 @@ python3 scripts/toolcheck.py        # Diagnose-Proxy 8089 → 8080: Tool-Schemas
 - **Router-Log: `proxying POST … 8788/mcp … Could not establish connection`:**
   die Web-UI hat den Kirby-MCP eingetragen, der nicht läuft. Harmlos; Eintrag
   unter MCP Servers löschen oder ignorieren.
+- **role-split (8092): `Error: gzip is not supported by this browser`, Rolle hält nach `@aus`
+  an, Modell schreibt trotz Schreibgrenze:** siehe `docs/runbook-role-split.md`, Troubleshooting.
 - **`zsh: command not found: Starte` (o.ä.):** ein Hinweissatz wurde ins Terminal
   eingefügt. Kein Fehler im Lab.
 - **Doppelklick auf `.command` tut nichts / „permission denied":** Ausführungsbit
@@ -451,6 +492,7 @@ python3 scripts/toolcheck.py        # Diagnose-Proxy 8089 → 8080: Tool-Schemas
   (Fenster 1 muss `READONLY : 0` zeigen, nicht „MCP-Server laeuft bereits").
   `=0` → die Web-UI zeigt eine gecachte Tool-Liste: MCP-Eintrag 8787 aus/an (oder neu anlegen,
   Proxy-Toggle per Stift wieder an), Seite neu laden, **neuen Chat** beginnen.
+  Dieselbe Prüfung mit `grep -E 'MCP_(READONLY|WRITE_ROOTS)'` zeigt auch die Schreibgrenze.
 - **Tailnet-Verbindung prüfen:** `tailscale status` (Geräte + Account),
   `tailscale ping <gerät>` (reine Peer-Verbindung, unabhängig vom Port).
 - **`command not found: tailscale`:** vollen Pfad nutzen oder den zsh-Alias setzen.
@@ -468,9 +510,12 @@ llama-server/
 ├── config/           models.ini, models-m2.ini, tailscale-acl-example.json
 ├── mcp-server/       lab_mcp_server.py, run_webui.sh, run_http.sh, setup.sh
 ├── retrieval-bench/  Henne-RAG-Experiment (eigenes venv, rb.command, rag_proxy.py)
+├── role-split/       Rollen-Proxy 8092 (role_proxy.py, role.command, roles/*.md, Tests)
+├── .opencode/        agents/umsetzung.md — OpenCode-Agent für role-split
 ├── sandbox/          Wegwerf-Experimente
 └── docs/             RUNBOOK.md (dieses), runbook-retrieval-bench.md, runbook-mcp-kirby.md,
-                      session_kontext.md, architektur-lab.svg
+                      runbook-role-split.md, session_kontext.md, architektur-lab.svg,
+                      projekt_management/ (Specs, Handovers, Verdikte), research/
 
 ~/PycharmProjects/local-memory/      Gedächtnis (eigenes Repo, kein Remote): lm.command, lm/, memory/, prompts/,
                                      examples/ (opencode.json-Vorlage)
