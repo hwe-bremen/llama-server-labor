@@ -39,6 +39,23 @@ Merksätze:
 - Hinweistexte aus dem Chat sind keine Befehle: `zsh: command not found: Starte` heißt,
   ein Satz wurde ins Terminal eingefügt.
 
+### MCP-Server in der Web-UI eintragen (Datei-Tools)
+
+| Feld | Wert |
+|---|---|
+| URL | **`http://127.0.0.1:8787/mcp`** — Port 8787 und `/mcp` am Ende |
+| „use llama-server proxy" | **AN** (Stift-Icon → editieren; der Schalter erscheint nur beim Editieren) |
+
+- Gilt **überall gleich**: am Mac, am Mini im Büro, am iPad. Mit Proxy-Schalter geht die
+  Anfrage über die geöffnete Adresse zum MacBook; `127.0.0.1` ist dort das MacBook selbst.
+- **Falsch:** `http://127.0.0.1:8080` (das ist der Router/das Modell) → Fehler
+  `404 File Not Found` beim `initialize`.
+- Der Eintrag liegt im **Browser-Speicher pro Adresse** (Origin = Schema + Host + Port):
+  `127.0.0.1:8080`, `127.0.0.1:8091` und die `.ts.net`-Adresse haben **je eigene** Einträge,
+  ebenso jeder Browser und jedes Gerät. Privates Fenster oder „Website-Daten löschen" leeren ihn.
+  Darum immer **dieselbe Adresse als Lesezeichen** nutzen (Büro/iPad: `.ts.net`, Mac: `8091`).
+- Nach Wechsel read ↔ write oder MCP-Neustart: Eintrag aus/an, Seite neu laden, **neuer Chat**.
+
 ### Tagesablauf (Standard)
 
 ```
@@ -111,7 +128,7 @@ bash scripts/launch_lab.command write    # schreib-/löschfähig
 Doppelklick-Varianten (Finder): `launch_lab.command` (read-only),
 `launch_lab_write.command` (write). Beenden: Ctrl+C — stoppt beide Dienste.
 
-MCP in der UI einmalig eintragen (Browser-Storage ist pro Gerät):
+MCP in der UI einmalig eintragen (Browser-Storage ist pro Adresse/Origin und Gerät, siehe Abschnitt 0):
 1. MCP Servers → Add New Server → URL `http://127.0.0.1:8787/mcp`
 2. Server per Stift-Icon **editieren** → Toggle „use llama-server proxy" AN
    (der Toggle erscheint nur beim Editieren, nicht beim Hinzufügen)

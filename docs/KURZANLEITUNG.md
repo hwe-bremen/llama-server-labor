@@ -34,6 +34,13 @@ Das Gedächtnis ist damit automatisch aktiv – nichts extra einschalten.
 | am Mac, mit Gedächtnis | `http://127.0.0.1:8091` |
 | am Mac, ohne Gedächtnis | `http://127.0.0.1:8080` |
 
+## 2b. Datei-Tools (MCP) in der Web-UI
+
+MCP Servers → Add New Server → URL **`http://127.0.0.1:8787/mcp`** → speichern →
+Stift-Icon → **„use llama-server proxy" AN**. Gleiche URL am Mac, im Büro, am iPad.
+Nicht `…:8080` (das ist das Modell → `404 File Not Found`).
+Der Eintrag gilt nur für **diese Adresse in diesem Browser** – immer dasselbe Lesezeichen nutzen.
+
 ## 3. Prüfen (Fenster 2, ⌘N)
 
 ```bash
