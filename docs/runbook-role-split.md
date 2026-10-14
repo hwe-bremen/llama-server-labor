@@ -14,36 +14,46 @@ Browser 127.0.0.1:8092 ─► role-split (Rollen-Prompt) ─► 8091 local-memor
 
 | Port | Was | Gestartet von |
 |---|---|---|
-| 8092 | Rollen-Proxy `role-split/role_proxy.py` | `bash role-split/role.command` (zweites Terminal) |
+| 8092 | Rollen-Proxy `role-split/role_proxy.py` | `launch_lab_roles.command` (oder einzeln `bash role-split/role.command`) |
 | 8091 | Gedächtnis-Proxy | Launcher mit `LAB_MEMORY=1` |
 | 8080 | Router | Launcher |
 | 8787 | Lab-MCP mit Schreibgrenze | Launcher mit `write` und `MCP_WRITE_ROOTS=…` |
 
-## Start (Standard)
+## Start (Standard) — ein Fenster
 
 ```bash
-# Terminal 1 — Lab: Gedächtnis, Schreibzugriff nur auf die Übergabe-Ordner
-MCP_WRITE_ROOTS=docs/projekt_management,docs/research LAB_MEMORY=1 bash scripts/launch_lab.command write
-
-# warten auf "[lm] Proxy auf http://127.0.0.1:8091"
-
-# Terminal 2 — Rollen-Proxy
-bash role-split/role.command
-
-# Browser
-http://127.0.0.1:8092        (127.0.0.1, nicht localhost)
+bash scripts/launch_lab_roles.command      # Doppelklick geht nach einmalig chmod +x
+# Browser: http://127.0.0.1:8092           (127.0.0.1, nicht localhost)
 ```
 
-Im Launcher-Banner **muss** stehen: `WRITE_ROOTS : docs/projekt_management,docs/research`
-und im MCP-Banner `write_roots: ['docs/projekt_management', 'docs/research']`.
-Steht dort „MCP-Server laeuft bereits … nutze ihn", gilt die Grenze **nicht** (siehe Prüfung unten).
+Der Starter setzt `MCP_WRITE_ROOTS=docs/projekt_management,docs/research` und `LAB_MEMORY=1`,
+startet den Rollen-Proxy im Hintergrund und das Lab (`launch_lab.command write`) im Vordergrund.
+Ctrl+C stoppt alles, auch den Rollen-Proxy.
 
-Beenden: Ctrl+C in Terminal 2 (Rollen-Proxy), Ctrl+C in Terminal 1 (Lab).
+**Fail-loud:** Läuft auf 8787 schon ein MCP-Server ohne genau diese Schreibgrenze
+(oder read-only), bricht der Starter mit `ABBRUCH: …` ab und nennt die PID. Dann den alten
+Server beenden und neu starten. Ein falsch gestarteter Server wird also nicht mehr
+stillschweigend weiterbenutzt (Befund 14.10.: genau das war passiert).
+
+Im Banner steht danach: `WRITE_ROOTS : docs/projekt_management,docs/research`.
+
+### Start von Hand (zwei Terminals, gleiches Ergebnis ohne Abbruch-Prüfung)
+
+```bash
+# Terminal 1
+MCP_WRITE_ROOTS=docs/projekt_management,docs/research LAB_MEMORY=1 bash scripts/launch_lab.command write
+# Terminal 2, nach "[lm] Proxy auf http://127.0.0.1:8091"
+bash role-split/role.command
+```
+
+Achtung: `launch_lab.command write` **ohne** die Variable, `launch_lab_write.command` per Doppelklick
+oder ein aus dem Verlauf geholter Befehl starten den MCP-Server **ohne** Schreibgrenze.
 
 ## Alle Befehle
 
 ```bash
-bash role-split/role.command            # Rollen-Proxy starten (Standard: serve)
+bash scripts/launch_lab_roles.command   # alles in einem Fenster (empfohlen)
+bash role-split/role.command            # nur Rollen-Proxy (Standard: serve)
 bash role-split/role.command test       # 21 Tests (Trigger, @aus, Streaming, gzip)
 bash role-split/role.command check      # Rollen anzeigen + Trockenlauf, ohne Server
 
@@ -55,7 +65,7 @@ tail -5 role-split/results/role_log.jsonl   # welche Rolle hatte welche Anfrage?
 # Schreibgrenze des laufenden MCP-Servers prüfen
 PID=$(lsof -ti :8787 -sTCP:LISTEN); ps eww -p $PID | tr ' ' '\n' | grep -E 'MCP_(READONLY|WRITE_ROOTS)'
 #   erwartet: MCP_READONLY=0 und MCP_WRITE_ROOTS=docs/projekt_management,docs/research
-#   fehlt MCP_WRITE_ROOTS: kill $PID, Launcher wie oben neu starten
+#   fehlt MCP_WRITE_ROOTS: kill $PID, Lab mit launch_lab_roles.command neu starten
 ```
 
 ## Im Chat
@@ -72,9 +82,10 @@ PID=$(lsof -ti :8787 -sTCP:LISTEN); ps eww -p $PID | tr ' ' '\n' | grep -E 'MCP_
 - Neuer Durchlauf = **neuer Chat** (bei ~11 Token/s wird ein langer Verlauf schnell langsam).
 - Der Trigger wird entfernt, bevor Modell und Gedächtnis-Retrieval die Nachricht sehen.
 
-## Einmalig unter 8092
+## Einmalig
 
-- MCP-Eintrag neu anlegen (Browser-Speicher pro Adresse): `http://127.0.0.1:8787/mcp`,
+- `chmod +x scripts/launch_lab_roles.command` (für Doppelklick; per MCP geschriebene Dateien sind 100644).
+- Unter 8092 den MCP-Eintrag neu anlegen (Browser-Speicher pro Adresse): `http://127.0.0.1:8787/mcp`,
   dann per Stift-Icon „use llama-server proxy" AN. Den Kirby-Eintrag (8788) hier nicht anlegen.
 - OpenCode: Agent liegt in `.opencode/agents/umsetzung.md`; im TUI mit Tab wählen.
   OpenCode nutzt seine eigenen Datei-Tools, nicht den eingeschränkten MCP.
@@ -100,11 +111,13 @@ PID=$(lsof -ti :8787 -sTCP:LISTEN); ps eww -p $PID | tr ' ' '\n' | grep -E 'MCP_
 
 ## Troubleshooting
 
+- **`ABBRUCH: Auf Port 8787 läuft bereits ein MCP-Server …`:** gewollt (fail-loud). Alten Server
+  beenden (Ctrl+C im alten Launcher-Fenster oder `kill <PID>` aus der Meldung), Starter neu aufrufen.
 - **`Error: gzip is not supported by this browser` auf 8092:** alter Proxy-Stand
-  (vor `1d637c0`). `git pull`/Stand prüfen, Rollen-Proxy neu starten.
+  (vor `1d637c0`). Stand prüfen, Rollen-Proxy neu starten.
 - **Modell schreibt nach `sandbox/` o.ä.:** Schreibgrenze nicht aktiv. Prüfbefehl oben.
-  Häufigste Ursache: Lab ohne `MCP_WRITE_ROOTS=…` gestartet oder ein alter MCP-Server
-  auf 8787 wurde weiterbenutzt.
+  Ursache am 14.10.: Lab war ohne `MCP_WRITE_ROOTS` neu gestartet worden. Mit
+  `launch_lab_roles.command` starten.
 - **Nach `@aus` nennt sich das Modell weiter Review-Instanz:** alter Proxy-Stand
   (vor `49cf0c3`) oder Rollen-Proxy nicht neu gestartet. Log prüfen: `"rolle": null`?
 - **Rolle wirkt nicht / Antwort ohne Rollenverhalten:** Seite über 8091 oder 8080
@@ -113,5 +126,6 @@ PID=$(lsof -ti :8787 -sTCP:LISTEN); ps eww -p $PID | tr ' ' '\n' | grep -E 'MCP_
   (steht im `[lm]`-Banner); sonst ersetzt es den Rollen-Prompt.
 - **`[role-split] "GET /models/sse …" 200`** im Terminal: normal, das ist der
   Statusstrom der Web-UI (bleibt offen).
-- **502 „Upstream nicht erreichbar"**: 8091 läuft nicht (Launcher ohne `LAB_MEMORY=1`)
-  → Lab richtig starten oder `ROLE_UPSTREAM=http://127.0.0.1:8080`.
+- **502 „Upstream nicht erreichbar"**: 8091 läuft (noch) nicht — der Gedächtnis-Proxy startet erst,
+  wenn der Router antwortet (bis 3 Minuten). Warten auf `[lm] Proxy auf …8091`, oder ohne
+  Gedächtnis: `ROLE_UPSTREAM=http://127.0.0.1:8080`.
