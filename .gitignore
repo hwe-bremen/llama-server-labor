@@ -27,3 +27,6 @@ retrieval-bench/corpus/henne/reference_embeddings.db
 retrieval-bench/corpus/henne/reference_embeddings.db-shm
 retrieval-bench/corpus/henne/reference_embeddings.db-wal
 retrieval-bench/cache/
+
+# --- role-split: Log der Rollenwechsel enthaelt Chat-Anfaenge ---
+role-split/results/
