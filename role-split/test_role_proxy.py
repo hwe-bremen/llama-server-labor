@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Tests für role_proxy.py: Trigger-Logik plus echter Durchlauf mit Fake-Upstream."""
 import datetime as dt
+import gzip
 import http.client
 import json
 import tempfile
@@ -133,8 +134,17 @@ class FakeUpstream(BaseHTTPRequestHandler):
         self.wfile.write(b"data: [DONE]\n\n")
 
     def do_GET(self):
-        body = b"<html>webui</html>"
+        # wie llama-server: Web-UI nur, wenn der Client gzip annimmt
+        if "gzip" not in (self.headers.get("Accept-Encoding") or ""):
+            body = b"Error: gzip is not supported by this browser"
+            self.send_response(406)
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+        body = gzip.compress(b"<html>webui</html>")
         self.send_response(200)
+        self.send_header("Content-Encoding", "gzip")
         self.send_header("Content-Type", "text/html")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
@@ -196,9 +206,11 @@ class ProxyIntegrationTests(unittest.TestCase):
 
     def test_get_wird_durchgereicht(self):
         conn = http.client.HTTPConnection("127.0.0.1", self.port, timeout=10)
-        conn.request("GET", "/")
+        conn.request("GET", "/", headers={"Accept-Encoding": "gzip, deflate, br"})
         resp = conn.getresponse()
-        self.assertEqual(resp.read(), b"<html>webui</html>")
+        self.assertEqual(resp.status, 200)
+        self.assertEqual(resp.getheader("Content-Encoding"), "gzip")
+        self.assertEqual(gzip.decompress(resp.read()), b"<html>webui</html>")
 
     def test_upstream_weg_gibt_502(self):
         old = rp.UPSTREAM

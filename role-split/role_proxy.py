@@ -43,9 +43,11 @@ RESET_WORDS = {"aus", "off"}
 TRIGGER_RE = re.compile(r"^\s*@([A-Za-z0-9_-]+)(?=\s|$)")
 WOCHENTAGE = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
 
-# Header, die beim Weiterreichen nicht kopiert werden.
+# Header, die beim Weiterreichen nicht kopiert werden. Accept-Encoding bleibt erhalten:
+# llama-server liefert die Web-UI nur gzip-komprimiert aus; die Antwort wird
+# unverändert (samt Content-Encoding) durchgereicht.
 REQ_SKIP = {"host", "content-length", "connection", "keep-alive", "proxy-connection",
-            "transfer-encoding", "te", "trailer", "upgrade", "accept-encoding"}
+            "transfer-encoding", "te", "trailer", "upgrade"}
 RESP_SKIP = {"connection", "keep-alive", "proxy-connection", "transfer-encoding",
              "te", "trailer", "upgrade"}
 
