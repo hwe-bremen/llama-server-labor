@@ -51,11 +51,25 @@ class TriggerTests(unittest.TestCase):
         self.assertEqual(role, "research")
 
     def test_aus_schaltet_ab(self):
-        msgs = [u("@review A"), a("x"), u("@aus weiter normal")]
+        msgs = [u("@review A"), a("Ich bin die Review-Instanz."), u("@aus weiter normal")]
         out, role = rp.apply_roles({"messages": msgs}, ROLES, TODAY)
         self.assertIsNone(role)
-        self.assertEqual(out["messages"][0]["role"], "user")
+        self.assertEqual(out["messages"][0], {"role": "system", "content": rp.RESET_NOTE})
+        self.assertNotIn("REVIEW-PROMPT", json.dumps(out, ensure_ascii=False))
         self.assertEqual(out["messages"][-1]["content"], "weiter normal")
+
+    def test_aus_mit_client_system(self):
+        msgs = [{"role": "system", "content": "CLIENT"}, u("@review A"), a("x"), u("@aus B")]
+        out, _ = rp.apply_roles({"messages": msgs}, ROLES, TODAY)
+        sys_text = out["messages"][0]["content"]
+        self.assertTrue(sys_text.startswith(rp.RESET_NOTE))
+        self.assertIn("CLIENT", sys_text)
+
+    def test_rolle_nach_aus_wieder_an(self):
+        msgs = [u("@review A"), a("x"), u("@aus B"), a("y"), u("@research C")]
+        out, role = rp.apply_roles({"messages": msgs}, ROLES, TODAY)
+        self.assertEqual(role, "research")
+        self.assertNotIn(rp.RESET_NOTE, out["messages"][0]["content"])
 
     def test_client_system_bleibt_erhalten(self):
         msgs = [{"role": "system", "content": "CLIENT"}, u("@review A")]

@@ -42,6 +42,11 @@ LOG_FILE = Path(os.environ.get("ROLE_LOG", str(HERE / "results" / "role_log.json
 RESET_WORDS = {"aus", "off"}
 TRIGGER_RE = re.compile(r"^\s*@([A-Za-z0-9_-]+)(?=\s|$)")
 WOCHENTAGE = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
+# Nach @aus: ohne diesen Hinweis setzt das Modell die Rolle aus dem Verlauf fort
+# (Messung 14.10.: Qwen3.6 27B nannte sich nach @aus weiter Review-Instanz).
+RESET_NOTE = ("Es ist keine besondere Rolle aktiv. Rollenanweisungen und Selbstbeschreibungen "
+              "aus früheren Nachrichten dieses Verlaufs gelten nicht mehr. "
+              "Antworte als allgemeiner Assistent.")
 
 # Header, die beim Weiterreichen nicht kopiert werden. Accept-Encoding bleibt erhalten:
 # llama-server liefert die Web-UI nur gzip-komprimiert aus; die Antwort wird
@@ -130,36 +135,44 @@ def _content_as_text(content) -> str:
     return ""
 
 
+def _prepend_system(msgs: list, text: str) -> None:
+    """Setzt text als erste System-Nachricht; ein System-Prompt des Clients bleibt darunter."""
+    if msgs and isinstance(msgs[0], dict) and msgs[0].get("role") == "system":
+        existing = _content_as_text(msgs[0].get("content")).strip()
+        merged = text
+        if existing:
+            merged += "\n\n---\n\n## Weitere Hinweise des Clients\n\n" + existing
+        msgs[0] = dict(msgs[0], content=merged)
+    else:
+        msgs.insert(0, {"role": "system", "content": text})
+
+
 def apply_roles(body: dict, roles: dict[str, str],
                 today: _dt.date | None = None) -> tuple[dict, str | None]:
     """Setzt den Rollen-Prompt gemäß dem zuletzt gesetzten Trigger.
 
-    Gibt (neuer Body, aktive Rolle oder None) zurück. Ohne aktive Rolle
-    werden nur Trigger (@aus) entfernt, der System-Prompt bleibt unverändert.
+    Gibt (neuer Body, aktive Rolle oder None) zurück. Ohne jeden Trigger bleibt
+    der Body unverändert. Nach @aus wird RESET_NOTE als System-Hinweis gesetzt.
     """
     msgs = body.get("messages")
     if not isinstance(msgs, list):
         return body, None
 
     active = None
+    last_trigger = None
     new_msgs = []
     for msg in msgs:
         if isinstance(msg, dict) and msg.get("role") == "user":
             name, msg = _strip_trigger(msg, roles)
             if name:
+                last_trigger = name
                 active = None if name in RESET_WORDS else name
         new_msgs.append(msg)
 
     if active:
-        role_text = roles[active].strip() + "\n\n" + date_line(today)
-        if new_msgs and isinstance(new_msgs[0], dict) and new_msgs[0].get("role") == "system":
-            existing = _content_as_text(new_msgs[0].get("content")).strip()
-            merged = role_text
-            if existing:
-                merged += "\n\n---\n\n## Weitere Hinweise des Clients\n\n" + existing
-            new_msgs[0] = dict(new_msgs[0], content=merged)
-        else:
-            new_msgs.insert(0, {"role": "system", "content": role_text})
+        _prepend_system(new_msgs, roles[active].strip() + "\n\n" + date_line(today))
+    elif last_trigger in RESET_WORDS:
+        _prepend_system(new_msgs, RESET_NOTE)
 
     out = dict(body)
     out["messages"] = new_msgs
