@@ -17,6 +17,10 @@ Konfiguration über Umgebungsvariablen (alle optional):
     MCP_ALLOW_WEB    "1" = web_search aktiv. Default: 1.
     MCP_NAME         Servername in MCP-Clients. Default: llama-server-lab.
     MCP_DENY         Sperrpfade relativ zum Scope-Root, kommagetrennt. Default: leer.
+    MCP_WRITE_ROOTS  Schreibgrenze: Ordner relativ zum Scope-Root, kommagetrennt.
+                     Wenn gesetzt, duerfen write_file/delete_file nur darunter
+                     schreiben, und git_commit ist abgeschaltet. Lesen bleibt im
+                     ganzen Scope erlaubt. Default: leer (ganzer Scope).
                      Default: 0 (aus).
     MCP_MAX_READ     Max. Lese-Bytes pro Datei. Default: 2_000_000.
 
@@ -62,6 +66,12 @@ SERVER_NAME = os.environ.get("MCP_NAME", "llama-server-lab")
 DENY_PATHS = [
     (SCOPE_ROOT / p.strip()).resolve()
     for p in os.environ.get("MCP_DENY", "").split(",")
+    if p.strip()
+]
+# Schreibgrenze (role-split): Review-Instanz darf nur Uebergabe-Dokumente schreiben.
+WRITE_ROOTS = [
+    (SCOPE_ROOT / p.strip()).resolve()
+    for p in os.environ.get("MCP_WRITE_ROOTS", "").split(",")
     if p.strip()
 ]
 
@@ -118,6 +128,16 @@ def _in_scope(p: Path) -> bool:
 def _is_denied(p: Path) -> bool:
     """True, wenn p ein gesperrter Pfad ist oder darunter liegt."""
     return any(p == d or d in p.parents for d in DENY_PATHS)
+
+
+def _check_writable(p: Path, rel_path: str) -> None:
+    """Wirft ScopeError, wenn MCP_WRITE_ROOTS gesetzt ist und p nicht darunter liegt."""
+    if WRITE_ROOTS and not any(p == r or r in p.parents for r in WRITE_ROOTS):
+        allowed = ", ".join(_rel(r) for r in WRITE_ROOTS)
+        raise ScopeError(
+            f"Pfad '{rel_path}' liegt ausserhalb von MCP_WRITE_ROOTS ({allowed}). "
+            f"Schreiben verweigert."
+        )
 
 
 def _rel(p: Path) -> str:
@@ -299,7 +319,8 @@ def git_log(count: int = 10) -> str:
     return _git("log", f"-{max(1, count)}", "--oneline")
 
 
-if not READONLY:
+# git_commit staged alles (git add -A) und wuerde die Schreibgrenze aushebeln.
+if not READONLY and not WRITE_ROOTS:
 
     @mcp.tool()
     def git_commit(message: str) -> str:
@@ -347,6 +368,7 @@ if not READONLY:
             content_b64: Vollstaendiger neuer Dateiinhalt, Base64-kodiert.
         """
         target = _resolve_in_scope(path)
+        _check_writable(target, path)
         if target.is_dir():
             return f"Ist ein Verzeichnis: {_rel(target)}"
 
@@ -378,6 +400,7 @@ if ALLOW_DELETE:
             path: Pfad relativ zum Scope-Root.
         """
         target = _resolve_in_scope(path)
+        _check_writable(target, path)
         if not target.exists():
             return f"Nicht gefunden: {_rel(target)}"
         if target.is_dir():
@@ -440,6 +463,7 @@ def _banner() -> None:
     print(f"  web_search : {ALLOW_WEB}", file=sys.stderr)
     print(f"  name       : {SERVER_NAME}", file=sys.stderr)
     print(f"  deny       : {[_rel(d) for d in DENY_PATHS] or '-'}", file=sys.stderr)
+    print(f"  write_roots: {[_rel(r) for r in WRITE_ROOTS] or '- (ganzer Scope)'}", file=sys.stderr)
     if TRANSPORT != "stdio" and HOST not in ("127.0.0.1", "localhost"):
         print(
             "  ! WARNUNG: gebunden ausserhalb localhost — kein Auth-Layer!\n"

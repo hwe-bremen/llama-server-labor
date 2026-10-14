@@ -5,6 +5,8 @@
 # (list_directory, read_file, search_files, git_status/diff/log). Kein
 # write/delete/commit, kein Code-Exec. Fuer bewussten Schreibzugriff:
 #     MCP_READONLY=0 bash mcp-server/run_webui.sh
+# Schreiben nur in bestimmte Ordner (role-split, Review-Instanz):
+#     MCP_READONLY=0 MCP_WRITE_ROOTS=docs/projekt_management,docs/research bash mcp-server/run_webui.sh
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$HERE/.." && pwd)"
@@ -21,6 +23,7 @@ echo " MCP-Server fuer die llama.cpp Web-UI"
 echo "  UI-Server-URL : http://${MCP_HOST}:${MCP_PORT}/mcp"
 echo "  Scope         : ${MCP_SCOPE_ROOT}"
 echo "  READONLY      : ${MCP_READONLY}   (Schreibzugriff: MCP_READONLY=0)"
+echo "  WRITE_ROOTS   : ${MCP_WRITE_ROOTS:-(ganzer Scope)}"
 echo "--------------------------------------------------"
 echo " In der Web-UI (WICHTIG: ueber http://127.0.0.1:8080 oeffnen, NICHT localhost):"
 echo "  1) MCP Servers -> Add New Server -> URL: http://${MCP_HOST}:${MCP_PORT}/mcp"
