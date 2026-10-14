@@ -5,13 +5,20 @@
 # Startet in EINEM Fenster: MCP-Server mit Schreibgrenze + Router + Gedächtnis-Proxy
 # (über launch_lab.command write) und den Rollen-Proxy auf 8092. Ctrl+C stoppt alles.
 #
-#   bash scripts/launch_lab_roles.command        -> Browser: http://127.0.0.1:8092
+#   bash scripts/launch_lab_roles.command                 -> Browser: http://127.0.0.1:8092
+#   LAB_BIND=serve bash scripts/launch_lab_roles.command  -> zusätzlich iPad/Büro über .ts.net
+#   Büro-Tag (Serve bleibt, kein Ruhezustand): launch_lab_roles_remote.command
+#
+# Im serve-Modus zeigt Tailscale Serve auf den Rollen-Proxy (8092) statt auf 8091,
+# damit @review/@research auch remote wirken. Der Rollen-Proxy selbst bleibt auf
+# 127.0.0.1; nach außen öffnet nur Serve (Tailnet, wie bisher bei 8091).
 #
 # Fail-loud: Läuft auf 8787 schon ein MCP-Server, der NICHT mit genau dieser
 # Schreibgrenze (und mit Schreibzugriff) gestartet wurde, bricht der Starter ab,
 # statt ihn stillschweigend weiterzubenutzen (Befund 14.10.: Grenze war unbemerkt aus).
 #
-# Überschreibbar: MCP_WRITE_ROOTS, LAB_MEMORY (Default 1), LAB_BIND, ROLE_UPSTREAM.
+# Überschreibbar: MCP_WRITE_ROOTS, LAB_MEMORY (Default 1), LAB_BIND, LAB_KEEP_SERVE,
+# LAB_SERVE_PORT (Default = ROLE_PORT), ROLE_UPSTREAM.
 # Mode B: Lab, berührt AskValentinAI nicht.
 set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -21,6 +28,8 @@ export MCP_WRITE_ROOTS="${MCP_WRITE_ROOTS:-docs/projekt_management,docs/research
 export LAB_MEMORY="${LAB_MEMORY:-1}"
 MCP_PORT="${MCP_PORT:-8787}"
 ROLE_PORT="${ROLE_PORT:-8092}"
+export ROLE_PORT
+export LAB_SERVE_PORT="${LAB_SERVE_PORT:-$ROLE_PORT}"   # wirkt nur mit LAB_BIND=serve
 
 # --- Fail-loud: vorhandenen MCP-Server prüfen ---
 MCP_PID="$(lsof -ti ":${MCP_PORT}" -sTCP:LISTEN 2>/dev/null | head -n1)"
@@ -59,6 +68,7 @@ trap cleanup EXIT
 
 echo
 echo ">> role-split: Browser http://127.0.0.1:${ROLE_PORT}  (Schreibgrenze: ${MCP_WRITE_ROOTS})"
+[ "${LAB_BIND:-}" = "serve" ] && echo ">> remote: Tailscale Serve -> Port ${LAB_SERVE_PORT} (Remote-URL steht gleich im Lab-Banner)"
 echo
 
 # --- Lab im Vordergrund (blockiert bis Ctrl+C) ---

@@ -20,7 +20,8 @@ jeweils read-only oder write). Alles andere sind Einzelteile, die diese intern a
 | lokal chatten **mit** Gedächtnis                               | `LAB_MEMORY=1 bash scripts/launch_lab.command`              | Browser `http://127.0.0.1:8091` |
 | vom Büro/iPad aus chatten, mit Gedächtnis (**Büro-Tag**)       | `bash scripts/launch_lab_remote.command` (Doppelklick geht) | Browser `https://macbook-pro-….ts.net` |
 | mit **OpenCode** im Terminal am lokalen Modell arbeiten        | Launcher wie oben; `~/.config/opencode/opencode.jsonc` (Vorlage: `local-memory/examples/`) | `opencode` im Projektordner |
-| mit **Rollen** chatten (`@review`, `@research`) — role-split   | `MCP_WRITE_ROOTS=docs/projekt_management,docs/research LAB_MEMORY=1 bash scripts/launch_lab.command write`, dann im 2. Terminal `bash role-split/role.command` | Browser `http://127.0.0.1:8092` (Szenario H) |
+| mit **Rollen** chatten (`@review`, `@research`) — role-split   | `bash scripts/launch_lab_roles.command` (Doppelklick geht) | Browser `http://127.0.0.1:8092` (Szenario H) |
+| mit **Rollen** vom Büro/iPad aus (**Büro-Tag mit Rollen**)     | `bash scripts/launch_lab_roles_remote.command` (Doppelklick geht) | Browser `https://macbook-pro-….ts.net` |
 | das Henne-RAG-Experiment chatten                               | `RB_PER_URL=1 bash retrieval-bench/rb.command proxy` (Router muss laufen) | Browser `http://127.0.0.1:8090` |
 | dem Gedächtnis beibringen, was im Chat gesagt wurde            | `bash ~/PycharmProjects/local-memory/lm.command memorize` (Trockenlauf) → `… memorize --apply` | – |
 | das Frontend-Modell Dateien schreiben/löschen lassen           | Argument `write` anhängen: `bash scripts/launch_lab.command write` bzw. `bash scripts/launch_lab_remote.command write` — Doppelklick: `launch_lab_write.command` / `launch_lab_remote_write.command` | wie oben |
@@ -32,11 +33,12 @@ Das eine hat mit dem anderen nichts zu tun.
 Merksätze:
 - **8080 = Modell pur** (Kontrollgruppe) · **8090 = Henne-Wissen** · **8091 = dein Gedächtnis** · **8092 = Rollen + Gedächtnis**.
 - Nur Chats über **8091** (und damit auch **8092**) landen im Gedächtnis-Chatlog. 8080 ist „ohne Mitschrift".
+- Die `.ts.net`-Adresse zeigt auf **8091** (Büro-Launcher) oder **8092** (Rollen-Starter) — je nachdem, womit gestartet wurde.
 - **Remote nur über Tailscale Serve** (`LAB_BIND=serve` bzw. der Büro-Launcher).
   Ohne diesen Schalter ist die `.ts.net`-Adresse tot, egal was sonst läuft.
 - **Ollama muss vorher laufen** (Menüleisten-App). Kein Launcher startet es.
-- Beenden: **Ctrl+C im Launcher-Fenster** stoppt Router, MCP-Server und Gedächtnis-Proxy zusammen.
-  Den Rollen-Proxy (8092) separat mit Ctrl+C in seinem Fenster.
+- Beenden: **Ctrl+C im Launcher-Fenster** stoppt Router, MCP-Server und Gedächtnis-Proxy zusammen
+  (beim Rollen-Starter auch den Rollen-Proxy).
 - Launcher **nie überschreiben, während er läuft** (Bash liest Skripte stückweise).
 - Hinweistexte aus dem Chat sind keine Befehle: `zsh: command not found: Starte` heißt,
   ein Satz wurde ins Terminal eingefügt.
@@ -82,7 +84,7 @@ Merksätze:
 | Gedächtnis-Proxy        | 8091 (localhost)       | `~/PycharmProjects/local-memory/lm/proxy.py` | Chat/OpenCode mit Langzeitgedächtnis (`memory/*.md`) |
 | Rollen-Proxy (role-split) | 8092 (localhost)     | `role-split/role_proxy.py`, `role-split/roles/*.md` | `@review` / `@research` / `@aus` → Rollen-Prompt, dann weiter an 8091 |
 | Ollama                  | 11434                  | eigener Dienst                       | bge-m3-Embeddings für beide Proxys und für memorize/recall|
-| Tailscale Serve         | 443 (HTTPS, Tailnet)   | Tailscale-App                        | leitet `https://<mac>.ts.net` auf 8080 oder 8091          |
+| Tailscale Serve         | 443 (HTTPS, Tailnet)   | Tailscale-App                        | leitet `https://<mac>.ts.net` auf 8080, 8091 oder 8092 (`LAB_SERVE_PORT`) |
 | OpenCode (Client)       | –                      | `~/.config/opencode/opencode.jsonc` oder `opencode.json` im Projekt | Terminal-Coding-Agent, spricht die OpenAI-API des Routers/Proxys |
 | Mini-Router (Büro)      | 8080 am Mac mini       | `scripts/start-m2.sh`, `config/models-m2.ini` | eigener llama-server am Mini (Mellum2, 1 Modell im RAM) |
 | toolcheck (Diagnose)    | 8089 (localhost)       | `scripts/toolcheck.py`               | zeigt, welche Tool-Schemas ein Agent an den Router schickt |
@@ -118,6 +120,7 @@ in ihre eigenen `results/`-Ordner (der Gedächtnis-Proxy zusätzlich nie selbst 
 - `.command`-Dateien, die per MCP geschrieben wurden, einmalig ausführbar machen
   (nur für Doppelklick nötig, `bash …` geht auch ohne):
   `chmod +x scripts/launch_lab_remote.command scripts/launch_lab_remote_write.command`
+  `chmod +x scripts/launch_lab_roles.command scripts/launch_lab_roles_remote.command`
 
 ---
 
@@ -180,6 +183,7 @@ LAB_BIND=serve bash scripts/launch_lab.command          # remote, read-only, ohn
 LAB_BIND=serve bash scripts/launch_lab.command write    # remote, schreibfähig
 bash scripts/launch_lab_remote.command                  # Büro-Tag: remote + Gedächtnis + Serve bleibt + kein Ruhezustand
 bash scripts/launch_lab_remote.command write            # dito, Modell darf schreiben (Doppelklick: launch_lab_remote_write.command)
+bash scripts/launch_lab_roles_remote.command            # Büro-Tag mit Rollen: Serve -> 8092 (Szenario H)
 ```
 
 Der Orchestrator startet Serve (`tailscale serve --bg <port>`), zeigt die
@@ -190,7 +194,8 @@ MCP-Eintrag wie in Szenario A: `http://127.0.0.1:8787/mcp` + Proxy-Toggle.
 
 Mit `LAB_MEMORY=1` (bzw. dem Büro-Launcher) zeigt Serve auf **8091** — das
 Gedächtnis ist dann auch remote aktiv (Browser **und** OpenCode am Mini);
-8080 bleibt lokal erreichbar.
+8080 bleibt lokal erreichbar. Mit dem Rollen-Starter zeigt Serve auf **8092**
+(Rollen + Gedächtnis); gesteuert über `LAB_SERVE_PORT`, das der Rollen-Starter selbst setzt.
 
 **Wichtig fürs Büro:** Serve läuft nur, wenn das MacBook wach ist und der
 Launcher mit `serve` gestartet wurde. Vom Büro aus lässt sich das nicht
@@ -201,11 +206,11 @@ Fenster offen ist. Im Write-Modus gilt der Schreibzugriff auch für Chats, die
 
 Gegenprobe vom Client: `curl -sI https://macbook-pro-von-hans-werner.tail08de73.ts.net/ | head -3`
 — irgendeine HTTP-Antwort (200 oder 415) heißt „Serve steht". Keine Ausgabe
-heißt „Serve nicht aktiv".
+heißt „Serve nicht aktiv". Wohin Serve zeigt: am MacBook `tailscale serve status`.
 
 **Direkter Bind als Alternative** (`LAB_BIND=tailscale`, `launch_ipad.command`):
 funktioniert, bindet llama-server aber direkt an die Tailscale-IP, setzt Serve
-zurück und nimmt die Proxys (8090/8091) **nicht** mit. Nur für den Router pur.
+zurück und nimmt die Proxys (8090/8091/8092) **nicht** mit. Nur für den Router pur.
 
 ---
 
@@ -307,7 +312,9 @@ am Mini denkt per `reasoning-budget 8192` (Preset). Der Router bedient Anfragen
 nacheinander: Büro-Chat und OpenCode teilen sich das Modell.
 
 Für role-split (Szenario H) liegt im Repo der Projekt-Agent `.opencode/agents/umsetzung.md`
-(im TUI mit Tab wählen). OpenCode bleibt dabei auf 8091; der Rollen-Proxy 8092 ist nur für die Web-UI.
+(im TUI mit Tab wählen). OpenCode am MacBook bleibt dabei auf 8091; der Rollen-Proxy 8092 ist für die Web-UI.
+Läuft der Rollen-Starter remote, geht OpenCode am Mini über die `.ts.net`-URL durch 8092 —
+ohne Trigger reicht der Rollen-Proxy alles unverändert durch (am Mini noch nicht geprüft).
 
 ---
 
@@ -320,17 +327,18 @@ Der Web-UI-MCP bekommt eine **Schreibgrenze**: Die Review-Instanz darf nur Über
 schreiben, keinen Code, und nicht committen.
 
 ```bash
-# Terminal 1
-MCP_WRITE_ROOTS=docs/projekt_management,docs/research LAB_MEMORY=1 bash scripts/launch_lab.command write
-# Terminal 2 (nach "[lm] Proxy auf … 8091")
-bash role-split/role.command            # serve; außerdem: test | check
-# Browser: http://127.0.0.1:8092 — MCP-Eintrag dort einmalig neu anlegen
+bash scripts/launch_lab_roles.command                  # Mac: alles in einem Fenster -> http://127.0.0.1:8092
+LAB_BIND=serve bash scripts/launch_lab_roles.command   # dito + iPad/Büro über .ts.net (Serve -> 8092)
+bash scripts/launch_lab_roles_remote.command           # Büro-Tag mit Rollen (Serve bleibt, caffeinate)
+# MCP-Eintrag unter 8092 einmalig neu anlegen; auf dem iPad bleibt der .ts.net-Eintrag gültig
 ```
 
-Banner-Pflicht: `WRITE_ROOTS : docs/projekt_management,docs/research`. Prüfen am laufenden Server:
+Der Starter setzt `MCP_WRITE_ROOTS=docs/projekt_management,docs/research` und `LAB_MEMORY=1` und
+bricht ab (fail-loud), wenn auf 8787 schon ein MCP-Server ohne diese Grenze läuft.
+Prüfen am laufenden Server:
 `PID=$(lsof -ti :8787 -sTCP:LISTEN); ps eww -p $PID | tr ' ' '\n' | grep -E 'MCP_(READONLY|WRITE_ROOTS)'`.
 
-Alle Befehle, Chat-Trigger, Ablauf, Probe-Satz und Troubleshooting: **`docs/runbook-role-split.md`**.
+Alle Befehle, Chat-Trigger, Remote, Ablauf, Probe-Satz und Troubleshooting: **`docs/runbook-role-split.md`**.
 Hintergrund und Testplan: `role-split/README.md`.
 
 ---
@@ -383,6 +391,7 @@ nur in bestimmte Ordner: zusätzlich `MCP_WRITE_ROOTS=docs/projekt_management,do
 | `MCP_WRITE_ROOTS=a,b`      | Schreibgrenze: `write_file`/`delete_file` nur unter diesen Ordnern, `git_commit` aus; Lesen bleibt frei. Gilt nur für den so gestarteten Prozess |
 | `LAB_BIND=serve`           | **Remote empfohlen:** Router lokal + Tailscale Serve (HTTPS)  |
 | `LAB_KEEP_SERVE=1`         | Serve bleibt nach Ctrl+C aktiv (Router muss trotzdem laufen)  |
+| `LAB_SERVE_PORT=8092`      | Serve-Ziel überschreiben (Default 8080 bzw. 8091 mit Gedächtnis); setzt der Rollen-Starter selbst |
 | `LAB_MEMORY=1`             | Gedächtnis-Proxy 8091 mitstarten; Serve zeigt dann auf 8091   |
 | `LAB_MEMORY_DIR`           | Pfad zum local-memory-Repo (Default `~/PycharmProjects/local-memory`) |
 | `LAB_BIND=tailscale`       | direkter Bind an die Tailscale-IP (funktioniert, Serve robuster; Proxys nicht erreichbar) |
@@ -403,14 +412,15 @@ nur in bestimmte Ordner: zusätzlich `MCP_WRITE_ROOTS=docs/projekt_management,do
 - Tools sind Traversal-geschützt auf das Projekt-Root begrenzt; `run_python` aus.
 - Mit `MCP_WRITE_ROOTS` zusätzlich auf einzelne Ordner begrenzt (role-split). Die Grenze
   steht im Server, nicht nur im Prompt — aber nur, wenn **dieser** Server-Prozess mit der
-  Variable gestartet wurde. Ein weiterbenutzter alter Server auf 8787 hat sie nicht.
+  Variable gestartet wurde. Ein weiterbenutzter alter Server auf 8787 hat sie nicht; der
+  Rollen-Starter bricht in diesem Fall ab.
 - Alle Proxys binden nur an 127.0.0.1 und sind reine Durchreicher; sie haben
   keine Schreib-Tools. Nach außen geht nur, was Serve weiterreicht.
 - OpenCode bringt eigene Datei-Tools mit und arbeitet im Ordner, in dem es
   gestartet wird — gleiche Regel wie beim Harness: vorher committen.
 - Remote nur über **Serve** (tailnet-only, WireGuard-verschlüsselt), nie
   **Funnel** (öffentlich). llama-server hat keine native Auth — Schutz ist die
-  Tailnet-Grenze plus ACL. Das gilt für 8091 genauso wie für 8080.
+  Tailnet-Grenze plus ACL. Das gilt für 8091 und 8092 genauso wie für 8080.
 - `local-memory` enthält private Fakten: Repo lokal halten, kein Remote, oder
   `memory/` vor einem Remote in `.gitignore` nehmen.
 - **ACL (Härtung):** `config/tailscale-acl-example.json` als Vorlage im
@@ -458,8 +468,9 @@ nur in bestimmte Ordner: zusätzlich `MCP_WRITE_ROOTS=docs/projekt_management,do
 - **Router-Log: `proxying POST … 8788/mcp … Could not establish connection`:**
   die Web-UI hat den Kirby-MCP eingetragen, der nicht läuft. Harmlos; Eintrag
   unter MCP Servers löschen oder ignorieren.
-- **role-split (8092): `Error: gzip is not supported by this browser`, Rolle hält nach `@aus`
-  an, Modell schreibt trotz Schreibgrenze:** siehe `docs/runbook-role-split.md`, Troubleshooting.
+- **role-split (8092 bzw. iPad über .ts.net): `ABBRUCH` beim Start, `Error: gzip is not supported
+  by this browser`, Rolle hält nach `@aus` an, Modell schreibt trotz Schreibgrenze, `@review` wirkt
+  am iPad nicht:** siehe `docs/runbook-role-split.md`, Troubleshooting.
 - **`zsh: command not found: Starte` (o.ä.):** ein Hinweissatz wurde ins Terminal
   eingefügt. Kein Fehler im Lab.
 - **Doppelklick auf `.command` tut nichts / „permission denied":** Ausführungsbit
@@ -505,8 +516,8 @@ nur in bestimmte Ordner: zusätzlich `MCP_WRITE_ROOTS=docs/projekt_management,do
 llama-server/
 ├── core/             mcp_agent.py — wiederverwendbare MCP-Agenten-Basis
 ├── agents/           dev_agent, dev_agent_diff, excel_agent, llama_harness, weekly_digest
-├── scripts/          launch_lab(.command/_write/_remote/_remote_write), launch_router, launch_ipad,
-│                     start-m2.sh, start-mcp-kirby, toolcheck.py, run_ab, tool_demo
+├── scripts/          launch_lab(.command/_write/_remote/_remote_write/_roles/_roles_remote), launch_router,
+│                     launch_ipad, start-m2.sh, start-mcp-kirby, toolcheck.py, run_ab, tool_demo
 ├── config/           models.ini, models-m2.ini, tailscale-acl-example.json
 ├── mcp-server/       lab_mcp_server.py, run_webui.sh, run_http.sh, setup.sh
 ├── retrieval-bench/  Henne-RAG-Experiment (eigenes venv, rb.command, rag_proxy.py)

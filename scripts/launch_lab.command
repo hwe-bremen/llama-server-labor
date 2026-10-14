@@ -30,6 +30,11 @@
 #                        als Kontrollgruppe erreichbar. Nur Chats ueber 8091 landen im Chatlog.
 #   LAB_MEMORY_DIR    -> Pfad zum local-memory-Repo (Default ~/PycharmProjects/local-memory)
 #
+# Serve-Ziel ueberschreiben ueber Env LAB_SERVE_PORT (nur im serve-Modus relevant):
+#   (nicht gesetzt)   -> 8080, bzw. 8091 mit LAB_MEMORY=1
+#   8092              -> Rollen-Proxy role-split (setzt launch_lab_roles.command selbst);
+#                        der Proxy auf diesem Port wird NICHT von hier gestartet
+#
 # Beispiele:
 #   LAB_BIND=serve bash scripts/launch_lab.command                    # remote, read-only
 #   LAB_BIND=serve bash scripts/launch_lab.command write              # remote, schreibfaehig
@@ -76,6 +81,11 @@ if [ "$MEMORY_ON" = "1" ]; then
     SERVE_PORT="$MEMORY_PORT"   # im serve-Modus zeigt Tailscale auf den Proxy, nicht auf den Router
   fi
 fi
+SERVE_VIA=""
+if [ -n "${LAB_SERVE_PORT:-}" ]; then
+  SERVE_PORT="$LAB_SERVE_PORT"   # z.B. 8092 = role-split vor dem Gedaechtnis-Proxy
+  SERVE_VIA="Port ${LAB_SERVE_PORT} (LAB_SERVE_PORT)"
+fi
 
 SUFFIX=""
 [ "$SERVE_MODE" = "1" ] && SUFFIX=" + Tailscale Serve"
@@ -118,7 +128,11 @@ if [ "$SERVE_MODE" = "1" ]; then
     if [ -n "$SERVE_URL" ]; then
       echo
       echo "  >> Remote-URL (iPad/iPhone im Tailnet): ${SERVE_URL}"
-      [ "$MEMORY_ON" = "1" ] && echo "     (fuehrt ueber den Gedaechtnis-Proxy; antwortet erst, wenn Router + Proxy laufen)"
+      if [ -n "$SERVE_VIA" ]; then
+        echo "     (fuehrt ueber ${SERVE_VIA}; antwortet erst, wenn dieser Proxy und alles dahinter laeuft)"
+      elif [ "$MEMORY_ON" = "1" ]; then
+        echo "     (fuehrt ueber den Gedaechtnis-Proxy; antwortet erst, wenn Router + Proxy laufen)"
+      fi
     else
       echo "  Hinweis: keine .ts.net-URL im Serve-Status gefunden — 'tailscale serve status' pruefen."
     fi
