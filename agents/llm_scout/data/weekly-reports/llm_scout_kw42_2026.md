@@ -1,0 +1,1 @@
+Fehler bei der LLM-Abfrage: HTTPConnectionPool(host='localhost', port=8080): Read timed out. (read timeout=120)

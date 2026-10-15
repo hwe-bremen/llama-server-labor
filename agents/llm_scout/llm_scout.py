@@ -174,6 +174,22 @@ def fetch_github_releases() -> List[Dict[str, Any]]:
     return items
 
 
+def select_items(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Was tatsaechlich bewertet wird: Top 3 HF + Top 3 GitHub (Kontext sparen).
+    Nur diese Items werden nach einem gespeicherten Bericht als verarbeitet markiert."""
+    hf = [i for i in items if i['source'] == 'huggingface'][:3]
+    gh = [i for i in items if i['source'] == 'github'][:3]
+    return hf + gh
+
+
+def router_ready(timeout: float = 5.0) -> bool:
+    """Laeuft der llama-server? Ohne ihn gar nicht erst anfangen (nichts markieren)."""
+    try:
+        return requests.get(f"{LLAMA_SERVER_URL}/v1/models", timeout=timeout).status_code == 200
+    except Exception:
+        return False
+
+
 def call_llm_for_evaluation(items: List[Dict[str, Any]]) -> str:
     """
     Sendet die Liste der neuen Items an llama-server zur Bewertung.
@@ -211,9 +227,7 @@ def call_llm_for_evaluation(items: List[Dict[str, Any]]) -> str:
 
     # Items für den Prompt vorbereiten (max 10 Items, um Kontext zu sparen)
     # Wir nehmen die Top 3 HF und Top 3 GH
-    hf_items = [i for i in items if i['source'] == 'huggingface'][:3]
-    gh_items = [i for i in items if i['source'] == 'github'][:3]
-    relevant_items = hf_items + gh_items
+    relevant_items = select_items(items)
 
     items_text = "\n".join([
         f"- Source: {i['source']}, Title: {i['title']}, URL: {i['url']}, Summary: {i['summary']}"
@@ -238,7 +252,9 @@ def call_llm_for_evaluation(items: List[Dict[str, Any]]) -> str:
         ],
         "temperature": 0.2,
         "max_tokens": 4096,
-        "stream": False
+        "stream": False,
+        # Qwen3.x denkt sonst ins max_tokens-Budget hinein -> leerer content
+        "chat_template_kwargs": {"enable_thinking": False}
     }
 
     try:
@@ -254,18 +270,22 @@ def call_llm_for_evaluation(items: List[Dict[str, Any]]) -> str:
         response.raise_for_status()
         result = response.json()
         print(f"  Roh-JSON: {json.dumps(result, indent=2)[:1000]}")
-        content = result["choices"][0]["message"]["content"]
+        content = (result["choices"][0]["message"].get("content") or "").strip()
         print(f"  Antwortlänge: {len(content)} Zeichen")
-        return content
-    except requests.exceptions.ConnectionError:
-        return f"Fehler: Könnte keine Verbindung zur llama-server API unter {LLAMA_SERVER_URL} herstellen. Läuft der Server?"
-    except Exception as e:
-        print(f"  Exception: {e}", file=sys.stderr)
-        return f"Fehler bei der LLM-Abfrage: {e}"
+    except requests.exceptions.ConnectionError as e:
+        raise RuntimeError(f"keine Verbindung zu {LLAMA_SERVER_URL}") from e
+    if not content:
+        raise RuntimeError("Modell lieferte leeren Inhalt")
+    return content
 
 
 def main():
     print("--- Local LLM Scout gestartet ---")
+
+    if not router_ready():
+        print(f"llama-server unter {LLAMA_SERVER_URL} nicht erreichbar – nichts geholt, nichts markiert.",
+              file=sys.stderr)
+        sys.exit(2)
 
     try:
         # DB Initialisierung
@@ -279,19 +299,17 @@ def main():
         all_items = hf_items + gh_items
         print(f"Gesamt gefunden: {len(hf_items)} HF + {len(gh_items)} GH = {len(all_items)} Items")
 
-        # 2. Filtern (nur neue)
+        # 2. Filtern (nur neue) – noch NICHT markieren
         new_items = []
         for item in all_items:
             if is_new_item(conn, item['url']):
                 new_items.append(item)
-                mark_as_processed(conn, item['source'], item['title'], item['url'])
             else:
                 print(f"  (bereits verarbeitet) {item['title']}")
         print(f"Neue Items: {len(new_items)}")
 
-        conn.close()
-
         if not new_items:
+            conn.close()
             print("Keine neuen Items gefunden. Skript beendet.")
             sys.exit(0)
 
@@ -308,8 +326,14 @@ def main():
 
         with open(filepath, 'w', encoding='utf-8') as f:
             f.write(report_content)
-
         print(f"Bericht gespeichert unter: {filepath}")
+
+        # 5. Erst jetzt markieren – und nur, was wirklich bewertet wurde
+        evaluated = select_items(new_items)
+        for item in evaluated:
+            mark_as_processed(conn, item['source'], item['title'], item['url'])
+        conn.close()
+        print(f"Als verarbeitet markiert: {len(evaluated)} (Rest bleibt fuer die naechste Woche offen)")
         print("--- Skript beendet ---")
         sys.exit(0)
 
