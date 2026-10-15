@@ -45,7 +45,7 @@ RESET_WORDS = {"aus", "off"}
 # "@review …" und "@review: …"; "@reviewer" oder "@review/x" zählen nicht.
 TRIGGER_RE = re.compile(r"^\s*@([A-Za-z0-9_-]+):?(?=\s|$)")
 # Bekannte Modellfamilien für das Kürzel im Dateinamen (Reihenfolge = Priorität).
-MODEL_FAMILIES = ("qwen", "gemma", "mellum", "apertus", "llama", "mistral", "phi", "deepseek", "gpt-oss")
+MODEL_FAMILIES = ("qwen", "gemma", "mellum", "apertus", "devstral", "llama", "mistral", "phi", "deepseek", "gpt-oss")
 WOCHENTAGE = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
 # Nach @aus: ohne diesen Hinweis setzt das Modell die Rolle aus dem Verlauf fort
 # (Messung 14.10.: Qwen3.6 27B nannte sich nach @aus weiter Review-Instanz).
@@ -92,17 +92,31 @@ def date_line(today: _dt.date | None = None) -> str:
     return f"Heutiges Datum: {today.isoformat()} ({WOCHENTAGE[today.weekday()]})."
 
 
-def model_tag(model: str) -> str:
-    """Kurzes, dateinamentaugliches Kürzel: Modellfamilie, sonst bereinigter Repo-Name.
+_SIZE_RE = re.compile(r"(?<![a-z0-9.])(\d+(?:\.\d+)?)b(?![a-z0-9])")
 
-    "unsloth/gemma-4-26B-A4B-it-GGUF:Q4_K_XL" -> "gemma"
-    "unsloth/Qwen3.6-27B-MTP-GGUF:Q4_K_XL"    -> "qwen"
+
+def model_tag(model: str) -> str:
+    """Kurzes, dateinamentaugliches Kürzel: Familie + Version + Größe.
+
+    Unterscheidet Modelle derselben Familie, damit sich Verdikte nicht überschreiben:
+    "unsloth/Qwen3.6-27B-MTP-GGUF:Q4_K_XL"    -> "qwen36-27b"
+    "unsloth/Qwen3.8-27B-GGUF:Q4_K_XL"        -> "qwen38-27b"
+    "unsloth/gemma-4-26B-A4B-it-GGUF:Q4_K_XL" -> "gemma4-26b"
+    "unsloth/gemma-4-31B-it-GGUF:Q4_K_XL"     -> "gemma4-31b"
+    Unbekannte Familie: bereinigter Repo-Name (max. 20 Zeichen).
     """
-    low = (model or "").lower()
+    name = (model or "").lower().split(":", 1)[0].rsplit("/", 1)[-1]
     for fam in MODEL_FAMILIES:
-        if fam in low:
-            return fam.replace("-", "")
-    name = low.split(":", 1)[0].rsplit("/", 1)[-1]
+        idx = name.find(fam)
+        if idx == -1:
+            continue
+        rest = name[idx + len(fam):]
+        ver = re.match(r"[-_ ]?(\d+(?:\.\d+)?)(?![\d.]|b)", rest)  # "8B" ist Größe, keine Version
+        size = _SIZE_RE.search(name)
+        tag = fam.replace("-", "") + (ver.group(1).replace(".", "") if ver else "")
+        if size:
+            tag += "-" + size.group(1).replace(".", "") + "b"
+        return tag
     tag = re.sub(r"[^a-z0-9]+", "", name)[:20]
     return tag or "modell"
 

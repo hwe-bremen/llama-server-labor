@@ -122,17 +122,26 @@ class ModelTests(unittest.TestCase):
     GEMMA = "unsloth/gemma-4-26B-A4B-it-GGUF:Q4_K_XL"
 
     def test_kuerzel(self):
-        self.assertEqual(rp.model_tag(self.QWEN), "qwen")
-        self.assertEqual(rp.model_tag(self.GEMMA), "gemma")
-        self.assertEqual(rp.model_tag("JetBrains/Mellum2-12B-A2.5B-Thinking-GGUF-Q6_K:Q6_K"), "mellum")
+        self.assertEqual(rp.model_tag(self.QWEN), "qwen36-27b")
+        self.assertEqual(rp.model_tag("unsloth/Qwen3.8-27B-GGUF:Q4_K_XL"), "qwen38-27b")
+        self.assertEqual(rp.model_tag(self.GEMMA), "gemma4-26b")
+        self.assertEqual(rp.model_tag("unsloth/gemma-4-31B-it-GGUF:Q4_K_XL"), "gemma4-31b")
+        self.assertEqual(rp.model_tag("JetBrains/Mellum2-12B-A2.5B-Thinking-GGUF-Q6_K:Q6_K"), "mellum2-12b")
+        self.assertEqual(rp.model_tag("jondale/Apertus-8B-Instruct-2509-GGUF:Q4_K_M"), "apertus-8b")
         self.assertEqual(rp.model_tag("foo/Neues-Modell_7B:Q4"), "neuesmodell7b")
         self.assertEqual(rp.model_tag(""), "modell")
+
+    def test_kuerzel_unterscheidet_familienmitglieder(self):
+        tags = {rp.model_tag(m) for m in (
+            self.QWEN, "unsloth/Qwen3.8-27B-GGUF:Q4_K_XL",
+            self.GEMMA, "unsloth/gemma-4-31B-it-GGUF:Q4_K_XL")}
+        self.assertEqual(len(tags), 4)
 
     def test_modell_im_system_prompt(self):
         out, _ = rp.apply_roles({"model": self.GEMMA, "messages": [u("@review A")]}, ROLES, TODAY)
         sys_text = out["messages"][0]["content"]
         self.assertIn(f"Du läufst als Modell: {self.GEMMA}", sys_text)
-        self.assertIn("Kürzel für Dateinamen: gemma", sys_text)
+        self.assertIn("Kürzel für Dateinamen: gemma4-26b", sys_text)
 
     def test_ohne_modell_keine_zeile(self):
         for body in ({"messages": [u("@review A")]}, {"model": "default", "messages": [u("@review A")]}):
