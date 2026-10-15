@@ -9,8 +9,8 @@
 
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/hans-wernereberhardt/PycharmProjects/llama-server/.venv/bin/python3</string>
-        <string>/Users/hans-wernereberhardt/PycharmProjects/llama-server/agents/llm_scout/llm_scout.py</string>
+        <string>/bin/bash</string>
+        <string>/Users/hans-wernereberhardt/PycharmProjects/llama-server/scripts/run_scout_pipeline.sh</string>
     </array>
 
     <!-- DB und Berichte im Repo statt ~/lab (Default im Code) -->
