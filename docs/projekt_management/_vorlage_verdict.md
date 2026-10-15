@@ -3,7 +3,10 @@
 - **Spec:** `spec_<JJJJMMTT>_<kurztitel>.md`
 - **Handover:** `handover_<JJJJMMTT>_<kurztitel>.md`
 - **Datum:** <JJJJ-MM-TT>
+- **Modell:** <Modellname aus dem System-Prompt>
 - **Geprüfte Dateien:** <Liste der tatsächlich gelesenen Code-Dateien>
+
+Dateiname: `verdict_<JJJJMMTT>_<kurztitel>_<modellkürzel>.md`
 
 ## Ergebnis
 

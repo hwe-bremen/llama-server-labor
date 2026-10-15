@@ -10,8 +10,10 @@ in die Nachrichten:
 * Weil die UI bei jeder Anfrage den ganzen Verlauf schickt, gilt die zuletzt
   gesetzte Rolle weiter, ohne dass der Proxy Zustand halten muss.
 * @aus (oder @off) schaltet die Rolle wieder ab.
-* Der Rollen-Prompt plus heutiges Datum wird als erste System-Nachricht
-  gesetzt; ein vorhandener System-Prompt des Clients bleibt darunter erhalten.
+* Der Rollen-Prompt plus heutiges Datum und Modellname (aus dem Feld "model"
+  der Anfrage) wird als erste System-Nachricht gesetzt; ein vorhandener
+  System-Prompt des Clients bleibt darunter erhalten.
+* Trigger dürfen mit Doppelpunkt geschrieben werden: "@review: …".
 
 Rollen-Dateien werden bei jeder Anfrage neu gelesen: Prompt ändern, nächste
 Nachricht schicken, fertig.
@@ -40,7 +42,10 @@ PORT = int(os.environ.get("ROLE_PORT", "8092"))
 LOG_FILE = Path(os.environ.get("ROLE_LOG", str(HERE / "results" / "role_log.jsonl")))
 
 RESET_WORDS = {"aus", "off"}
-TRIGGER_RE = re.compile(r"^\s*@([A-Za-z0-9_-]+)(?=\s|$)")
+# "@review …" und "@review: …"; "@reviewer" oder "@review/x" zählen nicht.
+TRIGGER_RE = re.compile(r"^\s*@([A-Za-z0-9_-]+):?(?=\s|$)")
+# Bekannte Modellfamilien für das Kürzel im Dateinamen (Reihenfolge = Priorität).
+MODEL_FAMILIES = ("qwen", "gemma", "mellum", "apertus", "llama", "mistral", "phi", "deepseek", "gpt-oss")
 WOCHENTAGE = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
 # Nach @aus: ohne diesen Hinweis setzt das Modell die Rolle aus dem Verlauf fort
 # (Messung 14.10.: Qwen3.6 27B nannte sich nach @aus weiter Review-Instanz).
@@ -85,6 +90,29 @@ def load_roles(roles_dir: Path = None) -> dict[str, str]:
 def date_line(today: _dt.date | None = None) -> str:
     today = today or _dt.date.today()
     return f"Heutiges Datum: {today.isoformat()} ({WOCHENTAGE[today.weekday()]})."
+
+
+def model_tag(model: str) -> str:
+    """Kurzes, dateinamentaugliches Kürzel: Modellfamilie, sonst bereinigter Repo-Name.
+
+    "unsloth/gemma-4-26B-A4B-it-GGUF:Q4_K_XL" -> "gemma"
+    "unsloth/Qwen3.6-27B-MTP-GGUF:Q4_K_XL"    -> "qwen"
+    """
+    low = (model or "").lower()
+    for fam in MODEL_FAMILIES:
+        if fam in low:
+            return fam.replace("-", "")
+    name = low.split(":", 1)[0].rsplit("/", 1)[-1]
+    tag = re.sub(r"[^a-z0-9]+", "", name)[:20]
+    return tag or "modell"
+
+
+def model_line(model: str | None) -> str:
+    """Satz für den System-Prompt; leer, wenn die Anfrage kein Modell nennt."""
+    if not isinstance(model, str) or not model.strip() or model.strip() == "default":
+        return ""
+    return (f"Du läufst als Modell: {model.strip()} "
+            f"(Kürzel für Dateinamen: {model_tag(model)}).")
 
 
 # ------------------------------------------------------------------ Nachrichten
@@ -170,7 +198,11 @@ def apply_roles(body: dict, roles: dict[str, str],
         new_msgs.append(msg)
 
     if active:
-        _prepend_system(new_msgs, roles[active].strip() + "\n\n" + date_line(today))
+        info = date_line(today)
+        mline = model_line(body.get("model"))
+        if mline:
+            info += "\n" + mline
+        _prepend_system(new_msgs, roles[active].strip() + "\n\n" + info)
     elif last_trigger in RESET_WORDS:
         _prepend_system(new_msgs, RESET_NOTE)
 
@@ -192,6 +224,7 @@ def log_event(role: str | None, path: str, body: dict) -> None:
         entry = {
             "zeit": _dt.datetime.now().isoformat(timespec="seconds"),
             "rolle": role,
+            "modell": body.get("model"),
             "pfad": path,
             "nachrichten": len(body.get("messages") or []),
             "letzte_nutzernachricht": last_user_text(body)[:120],

@@ -117,6 +117,45 @@ class TriggerTests(unittest.TestCase):
         self.assertEqual(out["tools"], [{"type": "function"}])
 
 
+class ModelTests(unittest.TestCase):
+    QWEN = "unsloth/Qwen3.6-27B-MTP-GGUF:Q4_K_XL"
+    GEMMA = "unsloth/gemma-4-26B-A4B-it-GGUF:Q4_K_XL"
+
+    def test_kuerzel(self):
+        self.assertEqual(rp.model_tag(self.QWEN), "qwen")
+        self.assertEqual(rp.model_tag(self.GEMMA), "gemma")
+        self.assertEqual(rp.model_tag("JetBrains/Mellum2-12B-A2.5B-Thinking-GGUF-Q6_K:Q6_K"), "mellum")
+        self.assertEqual(rp.model_tag("foo/Neues-Modell_7B:Q4"), "neuesmodell7b")
+        self.assertEqual(rp.model_tag(""), "modell")
+
+    def test_modell_im_system_prompt(self):
+        out, _ = rp.apply_roles({"model": self.GEMMA, "messages": [u("@review A")]}, ROLES, TODAY)
+        sys_text = out["messages"][0]["content"]
+        self.assertIn(f"Du läufst als Modell: {self.GEMMA}", sys_text)
+        self.assertIn("Kürzel für Dateinamen: gemma", sys_text)
+
+    def test_ohne_modell_keine_zeile(self):
+        for body in ({"messages": [u("@review A")]}, {"model": "default", "messages": [u("@review A")]}):
+            out, _ = rp.apply_roles(body, ROLES, TODAY)
+            self.assertNotIn("Du läufst als Modell", out["messages"][0]["content"])
+
+    def test_modell_nur_bei_aktiver_rolle(self):
+        out, _ = rp.apply_roles({"model": self.QWEN, "messages": [u("hallo")]}, ROLES, TODAY)
+        self.assertEqual(out["messages"], [u("hallo")])
+
+    def test_trigger_mit_doppelpunkt(self):
+        out, role = rp.apply_roles({"messages": [u("@review: Prüf das")]}, ROLES, TODAY)
+        self.assertEqual(role, "review")
+        self.assertEqual(out["messages"][1]["content"], "Prüf das")
+        # Befund 14.10. 22:18: "@review: @review Prüf …" lief ohne Rolle
+        out, role = rp.apply_roles({"messages": [u("@review: @review Prüf")]}, ROLES, TODAY)
+        self.assertEqual(role, "review")
+
+    def test_doppelpunkt_ohne_leerzeichen_kein_trigger(self):
+        _, role = rp.apply_roles({"messages": [u("@review:x")]}, ROLES, TODAY)
+        self.assertIsNone(role)
+
+
 class RoleFileTests(unittest.TestCase):
     def test_laden_mit_frontmatter_und_unterstrich(self):
         with tempfile.TemporaryDirectory() as d:
@@ -211,6 +250,12 @@ class ProxyIntegrationTests(unittest.TestCase):
         self.assertEqual(body["messages"][1]["content"], "hallo")
         log = rp.LOG_FILE.read_text(encoding="utf-8").strip().splitlines()
         self.assertEqual(json.loads(log[-1])["rolle"], "review")
+
+    def test_log_enthaelt_modell(self):
+        self._post({"model": "unsloth/gemma-4-26B-A4B-it-GGUF:Q4_K_XL", "messages": [u("@review x")]})
+        entry = json.loads(rp.LOG_FILE.read_text(encoding="utf-8").strip().splitlines()[-1])
+        self.assertEqual(entry["modell"], "unsloth/gemma-4-26B-A4B-it-GGUF:Q4_K_XL")
+        self.assertIn("Du läufst als Modell", FakeUpstream.received[-1][1]["messages"][0]["content"])
 
     def test_chat_ohne_rolle_kein_header(self):
         FakeUpstream.received.clear()
