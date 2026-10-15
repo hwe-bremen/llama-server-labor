@@ -28,7 +28,7 @@ REPORT_DIR.mkdir(parents=True, exist_ok=True)
 LLAMA_SERVER_URL = os.getenv("LLAMA_SERVER_URL", "http://localhost:8080")
 HF_API_URL = "https://huggingface.co/api/models"
 GITHUB_RELEASES_RSS = [
-    "https://github.com/ggerganov/llama.cpp/releases.atom",
+    "https://github.com/ggml-org/llama.cpp/releases.atom",
     "https://github.com/ollama/ollama/releases.atom",
     "https://github.com/huggingface/transformers/releases.atom"
 ]
@@ -152,7 +152,13 @@ def fetch_github_releases() -> List[Dict[str, Any]]:
 
     for rss_url in GITHUB_RELEASES_RSS:
         try:
-            feed = feedparser.parse(rss_url)
+            # Abruf ueber requests (nutzt certifi): feedparser/urllib scheitert mit dem
+            # python.org-Python auf macOS an der Zertifikatspruefung -> still 0 Eintraege.
+            resp = requests.get(rss_url, timeout=15, headers={"User-Agent": "llm-scout-lab/1.0"})
+            resp.raise_for_status()
+            feed = feedparser.parse(resp.content)
+            if feed.bozo and not feed.entries:
+                print(f"  WARNUNG {rss_url}: Feed nicht lesbar ({feed.get('bozo_exception')})", file=sys.stderr)
             print(f"  RSS {rss_url}: {len(feed.entries)} Einträge (cutoff: {cutoff_date.strftime('%Y-%m-%d')})")
             for entry in feed.entries:
                 # Datum prüfen – updated_parsed ist time.struct_time (UTC)
