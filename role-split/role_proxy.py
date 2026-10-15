@@ -195,6 +195,9 @@ def log_event(role: str | None, path: str, body: dict) -> None:
             "pfad": path,
             "nachrichten": len(body.get("messages") or []),
             "letzte_nutzernachricht": last_user_text(body)[:120],
+            # Diagnose: kamen MCP-Tools aus der Web-UI mit? 0 = Client hat keine Tools geschickt
+            "tools": [((t.get("function") or {}).get("name") or "?") for t in (body.get("tools") or [])
+                      if isinstance(t, dict)],
         }
         with LOG_FILE.open("a", encoding="utf-8") as fh:
             fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
