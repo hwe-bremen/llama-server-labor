@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Local LLM Scout: wöchentliches Infopaper neuer lokaler LLM-Entwicklungen -->
+    <key>Label</key>
+    <string>de.hawe.lab.llm_scout</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/hans-wernereberhardt/PycharmProjects/llama-server/.venv/bin/python3</string>
+        <string>/Users/hans-wernereberhardt/PycharmProjects/llama-server/agents/llm_scout/llm_scout.py</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/hans-wernereberhardt/PycharmProjects/llama-server</string>
+
+    <key>StartCalendarInterval</key>
+    <array>
+        <dict>
+            <key>Weekday</key>
+            <integer>1</integer>
+            <key>Hour</key>
+            <integer>8</integer>
+            <key>Minute</key>
+            <integer>0</integer>
+        </dict>
+    </array>
+
+    <key>StandardOutPath</key>
+    <string>/Users/hans-wernereberhardt/PycharmProjects/llama-server/logs/llm_scout_out.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/hans-wernereberhardt/PycharmProjects/llama-server/logs/llm_scout_err.log</string>
+</dict>
+</plist>

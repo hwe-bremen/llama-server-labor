@@ -267,48 +267,55 @@ def call_llm_for_evaluation(items: List[Dict[str, Any]]) -> str:
 def main():
     print("--- Local LLM Scout gestartet ---")
 
-    # DB Initialisierung
-    conn = sqlite3.connect(DB_PATH)
-    init_db(conn)
+    try:
+        # DB Initialisierung
+        conn = sqlite3.connect(DB_PATH)
+        init_db(conn)
 
-    # 1. Daten holen
-    print("Hole Daten von Hugging Face und GitHub...")
-    hf_items = fetch_hf_trending()
-    gh_items = fetch_github_releases()
-    all_items = hf_items + gh_items
-    print(f"Gesamt gefunden: {len(hf_items)} HF + {len(gh_items)} GH = {len(all_items)} Items")
+        # 1. Daten holen
+        print("Hole Daten von Hugging Face und GitHub...")
+        hf_items = fetch_hf_trending()
+        gh_items = fetch_github_releases()
+        all_items = hf_items + gh_items
+        print(f"Gesamt gefunden: {len(hf_items)} HF + {len(gh_items)} GH = {len(all_items)} Items")
 
-    # 2. Filtern (nur neue)
-    new_items = []
-    for item in all_items:
-        if is_new_item(conn, item['url']):
-            new_items.append(item)
-            mark_as_processed(conn, item['source'], item['title'], item['url'])
-        else:
-            print(f"  (bereits verarbeitet) {item['title']}")
-    print(f"Neue Items: {len(new_items)}")
+        # 2. Filtern (nur neue)
+        new_items = []
+        for item in all_items:
+            if is_new_item(conn, item['url']):
+                new_items.append(item)
+                mark_as_processed(conn, item['source'], item['title'], item['url'])
+            else:
+                print(f"  (bereits verarbeitet) {item['title']}")
+        print(f"Neue Items: {len(new_items)}")
 
-    conn.close()
+        conn.close()
 
-    if not new_items:
-        print("Keine neuen Items gefunden. Skript beendet.")
-        return
+        if not new_items:
+            print("Keine neuen Items gefunden. Skript beendet.")
+            sys.exit(0)
 
-    print(f"Gefunden {len(new_items)} neue Items. Bewerte sie...")
+        print(f"Gefunden {len(new_items)} neue Items. Bewerte sie...")
 
-    # 3. Evaluation durch LLM
-    report_content = call_llm_for_evaluation(new_items)
+        # 3. Evaluation durch LLM
+        report_content = call_llm_for_evaluation(new_items)
 
-    # 4. Bericht speichern
-    week_number = datetime.now().isocalendar()[1]
-    filename = f"llm_scout_kw{week_number}_{datetime.now().strftime('%Y')}.md"
-    filepath = REPORT_DIR / filename
+        # 4. Bericht speichern
+        os.makedirs(REPORT_DIR, exist_ok=True)
+        week_number = datetime.now().isocalendar()[1]
+        filename = f"llm_scout_kw{week_number}_{datetime.now().strftime('%Y')}.md"
+        filepath = REPORT_DIR / filename
 
-    with open(filepath, 'w', encoding='utf-8') as f:
-        f.write(report_content)
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.write(report_content)
 
-    print(f"Bericht gespeichert unter: {filepath}")
-    print("--- Skript beendet ---")
+        print(f"Bericht gespeichert unter: {filepath}")
+        print("--- Skript beendet ---")
+        sys.exit(0)
+
+    except Exception as e:
+        print(f"Kritischer Fehler: {e}", file=sys.stderr)
+        sys.exit(1)
 
 
 if __name__ == "__main__":
