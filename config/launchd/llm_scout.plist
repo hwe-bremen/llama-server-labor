@@ -13,6 +13,13 @@
         <string>/Users/hans-wernereberhardt/PycharmProjects/llama-server/agents/llm_scout/llm_scout.py</string>
     </array>
 
+    <!-- DB und Berichte im Repo statt ~/lab (Default im Code) -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>LAB_DIR</key>
+        <string>/Users/hans-wernereberhardt/PycharmProjects/llama-server/agents/llm_scout/data</string>
+    </dict>
+
     <key>WorkingDirectory</key>
     <string>/Users/hans-wernereberhardt/PycharmProjects/llama-server</string>
 
