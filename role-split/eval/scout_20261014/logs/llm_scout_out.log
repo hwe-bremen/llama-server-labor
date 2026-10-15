@@ -1,0 +1,59 @@
+--- Local LLM Scout gestartet ---
+Hole Daten von Hugging Face und GitHub...
+  RSS https://github.com/ggerganov/llama.cpp/releases.atom: 0 Einträge (cutoff: 2026-10-07)
+  RSS https://github.com/ollama/ollama/releases.atom: 0 Einträge (cutoff: 2026-10-07)
+  RSS https://github.com/huggingface/transformers/releases.atom: 0 Einträge (cutoff: 2026-10-07)
+Gesamt gefunden: 49 HF + 0 GH = 49 Items
+  (bereits verarbeitet) unsloth/Qwen3.8-27B-GGUF
+  (bereits verarbeitet) abenzerps/Qwen-Image-2.1-Uncensored-Quantized
+  (bereits verarbeitet) HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive
+  (bereits verarbeitet) google/gemma-7b
+  (bereits verarbeitet) yuxinlu1/gemma-4-12B-coder-fable5-composer2.5-v1-GGUF
+  (bereits verarbeitet) empero-ai/Qwythos-9B-Claude-Mythos-5-1M-GGUF
+  (bereits verarbeitet) prism-ml/Ternary-Bonsai-2-27B-gguf
+  (bereits verarbeitet) DavidAU/Qwen3.6-27B-Fable-Fusion-711-Uncensored-Heretic-NM-DAU-NEO-MAX-MTP-GGUF
+  (bereits verarbeitet) HauhauCS/Qwen3.5-9B-Uncensored-HauhauCS-Aggressive
+  (bereits verarbeitet) ISTA-DASLab/Qwen3.8-27B-GSQ-RCO-GGUF
+  (bereits verarbeitet) SulphurAI/Sulphur-2-base
+  (bereits verarbeitet) HauhauCS/Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-MTP-GGUF
+  (bereits verarbeitet) DavidAU/Qwen3.8-27B-TURBO-Fable-Cold-Fusion-735-882-Heretic-Uncensored-NEO-CODER-MAX-MTP-GGUF
+  (bereits verarbeitet) unsloth/Qwen3.6-35B-A3B-GGUF
+  (bereits verarbeitet) yuxinlu1/gemma-4-12B-agentic-fable5-composer2.5-v2-3.5x-tau2-GGUF
+  (bereits verarbeitet) jialinyyzz/humanizer
+  (bereits verarbeitet) JonathanColetti/Qwen3.8-27B-Uncensored-GGUF
+  (bereits verarbeitet) HauhauCS/Qwen3.5-35B-A3B-Uncensored-HauhauCS-Aggressive
+  (bereits verarbeitet) orcarouter/Qwen3.8-27B-Uncensored-GGUF
+  (bereits verarbeitet) city96/FLUX.1-dev-gguf
+  (bereits verarbeitet) OBLITERATUS/Qwen3.8-27B-OBLITERATED
+  (bereits verarbeitet) prism-ml/Ternary-Bonsai-27B-gguf
+  (bereits verarbeitet) HauhauCS/Gemma-4-E4B-Uncensored-HauhauCS-Aggressive
+  (bereits verarbeitet) unsloth/Qwen3.6-27B-MTP-GGUF
+  (bereits verarbeitet) huihui-ai/Huihui-Qwen3.8-27B-abliterated-GGUF
+  (bereits verarbeitet) google/gemma-2b
+  (bereits verarbeitet) google/gemma-7b-it
+  (bereits verarbeitet) unsloth/gemma-4-26B-A4B-it-GGUF
+  (bereits verarbeitet) nvidia/nemotron-3.5-asr-streaming-0.6b
+  (bereits verarbeitet) unsloth/Qwen3.8-Flash-Next-GGUF
+  (bereits verarbeitet) nvidia/parakeet-tdt-0.6b-v3
+  (bereits verarbeitet) unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF
+  (bereits verarbeitet) unsloth/DeepSeek-R1-GGUF
+  (bereits verarbeitet) DavidAU/Qwen3.5-9B-The-Defiant-Fable-Uncensored-Heretic-NEO-IMATRIX-MAX-MTP-GGUF
+  (bereits verarbeitet) ornith-ai/Ornith-1.0-35B-GGUF
+  (bereits verarbeitet) Jiunsong/supergemma4-26b-uncensored-gguf-v2
+  (bereits verarbeitet) unsloth/Qwen3.6-35B-A3B-MTP-GGUF
+  (bereits verarbeitet) unsloth/Qwen3.5-9B-GGUF
+  (bereits verarbeitet) miqudev/miqu-1-70b
+  (bereits verarbeitet) google/gemma-2b-it
+  (bereits verarbeitet) unsloth/Qwen3.6-27B-GGUF
+  (bereits verarbeitet) prism-ml/Bonsai-27B-gguf
+  (bereits verarbeitet) neuphonic/neutts-air
+  (bereits verarbeitet) unsloth/gemma-4-12b-it-GGUF
+  (bereits verarbeitet) unsloth/Qwen3-Coder-Next-GGUF
+  (bereits verarbeitet) unsloth/gpt-oss-20b-GGUF
+  (bereits verarbeitet) unsloth/Qwen3.5-35B-A3B-GGUF
+  (bereits verarbeitet) ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-GGUF
+Neue Items: 1
+Gefunden 1 neue Items. Bewerte sie...
+Frage wird an LLM (unsloth/Qwen3.6-27B-MTP-GGUF:Q4_K_XL) gestellt...
+Bericht gespeichert unter: /Users/hans-wernereberhardt/lab/weekly-reports/llm_scout_kw42_2026.md
+--- Skript beendet ---
