@@ -18,7 +18,7 @@
 # statt ihn stillschweigend weiterzubenutzen (Befund 14.10.: Grenze war unbemerkt aus).
 #
 # Überschreibbar: MCP_WRITE_ROOTS, LAB_MEMORY (Default 1), LAB_BIND, LAB_KEEP_SERVE,
-# LAB_SERVE_PORT (Default = ROLE_PORT), ROLE_UPSTREAM.
+# LAB_SERVE_PORT (Default = ROLE_PORT), ROLE_UPSTREAM, MCP_ALLOW_GITLOG (Review-Eval: 0).
 # Mode B: Lab, berührt AskValentinAI nicht.
 set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -37,10 +37,12 @@ if [ -n "$MCP_PID" ]; then
   ENV_DUMP="$(ps eww -p "$MCP_PID" 2>/dev/null | tr ' ' '\n')"
   RUN_ROOTS="$(printf '%s\n' "$ENV_DUMP" | grep '^MCP_WRITE_ROOTS=' | head -n1 | cut -d= -f2-)"
   RUN_RO="$(printf '%s\n' "$ENV_DUMP" | grep '^MCP_READONLY=' | head -n1 | cut -d= -f2-)"
-  if [ "$RUN_ROOTS" != "$MCP_WRITE_ROOTS" ] || [ "$RUN_RO" != "0" ]; then
+  RUN_GL="$(printf '%s\n' "$ENV_DUMP" | grep '^MCP_ALLOW_GITLOG=' | head -n1 | cut -d= -f2-)"
+  RUN_GL="${RUN_GL:-1}"; WANT_GL="${MCP_ALLOW_GITLOG:-1}"
+  if [ "$RUN_ROOTS" != "$MCP_WRITE_ROOTS" ] || [ "$RUN_RO" != "0" ] || [ "$RUN_GL" != "$WANT_GL" ]; then
     echo "ABBRUCH: Auf Port ${MCP_PORT} läuft bereits ein MCP-Server (PID ${MCP_PID})"
-    echo "         mit MCP_WRITE_ROOTS='${RUN_ROOTS:-<nicht gesetzt>}', MCP_READONLY='${RUN_RO:-?}'."
-    echo "         Erwartet: MCP_WRITE_ROOTS='${MCP_WRITE_ROOTS}', MCP_READONLY='0'."
+    echo "         mit MCP_WRITE_ROOTS='${RUN_ROOTS:-<nicht gesetzt>}', MCP_READONLY='${RUN_RO:-?}', MCP_ALLOW_GITLOG='${RUN_GL}'."
+    echo "         Erwartet: MCP_WRITE_ROOTS='${MCP_WRITE_ROOTS}', MCP_READONLY='0', MCP_ALLOW_GITLOG='${WANT_GL}'."
     echo "         Den alten Server beenden (Ctrl+C in seinem Launcher-Fenster oder: kill ${MCP_PID})"
     echo "         und diesen Starter erneut aufrufen."
     exit 1
