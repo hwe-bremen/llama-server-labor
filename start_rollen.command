@@ -7,6 +7,8 @@
 #   - Router 8080, Gedaechtnis-Proxy 8091, Rollen-Proxy 8092 (@review / @research / @aus)
 #   - Tailscale Serve -> 8092: erreichbar vom Mac, iPad und Mac mini im Tailnet
 #   - Mac schlaeft nicht ein, solange das Fenster offen ist
+#   - immer nur EIN Modell im Speicher: zwei 27B passen nicht in 48 GB ("Compute error",
+#     Befund 16.10.); beim Modellwechsel laedt der Router um (~1 Min.)
 # Browser Mac: http://127.0.0.1:8092   remote: die .ts.net-URL aus dem Banner
 # Ctrl+C stoppt alles und setzt Serve zurueck.
 #
@@ -20,9 +22,10 @@ export MCP_ALLOW_GITLOG=1
 export LAB_MEMORY=1
 export LAB_BIND=serve
 export LAB_KEEP_SERVE=0
-unset ROLE_UPSTREAM LAB_MODELS_MAX LAB_SERVE_PORT
+export LAB_MODELS_MAX=1
+unset ROLE_UPSTREAM LAB_SERVE_PORT
 
 echo "=============================================================="
-echo " START: ROLLEN-LAUF   (Gedaechtnis an, git_log an, Tailnet an)"
+echo " START: ROLLEN-LAUF   (Gedaechtnis an, git_log an, 1 Modell, Tailnet an)"
 echo "=============================================================="
 exec caffeinate -s bash "$HERE/scripts/launch_lab_roles.command"
