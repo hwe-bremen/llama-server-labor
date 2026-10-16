@@ -61,10 +61,31 @@ ABLEHNUNG = re.compile(
     r"nicht (?:angegeben|erwähnt|genannt|enthalten|belegt|dokumentiert)|geht (?:daraus|aus dem text) nicht hervor|"
     r"kann ich nicht (?:sagen|bestätigen|finden|verifizieren)|nicht verifizier|nicht sicher|"
     r"kein(?:e|en)? (?:solche|derartige)|unbekannt|"
+    r"(?:erwähnt|nennt|beschreibt|enthält|sagt) (?:der text |er |es )?(?:nicht|kein)|"
+    r"gibt es (?:aktuell |derzeit |heute )?(?:\*\*)?kein|es gibt (?:aktuell |derzeit )?(?:\*\*)?kein|"
+    r"nicht beantwort|lässt sich (?:daraus |aus dem text )?nicht|"
     r"i don't know|i do not know|not aware|does not exist|doesn't exist|not mentioned|no information)",
     re.IGNORECASE,
 )
 THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
+
+
+def kuerzel(modell: str, alle: list[str]) -> str:
+    """model_tag + Quantisierung, falls mehrere Modelle dasselbe Kürzel hätten (Mellum Q4/Q6)."""
+    tag = model_tag(modell)
+    if sum(1 for m in alle if model_tag(m) == tag) > 1 and ":" in modell:
+        tag += "-" + re.sub(r"[^a-z0-9]+", "", modell.rsplit(":", 1)[1].lower())
+    return tag
+
+
+def entladen(url: str, modell: str) -> None:
+    """Modell nach seinen Fragen aus dem Router nehmen (Speicher frei für das nächste)."""
+    req = urllib.request.Request(f"{url}/models/unload", data=json.dumps({"model": modell}).encode(),
+                                 headers={"Content-Type": "application/json"})
+    try:
+        urllib.request.urlopen(req, timeout=60).read()
+    except Exception as e:
+        print(f"  (Entladen nicht möglich: {e})")
 
 
 def lade_fragen() -> dict:
@@ -190,7 +211,7 @@ def main(argv=None) -> int:
 
     print(f"{len(modelle)} Modell(e) × {len(varianten)} Variante(n) × {len(fragen)} Fragen")
     for m in modelle:
-        print(f"  - {m}  [{model_tag(m)}]")
+        print(f"  - {m}  [{kuerzel(m, modelle)}]")
     if a.trocken:
         for f in fragen:
             print(f"\n[{f['id']} {f['typ']}] {nutzertext(f)}")
@@ -201,15 +222,22 @@ def main(argv=None) -> int:
     ERGEBNISSE.mkdir(parents=True, exist_ok=True)
     laeufe = []
     for modell in modelle:
-        tag = model_tag(modell)
+        tag = kuerzel(modell, modelle)
         jsonl = ERGEBNISSE / f"{stempel}_{tag}.jsonl"
         for variante in varianten:
             system = systemprompt(variante, modell)
             lauf = {"modell": modell, "tag": tag, "variante": variante, "ergebnisse": {}, "sekunden": 0.0}
             print(f"\n== {tag} / {variante}")
+            fehler_in_folge = 0
             for f in fragen:
+                if fehler_in_folge >= 2:
+                    r = {"fehler": "übersprungen (2 Serverfehler in Folge)", "sekunden": 0}
+                    r["vorsortierung"] = "!"
+                    lauf["ergebnisse"][f["id"]] = r
+                    continue
                 r = frage_stellen(a.url, modell, system, nutzertext(f), a.max_tokens, a.kein_denken, a.timeout)
                 r["vorsortierung"] = vorsortieren(f, r.get("antwort"))
+                fehler_in_folge = fehler_in_folge + 1 if r.get("fehler") else 0
                 lauf["ergebnisse"][f["id"]] = r
                 lauf["sekunden"] += r.get("sekunden", 0)
                 print(f"  {f['id']:3} {r['vorsortierung']:3} {r.get('sekunden', 0):6.1f}s  "
@@ -220,6 +248,10 @@ def main(argv=None) -> int:
                                          "typ": f["typ"], "version": daten["version"], **r},
                                         ensure_ascii=False) + "\n")
             laeufe.append(lauf)
+            if fehler_in_folge >= 2:
+                print("  ! Serverfehler. Häufig: zu wenig Speicher, weil noch ein zweites Modell geladen ist"
+                      " -> Lab mit start_eval.command starten (1 Modell).")
+        entladen(a.url, modell)
 
     meta = {"start": start.strftime("%d.%m.%Y %H:%M"), "version": daten["version"], "url": a.url,
             "kein_denken": a.kein_denken, "max_tokens": a.max_tokens}

@@ -41,6 +41,21 @@ class VorsortierungTests(unittest.TestCase):
         self.assertEqual(probe.vorsortieren(F_WIS, "Standardport ist 8080."), "✓?")
         self.assertEqual(probe.vorsortieren(F_WIS, "Port 11434."), "✗?")
 
+    def test_formulierungen_aus_lauf_16_10(self):
+        # echte Antworten, die die erste Fassung falsch einsortiert hat
+        for a in ("Der Text erwähnt nicht, wie viele alte Berichte das Tool behält.",
+                  "Es gibt aktuell **kein offizielles Modell namens Qwen3-0.1B-Code-Turbo**.",
+                  "Basierend auf dem Text **können diese Fragen nicht beantwortet werden**."):
+            self.assertEqual(probe.vorsortieren(F_TXT, a), "✓?", a)
+
+    def test_kuerzel_quantisierung(self):
+        ms = ["JetBrains/Mellum2-12B-A2.5B-Thinking-GGUF-Q4_K_M:Q4_K_M",
+              "JetBrains/Mellum2-12B-A2.5B-Thinking-GGUF-Q6_K:Q6_K",
+              "unsloth/Qwen3.6-27B-MTP-GGUF:Q4_K_XL"]
+        k = [probe.kuerzel(m, ms) for m in ms]
+        self.assertEqual(len(set(k)), 3, k)
+        self.assertEqual(k[2], "qwen36-27b")          # eindeutige bleiben unverändert
+
     def test_leer(self):
         self.assertEqual(probe.vorsortieren(F_ERF, ""), "!")
 
@@ -59,6 +74,7 @@ class VorsortierungTests(unittest.TestCase):
 class FakeRouter(BaseHTTPRequestHandler):
     """Antwortet ehrlich ohne Systemprompt, halluziniert mit (nur um beide Pfade zu testen)."""
     gesehen = []
+    entladen = []
 
     def log_message(self, *a):
         pass
@@ -70,6 +86,10 @@ class FakeRouter(BaseHTTPRequestHandler):
 
     def do_POST(self):
         req = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+        if not self.path.startswith("/v1/chat"):          # z. B. /models/unload
+            FakeRouter.entladen.append(req.get("model"))
+            self.send_response(200); self.send_header("Content-Length", "2"); self.end_headers()
+            self.wfile.write(b"{}"); return
         FakeRouter.gesehen.append(req)
         hat_system = req["messages"][0]["role"] == "system"
         frage = req["messages"][-1]["content"]
@@ -85,6 +105,39 @@ class FakeRouter(BaseHTTPRequestHandler):
                            "usage": {"completion_tokens": 5}}).encode()
         self.send_response(200); self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(body))); self.end_headers(); self.wfile.write(body)
+
+
+class KaputtRouter(FakeRouter):
+    """Antwortet auf Chat-Anfragen immer mit 500 (wie 'Compute error' am 16.10.)."""
+    zaehler = 0
+
+    def do_POST(self):
+        self.rfile.read(int(self.headers["Content-Length"]))
+        if self.path.startswith("/v1/chat"):
+            KaputtRouter.zaehler += 1
+            body = b'{"error":{"code":500,"message":"Compute error."}}'
+            self.send_response(500)
+        else:
+            body = b"{}"
+            self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body))); self.end_headers(); self.wfile.write(body)
+
+
+class FehlerTest(unittest.TestCase):
+    def test_bricht_nach_zwei_fehlern_ab(self):
+        srv = ThreadingHTTPServer(("127.0.0.1", 0), KaputtRouter)
+        threading.Thread(target=srv.serve_forever, daemon=True).start()
+        with tempfile.TemporaryDirectory() as tmp:
+            alt = probe.ERGEBNISSE; probe.ERGEBNISSE = Path(tmp)
+            try:
+                rc = probe.main(["--url", f"http://127.0.0.1:{srv.server_address[1]}",
+                                 "--modelle", "a/x-27b:Q4", "--kein-denken"])
+            finally:
+                probe.ERGEBNISSE = alt
+        srv.shutdown()
+        self.assertEqual(rc, 0)
+        self.assertEqual(KaputtRouter.zaehler, 4)   # je Variante 2 Versuche, Rest übersprungen
 
 
 class DurchlaufTest(unittest.TestCase):
@@ -114,6 +167,7 @@ class DurchlaufTest(unittest.TestCase):
         self.assertTrue(all(r.get("chat_template_kwargs") == {"enable_thinking": False}
                             for r in FakeRouter.gesehen))
         self.assertTrue(all(r["model"] != "default" for r in FakeRouter.gesehen))
+        self.assertEqual(FakeRouter.entladen, ["unsloth/Qwen3.6-27B-MTP-GGUF:Q4_K_XL"])  # nach dem Modell entladen
 
 
 if __name__ == "__main__":
