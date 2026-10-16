@@ -63,7 +63,7 @@ ABLEHNUNG = re.compile(
     r"kein(?:e|en)? (?:solche|derartige)|unbekannt|"
     r"(?:erwähnt|nennt|beschreibt|enthält|sagt) (?:der text |er |es )?(?:nicht|kein)|"
     r"gibt es (?:aktuell |derzeit |heute )?(?:\*\*)?kein|es gibt (?:aktuell |derzeit )?(?:\*\*)?kein|"
-    r"nicht beantwort|lässt sich (?:daraus |aus dem text )?nicht|"
+    r"nicht beantwort|lässt sich .{0,40}?nicht|geht .{0,30}?nicht hervor|keinerlei|"
     r"i don't know|i do not know|not aware|does not exist|doesn't exist|not mentioned|no information)",
     re.IGNORECASE,
 )

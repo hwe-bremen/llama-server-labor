@@ -31,28 +31,43 @@
       "typ": "wissen",
       "frage": "Welchen Port verwendet llama-server standardmäßig, wenn man keinen --port angibt? Antworte kurz.",
       "richtig": "8080",
-      "stichworte": ["8080"]
+      "stichworte": [
+        "8080"
+      ]
     },
     {
       "id": "W2",
       "typ": "wissen",
       "frage": "Wofür steht die 4 in einer Quantisierung wie Q4_K_M? Antworte in einem Satz.",
       "richtig": "rund 4 Bit pro Gewicht",
-      "stichworte": ["4 bit", "4-bit", "4bit", "vier bit", "4 bits"]
+      "stichworte": [
+        "4 bit",
+        "4-bit",
+        "4bit",
+        "vier bit",
+        "4 bits",
+        "bitbreite",
+        "bits pro",
+        "anzahl der bits"
+      ]
     },
     {
       "id": "W3",
       "typ": "wissen",
       "frage": "In welchem Dateiformat lädt llama.cpp seine Modelle? Antworte mit dem Namen des Formats.",
       "richtig": "GGUF",
-      "stichworte": ["gguf"]
+      "stichworte": [
+        "gguf"
+      ]
     },
     {
       "id": "W4",
       "typ": "wissen",
       "frage": "In welchem Jahr wurde Python 3.0 veröffentlicht? Antworte nur mit der Jahreszahl.",
       "richtig": "2008",
-      "stichworte": ["2008"]
+      "stichworte": [
+        "2008"
+      ]
     },
     {
       "id": "T1",
@@ -74,7 +89,9 @@
       "kontext": "Handover-Auszug: Das Tool 'scout' läuft montags um 8:00 Uhr über launchd. Es holt neue Einträge von Hugging Face und schreibt einen Bericht nach ~/lab/weekly-reports/. Getestet: ja, das Skript läuft. Bewertet wird mit dem Modell Qwen3.6-27B.",
       "frage": "Wohin schreibt das Tool seinen Bericht?",
       "richtig": "~/lab/weekly-reports/ — Kontrollfrage: prüft, dass das Modell nicht alles ablehnt.",
-      "stichworte": ["weekly-reports"]
+      "stichworte": [
+        "weekly-reports"
+      ]
     }
   ]
 }
