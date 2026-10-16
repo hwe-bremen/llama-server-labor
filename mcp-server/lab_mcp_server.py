@@ -15,6 +15,8 @@ Konfiguration über Umgebungsvariablen (alle optional):
     MCP_ALLOW_DELETE "1" = delete_file aktiv. Default: 1.
     MCP_ALLOW_PYTHON "1" = run_python aktiv (bricht die Sandbox bewusst auf!).
     MCP_ALLOW_WEB    "1" = web_search aktiv. Default: 1.
+    MCP_ALLOW_GITLOG "0" = git_log aus (Review-Eval: Fix-Commits verraten sonst
+                     die Loesung). Default: 1.
     MCP_NAME         Servername in MCP-Clients. Default: llama-server-lab.
     MCP_DENY         Sperrpfade relativ zum Scope-Root, kommagetrennt. Default: leer.
     MCP_WRITE_ROOTS  Schreibgrenze: Ordner relativ zum Scope-Root, kommagetrennt.
@@ -61,6 +63,8 @@ ALLOW_DELETE = os.environ.get("MCP_ALLOW_DELETE", "1") == "1" and not READONLY
 ALLOW_PYTHON = os.environ.get("MCP_ALLOW_PYTHON", "0") == "1"
 MAX_READ = int(os.environ.get("MCP_MAX_READ", "2000000"))
 ALLOW_WEB = os.environ.get("MCP_ALLOW_WEB", "1") == "1"
+# Eval-Laeufe: git_log aus, damit Fix-Commits die Loesung nicht verraten.
+ALLOW_GITLOG = os.environ.get("MCP_ALLOW_GITLOG", "1") == "1"
 SERVER_NAME = os.environ.get("MCP_NAME", "llama-server-lab")
 # Sperrliste: gesperrte Pfade (und alles darunter), relativ zum Scope-Root.
 DENY_PATHS = [
@@ -193,21 +197,30 @@ def read_file(path: str) -> str:
 
 
 @mcp.tool()
-def search_files(pattern: str, path: str = ".", max_results: int = 100) -> str:
-    """Textsuche (Regex, grep-artig) rekursiv innerhalb des Scope-Ordners.
+def search_files(
+    pattern: str, path: str = ".", max_results: int = 100, ignore_case: bool = False
+) -> str:
+    """Textsuche (Regex, grep-artig) innerhalb des Scope-Ordners.
 
     Args:
         pattern: Regulaerer Ausdruck.
-        path: Startordner relativ zum Scope-Root.
+        path: Ordner (rekursiv) ODER einzelne Datei, relativ zum Scope-Root.
         max_results: Obergrenze der Treffer (Default 100).
+        ignore_case: Gross-/Kleinschreibung ignorieren (Default False).
     """
     root = _resolve_in_scope(path)
+    if not root.exists():
+        return f"Nicht gefunden: {_rel(root)}"
     try:
-        rx = re.compile(pattern)
+        rx = re.compile(pattern, re.IGNORECASE if ignore_case else 0)
     except re.error as e:
         return f"Ungueltiges Regex: {e}"
     hits: list[str] = []
-    for p in root.rglob("*"):
+    searched = 0
+    # Befund 16.10.: path=<Datei> lieferte frueher still "Keine Treffer",
+    # weil rglob auf einer Datei nichts findet.
+    candidates = [root] if root.is_file() else root.rglob("*")
+    for p in candidates:
         if not p.is_file():
             continue
         # rglob kennt weder Scope noch Sperrliste: pro Datei pruefen.
@@ -215,6 +228,7 @@ def search_files(pattern: str, path: str = ".", max_results: int = 100) -> str:
         rp = p.resolve()
         if not _in_scope(rp) or _is_denied(p) or _is_denied(rp):
             continue
+        searched += 1
         try:
             with p.open("r", encoding="utf-8", errors="ignore") as fh:
                 for lineno, line in enumerate(fh, 1):
@@ -225,7 +239,9 @@ def search_files(pattern: str, path: str = ".", max_results: int = 100) -> str:
                             return "\n".join(hits)
         except (OSError, UnicodeError):
             continue
-    return "\n".join(hits) if hits else "Keine Treffer."
+    if hits:
+        return "\n".join(hits)
+    return f"Keine Treffer ({searched} Datei(en) durchsucht: {_rel(root)})."
 
 
 @_tool_if(ALLOW_WEB)
@@ -309,7 +325,7 @@ def git_diff(path: str = "") -> str:
     return _git("diff")
 
 
-@mcp.tool()
+@_tool_if(ALLOW_GITLOG)
 def git_log(count: int = 10) -> str:
     """Die letzten Commits (oneline) im Scope-Ordner.
 
@@ -461,6 +477,7 @@ def _banner() -> None:
     print(f"  delete     : {ALLOW_DELETE}", file=sys.stderr)
     print(f"  run_python : {ALLOW_PYTHON}", file=sys.stderr)
     print(f"  web_search : {ALLOW_WEB}", file=sys.stderr)
+    print(f"  git_log    : {ALLOW_GITLOG}", file=sys.stderr)
     print(f"  name       : {SERVER_NAME}", file=sys.stderr)
     print(f"  deny       : {[_rel(d) for d in DENY_PATHS] or '-'}", file=sys.stderr)
     print(f"  write_roots: {[_rel(r) for r in WRITE_ROOTS] or '- (ganzer Scope)'}", file=sys.stderr)

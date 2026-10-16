@@ -23,6 +23,20 @@ iPad / Büro:  https://<mac>.ts.net ───┤ (Tailscale Serve, nur mit LAB_B
 | 8787 | Lab-MCP mit Schreibgrenze | Launcher mit `write` und `MCP_WRITE_ROOTS=…` |
 | 443 (.ts.net) | Tailscale Serve → 8092 | `LAB_BIND=serve` bzw. `launch_lab_roles_remote.command` |
 
+## Start — genau zwei Befehle (ab 16.10.)
+
+Beide: MCP mit Schreibrechten (Grenze `docs/projekt_management`, `docs/research`), Rollen-Proxy 8092,
+Tailscale Serve → 8092 (Mac, iPad, Mac mini), Mac bleibt wach. Ctrl+C stoppt alles.
+
+| Befehl (Projekt-Root, auch per Doppelklick) | Wofür | Unterschied |
+|---|---|---|
+| `bash start_rollen.command` | normale Arbeit mit `@review` / `@research` | Gedächtnis 8091 an, `git_log` an |
+| `bash start_eval.command` | Modellvergleich (`role-split/eval/`) | direkt auf 8080, 1 Modell, `git_log` aus |
+
+Wechsel zwischen beiden: erst Ctrl+C, dann den anderen starten. Läuft noch ein MCP-Server aus dem
+anderen Modus, bricht der Starter mit `ABBRUCH` ab (fail-loud) — dann den alten beenden.
+Alle anderen `scripts/launch_*.command` sind Bausteine dieser beiden; direkt nur noch für Sonderfälle.
+
 ## Start (Standard) — ein Fenster
 
 ```bash
@@ -86,6 +100,9 @@ bash role-split/role.command            # nur Rollen-Proxy (Standard: serve)
 bash role-split/role.command test       # 21 Tests (Trigger, @aus, Streaming, gzip)
 bash role-split/role.command check      # Rollen anzeigen + Trockenlauf, ohne Server
 
+python3 role-split/eval/halluzination/probe.py --alle --kein-denken   # Halluzinations-Vortest aller Modelle (Lab läuft)
+python3 role-split/eval/halluzination/test_probe.py                   # Selbsttest der Probe, ohne Modell
+
 ROLE_UPSTREAM=http://127.0.0.1:8080 bash role-split/role.command   # ohne Gedächtnis, direkt auf den Router
 ROLE_PORT=8093 bash role-split/role.command                        # anderer Port
 
@@ -99,6 +116,24 @@ PID=$(lsof -ti :8787 -sTCP:LISTEN); ps eww -p $PID | tr ' ' '\n' | grep -E 'MCP_
 # Wohin zeigt Serve gerade?
 /Applications/Tailscale.app/Contents/MacOS/Tailscale serve status    # erwartet: proxy http://127.0.0.1:8092
 ```
+
+## Halluzinations-Probe (Vortest vor jedem neuen Modell)
+
+Misst, wie oft ein Modell Lücken füllt statt „kenne ich nicht" zu sagen: 11 feste Fragen
+(erfundene Begriffe, Fragen zu einem Text, die der Text nicht beantwortet, feste Fakten) direkt
+an den Router 8080, ohne Tools, je ohne und mit Rolle `research`.
+
+```bash
+python3 role-split/eval/halluzination/probe.py --modelle "<id>"         # ein Modell, Thinking laut Preset
+python3 role-split/eval/halluzination/probe.py --alle --kein-denken     # alle, schneller Vortest
+```
+
+- Ergebnis: `role-split/eval/halluzination/ergebnisse/<datum>_uebersicht.md` (Tabelle + alle Antworten).
+- `✓?`/`✗?` ist nur Vorsortierung über Stichworte; das Urteil beim Lesen der Antworten fällen.
+- Wichtigste Spalten: „Erfundenes abgelehnt" und „Texttreue". `ohne` vs. `research` zeigt, ob die
+  Rollen-Regeln wirken.
+- Grenze: misst eine Neigung, schützt nicht im Alltag. Dort: Beleg (Datei/URL) verlangen, unbelegte
+  Details als ungeprüft behandeln, bei Wichtigem eine zweite Stimme. Details: `role-split/eval/halluzination/README.md`.
 
 ## Im Chat
 
@@ -120,6 +155,10 @@ PID=$(lsof -ti :8787 -sTCP:LISTEN); ps eww -p $PID | tr ' ' '\n' | grep -E 'MCP_
   (für Doppelklick; per MCP geschriebene Dateien sind 100644), danach eigener Commit.
 - Unter 8092 den MCP-Eintrag neu anlegen (Browser-Speicher pro Adresse): `http://127.0.0.1:8787/mcp`,
   dann per Stift-Icon „use llama-server proxy" AN. Den Kirby-Eintrag (8788) hier nicht anlegen.
+- **Ab llama.cpp 0.6.0** (Update 15.10.): MCP-Einträge liegen nicht mehr in den Settings, sondern
+  hinter dem **+ unter dem Chat-Eingabefeld → „MCP servers"**. Alte Einträge waren nach dem Update
+  weg (Vermutung: neues Speicherformat) — pro Adresse (8092, 8091, 8080, iPad) neu anlegen.
+  Settings → Tools zeigt nur die eingebauten Tools („Browser": get_datetime, get_info).
 - OpenCode: Agent liegt in `.opencode/agents/umsetzung.md`; im TUI mit Tab wählen.
   OpenCode nutzt seine eigenen Datei-Tools, nicht den eingeschränkten MCP.
 
@@ -168,3 +207,19 @@ PID=$(lsof -ti :8787 -sTCP:LISTEN); ps eww -p $PID | tr ' ' '\n' | grep -E 'MCP_
 - **502 „Upstream nicht erreichbar"**: 8091 läuft (noch) nicht — der Gedächtnis-Proxy startet erst,
   wenn der Router antwortet (bis 3 Minuten). Warten auf `[lm] Proxy auf …8091`, oder ohne
   Gedächtnis: `ROLE_UPSTREAM=http://127.0.0.1:8080`.
+
+### llama.cpp 0.6.0 (seit 15.10.)
+
+- **Keine MCP-Tools in der Web-UI:** Eintrag neu anlegen über das + unter dem Eingabefeld
+  (siehe „Einmalig"). Router, `--webui-mcp-proxy` und 8787 waren am 15.10. intakt.
+- **`--tools` / `--agent` (neu in 0.6.0) nicht aktivieren:** eingebaute Server-Tools wie
+  `exec_shell_command`, `write_file`, `edit_file` laufen am Scope-Guard und an `MCP_WRITE_ROOTS`
+  vorbei. Gehören nicht in `config/models.ini`.
+- **`--mcp-servers-config`** kann laut README nur stdio-Server (llama-server startet sie als
+  Kindprozess) — passt nicht zum HTTP-MCP auf 8787. Vorerst nicht genutzt.
+- **Rückweg auf Build 9850:** liegt noch unter `/opt/homebrew/Cellar/llama.cpp/9850`, aber ggml
+  wurde mit aktualisiert (0.15.3 → 0.27.0). Vor einem Rückweg prüfen:
+  `otool -L /opt/homebrew/Cellar/llama.cpp/9850/bin/llama-server | grep ggml` — zeigt es auf
+  `…/opt/ggml/…`, läuft der alte Build gegen das neue ggml (Rückweg unsicher).
+- **`search_files` meldet „Keine Treffer" bei einer Einzeldatei:** bis 16.10. ein Fehler (`rglob`
+  auf einer Datei findet nichts). Behoben; die Meldung nennt jetzt die Zahl durchsuchter Dateien.

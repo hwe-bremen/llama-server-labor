@@ -20,8 +20,9 @@ jeweils read-only oder write). Alles andere sind Einzelteile, die diese intern a
 | lokal chatten **mit** Gedächtnis                               | `LAB_MEMORY=1 bash scripts/launch_lab.command`              | Browser `http://127.0.0.1:8091` |
 | vom Büro/iPad aus chatten, mit Gedächtnis (**Büro-Tag**)       | `bash scripts/launch_lab_remote.command` (Doppelklick geht) | Browser `https://macbook-pro-….ts.net` |
 | mit **OpenCode** im Terminal am lokalen Modell arbeiten        | Launcher wie oben; `~/.config/opencode/opencode.jsonc` (Vorlage: `local-memory/examples/`) | `opencode` im Projektordner |
-| mit **Rollen** chatten (`@review`, `@research`) — role-split   | `bash scripts/launch_lab_roles.command` (Doppelklick geht) | Browser `http://127.0.0.1:8092` (Szenario H) |
-| mit **Rollen** vom Büro/iPad aus (**Büro-Tag mit Rollen**)     | `bash scripts/launch_lab_roles_remote.command` (Doppelklick geht) | Browser `https://macbook-pro-….ts.net` |
+| mit **Rollen** arbeiten (`@review`, `@research`) — Mac, iPad, Büro | `bash start_rollen.command` (Doppelklick geht) | Mac `http://127.0.0.1:8092`, sonst `https://macbook-pro-….ts.net` (Szenario H) |
+| **Modelle vergleichen** (Review-Eval)                          | `bash start_eval.command` (Doppelklick geht) | wie oben; Ablauf `role-split/eval/README.md` |
+| neues Modell auf **Halluzinationen** prüfen (Vortest)          | `python3 role-split/eval/halluzination/probe.py --modelle "<id>"` (Lab läuft) | Übersicht in `role-split/eval/halluzination/ergebnisse/` |
 | das Henne-RAG-Experiment chatten                               | `RB_PER_URL=1 bash retrieval-bench/rb.command proxy` (Router muss laufen) | Browser `http://127.0.0.1:8090` |
 | dem Gedächtnis beibringen, was im Chat gesagt wurde            | `bash ~/PycharmProjects/local-memory/lm.command memorize` (Trockenlauf) → `… memorize --apply` | – |
 | das Frontend-Modell Dateien schreiben/löschen lassen           | Argument `write` anhängen: `bash scripts/launch_lab.command write` bzw. `bash scripts/launch_lab_remote.command write` — Doppelklick: `launch_lab_write.command` / `launch_lab_remote_write.command` | wie oben |
@@ -327,9 +328,10 @@ Der Web-UI-MCP bekommt eine **Schreibgrenze**: Die Review-Instanz darf nur Über
 schreiben, keinen Code, und nicht committen.
 
 ```bash
-bash scripts/launch_lab_roles.command                  # Mac: alles in einem Fenster -> http://127.0.0.1:8092
-LAB_BIND=serve bash scripts/launch_lab_roles.command   # dito + iPad/Büro über .ts.net (Serve -> 8092)
-bash scripts/launch_lab_roles_remote.command           # Büro-Tag mit Rollen (Serve bleibt, caffeinate)
+bash start_rollen.command     # Rollen-Lauf: MCP mit Schreibgrenze, 8092, Gedächtnis, Tailnet, Mac wach
+bash start_eval.command       # Eval-Lauf: dito, aber direkt auf 8080, 1 Modell, git_log aus
+python3 role-split/eval/halluzination/probe.py --alle --kein-denken   # Halluzinations-Vortest (Lab läuft)
+# (die alten scripts/launch_lab_roles*.command sind die Bausteine dahinter)
 # MCP-Eintrag unter 8092 einmalig neu anlegen; auf dem iPad bleibt der .ts.net-Eintrag gültig
 ```
 
@@ -389,6 +391,7 @@ nur in bestimmte Ordner: zusätzlich `MCP_WRITE_ROOTS=docs/projekt_management,do
 | `… .command write`         | Frontend-Modell darf schreiben + löschen (sonst read-only); gilt für `launch_lab` und `launch_lab_remote` |
 | `MCP_READONLY=0/1`         | read-only-gate des MCP-Servers (Argument von launch_lab gewinnt) |
 | `MCP_WRITE_ROOTS=a,b`      | Schreibgrenze: `write_file`/`delete_file` nur unter diesen Ordnern, `git_commit` aus; Lesen bleibt frei. Gilt nur für den so gestarteten Prozess |
+| `MCP_ALLOW_GITLOG=0`       | `git_log` aus (setzt `start_eval.command`; Fix-Commits verraten sonst Eval-Lösungen) |
 | `LAB_BIND=serve`           | **Remote empfohlen:** Router lokal + Tailscale Serve (HTTPS)  |
 | `LAB_KEEP_SERVE=1`         | Serve bleibt nach Ctrl+C aktiv (Router muss trotzdem laufen)  |
 | `LAB_SERVE_PORT=8092`      | Serve-Ziel überschreiben (Default 8080 bzw. 8091 mit Gedächtnis); setzt der Rollen-Starter selbst |
@@ -514,6 +517,7 @@ nur in bestimmte Ordner: zusätzlich `MCP_WRITE_ROOTS=docs/projekt_management,do
 
 ```
 llama-server/
+├── start_rollen.command, start_eval.command — die zwei Startbefehle für role-split
 ├── core/             mcp_agent.py — wiederverwendbare MCP-Agenten-Basis
 ├── agents/           dev_agent, dev_agent_diff, excel_agent, llama_harness, weekly_digest
 ├── scripts/          launch_lab(.command/_write/_remote/_remote_write/_roles/_roles_remote), launch_router,
@@ -522,6 +526,7 @@ llama-server/
 ├── mcp-server/       lab_mcp_server.py, run_webui.sh, run_http.sh, setup.sh
 ├── retrieval-bench/  Henne-RAG-Experiment (eigenes venv, rb.command, rag_proxy.py)
 ├── role-split/       Rollen-Proxy 8092 (role_proxy.py, role.command, roles/*.md, Tests)
+│                     eval/ (Review-Eval; halluzination/ = Halluzinations-Probe)
 ├── .opencode/        agents/umsetzung.md — OpenCode-Agent für role-split
 ├── sandbox/          Wegwerf-Experimente
 └── docs/             RUNBOOK.md (dieses), runbook-retrieval-bench.md, runbook-mcp-kirby.md,

@@ -2,6 +2,21 @@
 description: Setzt eine Spec aus docs/projekt_management/ um und schreibt ein Handover fürs Review
 mode: primary
 temperature: 0.2
+permission:
+  edit: allow
+  external_directory: deny
+  webfetch: ask
+  bash:
+    "*": ask
+    "python3 -m py_compile *": allow
+    "bash -n *": allow
+    "python3 -m unittest*": allow
+    ".venv/bin/python -m unittest*": allow
+    "git status*": allow
+    "git diff*": allow
+    "git log*": allow
+    "git push*": deny
+    "sudo *": deny
 ---
 
 # Rolle: Umsetzungs-Instanz
@@ -29,4 +44,7 @@ Du bist die Umsetzungs-Instanz in Hawes lokalem LLM-Lab. Du setzt Spezifikatione
 - Schreib keine Specs und keine Verdikte, und ändere keine bestehenden Specs.
 - Committe nach der Umsetzung nicht selbst. Hawe committet nach dem Review.
 - Bleib im Projektordner. Keine Installationen ohne Rückfrage.
+- Dateien im Projekt darfst du direkt bearbeiten. Shell-Befehle brauchen Hawes Freigabe, außer
+  Syntax-Checks, Unittests und lesende Git-Befehle (`status`, `diff`, `log`). `git push` und `sudo`
+  sind gesperrt. Wird ein Befehl abgelehnt, such keinen Umweg, sondern nenne ihn im Handover.
 - Sprache: Deutsch in Handover und Rückfragen, Code-Kommentare dürfen Deutsch sein.
