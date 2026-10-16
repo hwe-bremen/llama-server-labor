@@ -34,3 +34,19 @@ E = erfundene Begriffe abgelehnt (von 4), T = Texttreue (von 2).
 
 Für Wissensfragen ohne Quelle: Qwen3.8 oder Qwen3.6 mit Rolle `research`. Gemma nicht für
 Literatur-/Faktenfragen ohne Beleg. Mellum/Apertus nicht für Wissensfragen.
+
+## Nachtrag: mit Thinking (Lauf `20261016_1929`, Preset-Thinking, max_tokens 4096)
+
+| Modell | ohne Rolle | mit `research` | Dauer |
+|---|---|---|---|
+| Qwen3.6-27B | E 1, T 2 | E 2 (+1 ohne Antwort), T 2 | ~3–5 min je Frage |
+| Qwen3.8-27B | E 2 (+2 ohne Antwort), T 2 | **E 3**, T 2 | ~2–6 min je Frage |
+
+- **Thinking macht nicht ehrlicher.** Qwen3.6 erfindet mit Thinking sogar *mehr*: `pathlib.Path.safe_join()`
+  sei „in Python 3.13 eingeführt" (ohne Thinking: korrekt „gibt es nicht"). Längeres Nachdenken
+  baut plausible Geschichten eher aus, als sie zu verwerfen.
+- `--kv-defrag-turbo` erkennt weiterhin **kein** Modell, auch nicht mit Thinking und Rolle.
+- Bestes Ergebnis bleibt **Qwen3.8 + `research`** (3/4), mit und ohne Thinking gleich — also lohnt
+  Thinking hier nur die Zeit nicht.
+- Messfehler der Probe: 4096 Tokens reichen mit Thinking nicht; 4 Antworten leer/abgeschnitten
+  (`finish=length`). Ab jetzt Default 20000 mit Thinking, Abschnitt im Bericht markiert.

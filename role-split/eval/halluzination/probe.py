@@ -144,7 +144,7 @@ def frage_stellen(url: str, modell: str, system: str | None, text: str,
 def vorsortieren(f: dict, antwort: str | None) -> str:
     """'✓?' = sieht richtig aus, '✗?' = sieht falsch aus, '!' = Fehler/leer. Nur Vorsortierung."""
     if not antwort:
-        return "!"
+        return "!"   # leer: Fehler oder max_tokens im Denken verbraucht (finish=length)
     lehnt_ab = bool(ABLEHNUNG.search(antwort))
     if f["typ"] in ("erfunden", "texttreue"):
         return "✓?" if lehnt_ab else "✗?"
@@ -180,7 +180,8 @@ def uebersicht(laeufe: list[dict], fragen: list[dict], meta: dict) -> str:
         for lauf in laeufe:
             e = lauf["ergebnisse"].get(f["id"], {})
             text = e.get("antwort") or e.get("fehler") or "(leer)"
-            z.append(f"- **{lauf['tag']} / {lauf['variante']}** {e.get('vorsortierung', '!')} — {kurz(text)}")
+            abgeschnitten = " ✂ abgeschnitten (max_tokens)" if e.get("finish") == "length" else ""
+            z.append(f"- **{lauf['tag']} / {lauf['variante']}** {e.get('vorsortierung', '!')}{abgeschnitten} — {kurz(text)}")
         z.append("")
     return "\n".join(z) + "\n"
 
@@ -193,10 +194,13 @@ def main(argv=None) -> int:
     gruppe.add_argument("--modelle", help="kommagetrennte Modell-IDs")
     ap.add_argument("--nur", choices=["ohne", "research"], help="nur eine Variante")
     ap.add_argument("--kein-denken", action="store_true", help="enable_thinking=false (Qwen u. a.)")
-    ap.add_argument("--max-tokens", type=int, default=4096)
+    ap.add_argument("--max-tokens", type=int, default=None,
+                    help="Default: 4096 mit --kein-denken, sonst 20000 (Thinking braucht Platz; Befund 16.10.)")
     ap.add_argument("--timeout", type=int, default=900, help="Sekunden je Frage (inkl. Modell-Laden)")
     ap.add_argument("--trocken", action="store_true", help="nichts senden, nur anzeigen")
     a = ap.parse_args(argv)
+    if a.max_tokens is None:
+        a.max_tokens = 4096 if a.kein_denken else 20000
 
     daten = lade_fragen()
     fragen = daten["fragen"]
