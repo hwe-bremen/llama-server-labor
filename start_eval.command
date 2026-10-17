@@ -7,6 +7,7 @@
 #   - Rollen-Proxy geht direkt auf den Router 8080 (kein Gedaechtnis, kein LM_NO_THINK)
 #   - immer nur ein Modell im Speicher (LAB_MODELS_MAX=1)
 #   - git_log aus (Fix-Commits wuerden die Loesung verraten)
+#   - Gedaechtnis-Proxy 8091 wird gar nicht gestartet (frueher lief er ungenutzt mit)
 # Ablauf und Lösungsschluessel: role-split/eval/README.md
 #
 # Wechsel zum normalen Betrieb: hier Ctrl+C, dann start_rollen.command.
@@ -16,7 +17,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 
 export MCP_WRITE_ROOTS="docs/projekt_management,docs/research"
 export MCP_ALLOW_GITLOG=0
-export LAB_MEMORY=1
+export LAB_MEMORY=0          # Eval: kein Gedaechtnis-Proxy, 8091 bleibt aus (8092 geht direkt auf 8080)
 export LAB_BIND=serve
 export LAB_KEEP_SERVE=0
 export LAB_MODELS_MAX=1

@@ -19,7 +19,8 @@ pkill -f lab_mcp_server; pkill -f lm.proxy; pkill -f role_proxy; sleep 1   # Res
 | **normal arbeiten** – chatten, `@review`, `@research`, mit Gedächtnis | `bash start_rollen.command` |
 | **Modelle vergleichen** (Review-Eval) | `bash start_eval.command` |
 
-Fertig, wenn nach 1–3 Min. `Starte Gedaechtnis-Proxy … 8091` und die `.ts.net`-URL erscheinen.
+Fertig, wenn nach 1–3 Min. die `.ts.net`-URL erscheint (Rollen-Lauf zusätzlich `Starte Gedaechtnis-Proxy … 8091`;
+im Eval-Lauf startet 8091 nicht).
 **Stoppen:** Ctrl+C in Fenster 1. **Wechseln:** erst Ctrl+C, dann den anderen Befehl.
 Steht `ABBRUCH: … MCP-Server …` da: alten Server beenden (`kill <PID>` aus der Meldung), neu starten.
 
