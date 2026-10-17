@@ -25,7 +25,7 @@ from datetime import datetime
 from email.mime.text import MIMEText
 from pathlib import Path
 
-import markdown
+# import markdown: lazy in build_email_message() (N6)
 
 # --- KONFIGURATION ---
 
@@ -36,7 +36,8 @@ OUTBOX_DIR = BASE_DIR / "outbox"
 
 # SMTP: Default Gmail, kann per Umgebungsvariablen überschrieben werden (Test-Support)
 SMTP_HOST = os.getenv("SCOUT_SMTP_HOST", "smtp.gmail.com")
-SMTP_PORT = int(os.getenv("SCOUT_SMTP_PORT", "587"))
+LOCAL_TEST_HOSTS = {"127.0.0.1", "localhost", "::1"}   # ohne SCOUT_ALLOW_SEND erlaubt
+# SMTP_PORT wird lazy in send_email_smtp() geparst (N2: kein Crash beim Import)
 SENDER = "askvalentinai@gmail.com"
 RECIPIENT = "askvalentinai@gmail.com"
 KEYCHAIN_SERVICE = "lab-scout-smtp"
@@ -92,7 +93,9 @@ def build_email_message(report_path: Path) -> MIMEText:
 
     # Markdown lesen und zu HTML konvertieren
     md_content = report_path.read_text(encoding="utf-8")
-    html_body = markdown.markdown(
+    # N6: lazy import – nur hier nötig, nicht in build_fail_email()
+    import markdown as md_lib
+    html_body = md_lib.markdown(
         md_content,
         extensions=["extra", "tables", "fenced_code"],
     )
@@ -186,10 +189,27 @@ def send_email_smtp(msg: MIMEText) -> None:
     """
     Versendet eine fertige MIME-Message per SMTP.
     Holt das Passwort aus dem Schlüsselbund.
+    Port wird lazy geparst (vor Passwort, E4), damit ein ungültiger Port
+    den Schlüsselbund nicht berührt.
     """
+    # N2: Lazy-Port-Parsing; E4: vor get_password()
+    try:
+        smtp_port = int(os.getenv("SCOUT_SMTP_PORT", "587"))
+    except (ValueError, TypeError) as port_err:
+        raise ValueError(f"SCOUT_SMTP_PORT ist kein gueltiger Port: {os.getenv('SCOUT_SMTP_PORT', '')!r}") from port_err
+
+    # Versand-Sperre (17.10.): Echte SMTP-Server nur mit SCOUT_ALLOW_SEND=1
+    # (gesetzt in der launchd-plist und beim bewusst manuellen Versand).
+    # Tests gegen 127.0.0.1/localhost bleiben ohne Variable moeglich.
+    # Steht vor get_password(): gesperrt heisst auch kein Schluesselbund-Zugriff.
+    if SMTP_HOST not in LOCAL_TEST_HOSTS and os.getenv("SCOUT_ALLOW_SEND") != "1":
+        raise RuntimeError(
+            f"Echter Versand an {SMTP_HOST} gesperrt (SCOUT_ALLOW_SEND=1 fehlt)"
+        )
+
     password = get_password()
 
-    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+    with smtplib.SMTP(SMTP_HOST, smtp_port, timeout=30) as server:
         server.starttls()
         server.login(SENDER, password)
         server.sendmail(SENDER, [RECIPIENT], msg.as_string())
@@ -253,13 +273,28 @@ def mode_fail_mail(exit_code: int) -> int:
         print(f"Fehler-Mail versendet (Exit-Code {exit_code})", file=sys.stderr)
         return 0
     except Exception as smtp_err:
-        # Fallback: Datei ablegen
+        # Fallback: Datei ablegen (N4: sekunden-genau, E3: exklusiver Modus + Zaehler)
         try:
             now = datetime.now()
-            eml_filename = f"scout_error_{now.strftime('%Y%m%d')}_{now.strftime('%H%M')}.eml"
-            saved = save_email_to_file(msg, eml_filename)
+            base_name = f"scout_error_{now.strftime('%Y%m%d')}_{now.strftime('%H%M%S')}"
+            eml_filename = f"{base_name}.eml"
+            OUTBOX_DIR.mkdir(parents=True, exist_ok=True)
+            filepath = OUTBOX_DIR / eml_filename
+
+            # E3: exklusiver Modus "x" verhindert Ueberschreibung;
+            # bei FileExistsError Zaehler _1, _2 ... anhaengen
+            counter = 0
+            while True:
+                try:
+                    with open(filepath, "x", encoding="utf-8") as f:
+                        f.write(msg.as_string())
+                    break
+                except FileExistsError:
+                    counter += 1
+                    filepath = OUTBOX_DIR / f"{base_name}_{counter}.eml"
+
             print(
-                f"Fehler-Mail SMTP fehlgeschlagen ({smtp_err}), abgelegt unter {saved}",
+                f"Fehler-Mail SMTP fehlgeschlagen ({smtp_err}), abgelegt unter {filepath}",
                 file=sys.stderr,
             )
             return 0
@@ -294,13 +329,18 @@ def main():
 
     args = parser.parse_args()
 
-    if args.fail_mail:
+    if args.dry_run:
+        if args.fail_mail:
+            print(
+                "Trockenlauf aktiv – Fehler-Mail-Versand uebersprungen.",
+                file=sys.stderr,
+            )
+        exit_code = mode_dry_run()
+    elif args.fail_mail:
         if args.exit_code is None:
             print("Fehler: --fail-mail erfordert --exit-code", file=sys.stderr)
             sys.exit(1)
         exit_code = mode_fail_mail(args.exit_code)
-    elif args.dry_run:
-        exit_code = mode_dry_run()
     else:
         exit_code = mode_normal()
 

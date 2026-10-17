@@ -18,6 +18,9 @@
     <dict>
         <key>LAB_DIR</key>
         <string>/Users/hans-wernereberhardt/PycharmProjects/llama-server/agents/llm_scout/data</string>
+        <!-- Versand-Sperre: nur der launchd-Lauf darf echt senden -->
+        <key>SCOUT_ALLOW_SEND</key>
+        <string>1</string>
     </dict>
 
     <key>WorkingDirectory</key>
