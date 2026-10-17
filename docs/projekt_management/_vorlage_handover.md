@@ -25,10 +25,22 @@
 
 ## Getestet (mit echter Ausgabe)
 
+Testtitel **exakt wie in der Spec** (`kette.py abgleich` vergleicht sie). Ein Test, der anders gebaut wurde, gehört zusätzlich unter „Abweichungen".
+
+**T1: <Titel wie in der Spec>** – bestanden / fehlgeschlagen
+
 ```
-$ <befehl>
-<ausgabe, gekürzt>
+$ python3 -m unittest -v tests/test_<kurztitel>.py
+<echte Ausgabe>
 ```
+
+## Außenwirkung
+
+- <„Keine Befehle mit Außenwirkung ausgeführt." — oder genau, was passiert ist (Versand, Netz, echte Daten).>
+
+## Hawe muss ausführen
+
+- <Befehle mit Außenwirkung, die bewusst nicht ausgeführt wurden. „Nichts", wenn nichts.>
 
 ## Nicht getestet
 

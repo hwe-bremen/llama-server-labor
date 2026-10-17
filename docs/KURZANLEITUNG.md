@@ -82,6 +82,13 @@ Etwa monatlich aufräumen: `bash lm.command review`, dann `pending`.
 OpenCode darf im ganzen Projekt Dateien ändern; Shell-Befehle fragt es vorher
 (außer Syntax-Checks, Tests, `git status/diff/log`). **Vorher committen.** Committen nach dem Review: du.
 
+## 6b. Kette mit Prüfbefehlen
+
+`python3 role-split/kette/kette.py prompt spec|umsetzung|review|tief <kurztitel>` liefert den Startprompt
+(gleich in der Zwischenablage). Nach der Umsetzung: `… abgleich <kurztitel>` + `python3 -m unittest -v tests/test_<kurztitel>.py`.
+Nach dem Review: `… urteil <verdikt.md> --anhaengen`. Hat die Aufgabe Außenwirkung (Mail, Netz, echte Daten):
+**Sperre vor der Umsetzung**. Ablauf: `role-split/kette/README.md`.
+
 ## 7. Modelle testen (selten)
 
 ```bash

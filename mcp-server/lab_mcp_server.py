@@ -144,6 +144,15 @@ def _check_writable(p: Path, rel_path: str) -> None:
         )
 
 
+# Verdikte sind Messergebnisse: nie ueberschreiben oder loeschen (Befund 17.10.:
+# Tiefenpruefung hat das Verdikt aus Lauf 1 unter gleichem Namen ersetzt).
+PROTECTED_PATTERNS = ("verdict_*.md",)
+
+
+def _protected(p: Path) -> bool:
+    return any(p.match(pat) for pat in PROTECTED_PATTERNS)
+
+
 def _rel(p: Path) -> str:
     """Fuer nutzerfreundliche Ausgabe: Pfad relativ zum Scope-Root."""
     try:
@@ -387,6 +396,10 @@ if not READONLY:
         _check_writable(target, path)
         if target.is_dir():
             return f"Ist ein Verzeichnis: {_rel(target)}"
+        if target.exists() and _protected(target):
+            return (f"Verweigert: {_rel(target)} existiert bereits und ist geschuetzt "
+                    f"(Verdikte werden nie ueberschrieben). Neuen Dateinamen waehlen, "
+                    f"z. B. mit Endung _2.md.")
 
         if content_b64:
             try:
@@ -421,6 +434,8 @@ if ALLOW_DELETE:
             return f"Nicht gefunden: {_rel(target)}"
         if target.is_dir():
             return f"Verzeichnis — nicht geloescht: {_rel(target)}"
+        if _protected(target):
+            return f"Verweigert: {_rel(target)} ist geschuetzt (Verdikte werden nie geloescht)."
         target.unlink()
         return f"Geloescht: {_rel(target)}"
 

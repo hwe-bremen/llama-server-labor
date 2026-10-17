@@ -25,9 +25,15 @@ Dateiname: `verdict_<JJJJMMTT>_<kurztitel>_<modellkürzel>.md`
 
 ## Befunde
 
-| # | Schwere | Datei:Zeile | Befund | Lösungsweg (in Worten) |
-|---|---|---|---|---|
-| 1 | hoch / mittel / niedrig | | | |
+Für **jeden** Befund drei Fragen mit ja/nein beantworten. Ein „ja" macht den Befund „hoch", unabhängig davon,
+ob die Schwäche schon vorher bestand. `kette.py urteil` prüft das nach.
+- **Datenverlust:** Kann Daten verlieren, überschreiben oder echte Daten verändern?
+- **Unbemerkt:** Kann ein Fehler unbemerkt bleiben (Hänger, Schweigen, falscher Exit-Code, Test misst nichts)?
+- **Harte Vorgabe:** Verstößt es gegen eine harte Vorgabe der Spec oder des Auftrags (z. B. kein echter Versand)?
+
+| # | Datenverlust | Unbemerkt | Harte Vorgabe | Schwere | Datei:Zeile | Befund | Lösungsweg (in Worten) |
+|---|---|---|---|---|---|---|---|
+| 1 | ja / nein | ja / nein | ja / nein | hoch / mittel / niedrig | | | |
 
 ## Nicht geprüft
 
