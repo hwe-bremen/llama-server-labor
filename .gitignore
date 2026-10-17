@@ -35,3 +35,5 @@ role-split/results/
 
 # --- llm_scout: Zustands-DB lokal (Berichte unter data/weekly-reports/ bleiben im Git) ---
 agents/llm_scout/data/*.db
+# llm_scout: Trockenlauf-Artefakte (.eml-Dateien)
+agents/llm_scout/data/outbox/

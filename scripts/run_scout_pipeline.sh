@@ -30,7 +30,9 @@ echo "--- Schritt 1: LLM Scout ---"
 SCOUT_EXIT=0
 "${PYTHON}" "${REPO_ROOT}/agents/llm_scout/llm_scout.py" || SCOUT_EXIT=$?
 if [ ${SCOUT_EXIT} -ne 0 ]; then
-    echo "Fehler: llm_scout.py beendet mit Exit-Code ${SCOUT_EXIT}. Kein E-Mail-Versand." >&2
+    echo "Fehler: llm_scout.py beendet mit Exit-Code ${SCOUT_EXIT}." >&2
+    # Fehler-Mail versuchen (set -e gefangen, damit der Wrapper den originalen Exit-Code gibt)
+    "${PYTHON}" "${REPO_ROOT}/scripts/send_scout_email.py" --fail-mail --exit-code ${SCOUT_EXIT} || :
     exit ${SCOUT_EXIT}
 fi
 

@@ -286,6 +286,10 @@ def call_llm_for_evaluation(items: List[Dict[str, Any]]) -> str:
 
 
 def main():
+    # Exit-Code-Semantik:
+    #   0 = Erfolg (inkl. "keine neuen Items")
+    #   1 = kritischer Fehler (API-Abruf, LLM-Evaluation, DB-Fehler)
+    #   2 = llama-server nicht erreichbar
     print("--- Local LLM Scout gestartet ---")
 
     if not router_ready():

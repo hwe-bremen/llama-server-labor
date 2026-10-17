@@ -9,8 +9,14 @@ Credentials werden aus dem macOS-Schlüsselbund geholt (service: lab-scout-smtp)
 
 Exit-Code 0 bei Erfolg oder wenn keine KW-Datei existiert.
 Exit-Code 1 bei Fehlern (Fehlermeldung in stderr).
+
+Modi:
+  - Normal (Default): Bericht finden, bauen, per SMTP versenden.
+  - --dry-run: Bericht finden, bauen, als .eml in outbox/ ablegen (kein SMTP).
+  - --fail-mail --exit-code <n>: Fehler-Mail bauen und versenden (mit Datei-Fallback).
 """
 
+import argparse
 import os
 import smtplib
 import subprocess
@@ -26,12 +32,20 @@ import markdown
 # Gleicher Mechanismus wie llm_scout.py: LAB_DIR aus Env oder Default
 BASE_DIR = Path(os.getenv("LAB_DIR", Path.home() / "lab"))
 REPORT_DIR = BASE_DIR / "weekly-reports"
+OUTBOX_DIR = BASE_DIR / "outbox"
 
-SMTP_HOST = "smtp.gmail.com"
-SMTP_PORT = 587
+# SMTP: Default Gmail, kann per Umgebungsvariablen überschrieben werden (Test-Support)
+SMTP_HOST = os.getenv("SCOUT_SMTP_HOST", "smtp.gmail.com")
+SMTP_PORT = int(os.getenv("SCOUT_SMTP_PORT", "587"))
 SENDER = "askvalentinai@gmail.com"
 RECIPIENT = "askvalentinai@gmail.com"
 KEYCHAIN_SERVICE = "lab-scout-smtp"
+
+# Exit-Code-Semantik des Scouts (für Fehler-Mail-Meldungen)
+EXIT_CODE_MEANINGS = {
+    2: "llama-server nicht erreichbar (kein Server unter der konfigurierten URL)",
+    1: "Kritischer Fehler in der Scout-Pipeline (API-Abruf, LLM-Evaluation oder DB-Fehler) – Details im Log",
+}
 
 
 def get_password() -> str:
@@ -66,8 +80,11 @@ def find_current_report() -> Path | None:
     return None
 
 
-def send_email(report_path: Path) -> None:
-    """Konvertiert Markdown zu HTML und versendet per SMTP."""
+def build_email_message(report_path: Path) -> MIMEText:
+    """
+    Liest den Markdown-Bericht, konvertiert zu HTML und baut eine MIME-Message.
+    Gibt die fertige MIMEText-Instanz zurück (ohne Versand).
+    """
     iso_cal = datetime.now().isocalendar()
     kw_year = iso_cal[0]
     week = iso_cal[1]
@@ -110,7 +127,66 @@ Automatisch generiert vom LLM Scout (llama-server Lab).
     msg["Subject"] = subject
     msg["From"] = SENDER
     msg["To"] = RECIPIENT
+    return msg
 
+
+def build_fail_email(exit_code: int) -> MIMEText:
+    """
+    Baut eine kurze Fehler-Mail basierend auf dem Scout-Exit-Code.
+    """
+    now = datetime.now()
+    iso_cal = now.isocalendar()
+    kw_year = iso_cal[0]
+    week = iso_cal[1]
+    date_str = now.strftime("%Y-%m-%d")
+    timestamp_str = now.strftime("%Y-%m-%d %H:%M")
+
+    # Ursache aus Mapping-Tabelle
+    cause = EXIT_CODE_MEANINGS.get(exit_code, "Unbekannter Exit-Code – Details im Log")
+
+    subject = f"LLM Scout FEHLER KW{week} {kw_year} – Exit-Code {exit_code}"
+
+    html_body = f"""<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.6; color: #333; max-width: 700px; margin: 0 auto; padding: 20px; }}
+</style>
+</head>
+<body>
+<p>Die LLM-Scout-Pipeline vom {date_str} ist fehlgeschlagen.</p>
+<p>Exit-Code: {exit_code}</p>
+<p>Mögliche Ursache (nach Exit-Code-Semantik): {cause}</p>
+<p></p>
+<p>Details: logs/llm_scout_err.log (und llm_scout_out.log)</p>
+<p>Letzter Scout-Aufruf: {timestamp_str}</p>
+</body>
+</html>"""
+
+    msg = MIMEText(html_body, "html", "utf-8")
+    msg["Subject"] = subject
+    msg["From"] = SENDER
+    msg["To"] = RECIPIENT
+    return msg
+
+
+def save_email_to_file(msg: MIMEText, filename: str) -> Path:
+    """
+    Speichert eine MIME-Message als .eml-Datei im outbox-Verzeichnis.
+    Erstellt den outbox-Ordner bei Bedarf.
+    """
+    OUTBOX_DIR.mkdir(parents=True, exist_ok=True)
+    filepath = OUTBOX_DIR / filename
+    filepath.write_text(msg.as_string(), encoding="utf-8")
+    return filepath
+
+
+def send_email_smtp(msg: MIMEText) -> None:
+    """
+    Versendet eine fertige MIME-Message per SMTP.
+    Holt das Passwort aus dem Schlüsselbund.
+    """
     password = get_password()
 
     with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
@@ -119,22 +195,116 @@ Automatisch generiert vom LLM Scout (llama-server Lab).
         server.sendmail(SENDER, [RECIPIENT], msg.as_string())
 
 
-def main():
-    # 1. Bericht-Datei finden
+# --- MODI ---
+
+def mode_normal() -> int:
+    """Normaler Versand: Bericht finden, bauen, per SMTP versenden."""
     report_path = find_current_report()
     if report_path is None:
         print("Keine Bericht-Datei fuer die aktuelle KW gefunden. Kein Versand.", file=sys.stderr)
-        sys.exit(0)
+        return 0
 
     print(f"Bericht gefunden: {report_path}")
 
     try:
-        send_email(report_path)
+        msg = build_email_message(report_path)
+        send_email_smtp(msg)
         print(f"E-Mail versendet: {report_path.name}")
-        sys.exit(0)
+        return 0
     except Exception as e:
         print(f"Fehler beim E-Mail-Versand: {e}", file=sys.stderr)
-        sys.exit(1)
+        return 1
+
+
+def mode_dry_run() -> int:
+    """Trockenlauf: Bericht finden, bauen, als .eml ablegen (kein SMTP, kein Schlüsselbund)."""
+    report_path = find_current_report()
+    if report_path is None:
+        print("Keine Bericht-Datei fuer die aktuelle KW gefunden. Kein Trockenlauf.", file=sys.stderr)
+        return 0
+
+    print(f"Bericht gefunden: {report_path}")
+
+    try:
+        msg = build_email_message(report_path)
+        eml_filename = report_path.name.replace(".md", ".eml")
+        saved = save_email_to_file(msg, eml_filename)
+        print(f"Trockenlauf: E-Mail abgelegt unter {saved}")
+        return 0
+    except Exception as e:
+        print(f"Fehler beim Bauen der E-Mail: {e}", file=sys.stderr)
+        return 1
+
+
+def mode_fail_mail(exit_code: int) -> int:
+    """
+    Fehler-Mail: Baut eine Fehler-Mail und versucht SMTP-Versand.
+    Bei SMTP-Fehler: Datei-Fallback in outbox/.
+    """
+    try:
+        msg = build_fail_email(exit_code)
+    except Exception as e:
+        print(f"Fehler beim Bauen der Fehler-Mail: {e}", file=sys.stderr)
+        return 1
+
+    # Versuch 1: SMTP-Versand
+    try:
+        send_email_smtp(msg)
+        print(f"Fehler-Mail versendet (Exit-Code {exit_code})", file=sys.stderr)
+        return 0
+    except Exception as smtp_err:
+        # Fallback: Datei ablegen
+        try:
+            now = datetime.now()
+            eml_filename = f"scout_error_{now.strftime('%Y%m%d')}_{now.strftime('%H%M')}.eml"
+            saved = save_email_to_file(msg, eml_filename)
+            print(
+                f"Fehler-Mail SMTP fehlgeschlagen ({smtp_err}), abgelegt unter {saved}",
+                file=sys.stderr,
+            )
+            return 0
+        except Exception as file_err:
+            print(
+                f"Fehler-Mail: SMTP und Datei-Fallback fehlgeschlagen ({smtp_err}; {file_err})",
+                file=sys.stderr,
+            )
+            return 1
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="LLM Scout E-Mail-Versand"
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="E-Mail bauen und als .eml in outbox/ ablegen (kein SMTP, kein Schlüsselbund)",
+    )
+    parser.add_argument(
+        "--fail-mail",
+        action="store_true",
+        help="Fehler-Mail bauen (benötigt --exit-code)",
+    )
+    parser.add_argument(
+        "--exit-code",
+        type=int,
+        default=None,
+        help="Exit-Code des Scouts für die Fehler-Mail",
+    )
+
+    args = parser.parse_args()
+
+    if args.fail_mail:
+        if args.exit_code is None:
+            print("Fehler: --fail-mail erfordert --exit-code", file=sys.stderr)
+            sys.exit(1)
+        exit_code = mode_fail_mail(args.exit_code)
+    elif args.dry_run:
+        exit_code = mode_dry_run()
+    else:
+        exit_code = mode_normal()
+
+    sys.exit(exit_code)
 
 
 if __name__ == "__main__":
