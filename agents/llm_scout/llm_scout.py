@@ -16,6 +16,8 @@ from typing import List, Dict, Any
 import feedparser
 import requests
 
+from .week_key import week_key_for_filename
+
 # --- KONFIGURATION ---
 
 # Pfade
@@ -330,8 +332,8 @@ def main():
 
         # 4. Bericht speichern
         os.makedirs(REPORT_DIR, exist_ok=True)
-        week_number = datetime.now().isocalendar()[1]
-        filename = f"llm_scout_kw{week_number}_{datetime.now().strftime('%Y')}.md"
+        now = datetime.now()
+        filename = week_key_for_filename(now)
         filepath = REPORT_DIR / filename
 
         with open(filepath, 'w', encoding='utf-8') as f:

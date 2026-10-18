@@ -71,6 +71,14 @@ if [ "$DRY_RUN" -eq 1 ]; then
 else
     "${PYTHON}" "${REPO_ROOT}/scripts/send_scout_email.py" || EMAIL_EXIT=$?
 fi
+
+# A4: Pipeline-Lauf-Datei schreiben (nur bei echtem Lauf, nicht im Dry-Run)
+if [ "$DRY_RUN" -eq 0 ]; then
+    PIPELINE_LOG="${LAB_DIR}/pipeline_runs.log"
+    TIMESTAMP="$(date '+%Y-%m-%d %H:%M:%S')"
+    echo "${TIMESTAMP} SCOUT_EXIT=${SCOUT_EXIT} EMAIL_EXIT=${EMAIL_EXIT}" >> "${PIPELINE_LOG}"
+fi
+
 if [ ${EMAIL_EXIT} -ne 0 ]; then
     echo "Fehler: send_scout_email.py beendet mit Exit-Code ${EMAIL_EXIT}." >&2
     exit ${EMAIL_EXIT}

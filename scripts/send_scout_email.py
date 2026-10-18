@@ -21,11 +21,20 @@ import os
 import smtplib
 import subprocess
 import sys
+import tempfile
 from datetime import datetime
 from email.mime.text import MIMEText
 from pathlib import Path
 
 # import markdown: lazy in build_email_message() (N6)
+
+# Gemeinsame Funktion fuer den Wochenschluessel (A7)
+# send_scout_email.py liegt in scripts/, week_key.py in agents/llm_scout/
+# Wir importieren ueber den relativen Modul-Pfad.
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parent.parent / "agents" / "llm_scout"))
+from week_key import week_key_for_filename
 
 # --- KONFIGURATION ---
 
@@ -33,6 +42,9 @@ from pathlib import Path
 BASE_DIR = Path(os.getenv("LAB_DIR", Path.home() / "lab"))
 REPORT_DIR = BASE_DIR / "weekly-reports"
 OUTBOX_DIR = BASE_DIR / "outbox"
+
+# Versand-Nachweis: Zustandsdatei im REPORT_DIR (A1)
+SENT_STATE_FILE = REPORT_DIR / ".sent_state"
 
 # SMTP: Default Gmail, kann per Umgebungsvariablen überschrieben werden (Test-Support)
 SMTP_HOST = os.getenv("SCOUT_SMTP_HOST", "smtp.gmail.com")
@@ -69,12 +81,10 @@ def get_password() -> str:
 def find_current_report() -> Path | None:
     """
     Sucht die Bericht-Datei der aktuellen Kalenderwoche.
-    Gibt None zurück, wenn keine vorhanden ist.
+    Nutzt die gemeinsame Funktion week_key_for_filename() (A7).
+    Gibt None zurueck, wenn keine vorhanden ist.
     """
-    iso_cal = datetime.now().isocalendar()
-    kw = iso_cal[0]  # Jahr
-    week = iso_cal[1]  # Kalenderwoche
-    filename = f"llm_scout_kw{week}_{kw}.md"
+    filename = week_key_for_filename(datetime.now())
     filepath = REPORT_DIR / filename
     if filepath.exists():
         return filepath
@@ -217,18 +227,117 @@ def send_email_smtp(msg: MIMEText) -> None:
 
 # --- MODI ---
 
+
+# --- VERSEND-NACHWEIS (A1, A2, A6) ---
+
+def get_current_week_key() -> str:
+    """
+    Liefert den Wochenschluessel fuer die aktuelle ISO-Kalenderwoche.
+    Format: "YYYY_WW" (ISO-Jahr, ISO-KW), z. B. "2027_01".
+    """
+    iso_year, iso_week, _ = datetime.now().isocalendar()
+    return f"{iso_year}_{iso_week:02d}"
+
+
+def is_week_already_sent() -> bool:
+    """
+    Prueft, ob die aktuelle ISO-Kalenderwoche bereits im Versand-Nachweis steht.
+    Gibt True zurueck, wenn eine Zeile mit dem aktuellen Wochenschluessel existiert.
+    """
+    if not SENT_STATE_FILE.exists():
+        return False
+    current_key = get_current_week_key()
+    content = SENT_STATE_FILE.read_text(encoding="utf-8").strip()
+    if not content:
+        return False
+    for line in content.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        # Zeilenformat: "YYYY_WW YYYY-MM-DD"
+        parts = line.split()
+        if parts and parts[0] == current_key:
+            return True
+    return False
+
+
+def record_sent_week() -> None:
+    """
+    Speichert eine Zustandszeile fuer die aktuelle ISO-Kalenderwoche atomar.
+    Format: "YYYY_WW YYYY-MM-DD" pro Zeile.
+    Nutzt atomares Schreiben (Temp-Datei + os.replace) (A6).
+    Wenn die Woche bereits im Nachweis steht, wird nichts geschrieben.
+    """
+    current_key = get_current_week_key()
+    today = datetime.now().strftime("%Y-%m-%d")
+    new_line = f"{current_key} {today}\n"
+
+    # Pruefen, ob die Woche bereits im Nachweis steht
+    if SENT_STATE_FILE.exists():
+        content = SENT_STATE_FILE.read_text(encoding="utf-8").strip()
+        for line in content.splitlines():
+            line = line.strip()
+            if line and line.split()[0] == current_key:
+                # Bereits vorhanden, nichts tun
+                return
+
+    # Atomares Schreiben: zuerst in Temp-Datei, dann os.replace
+    # Existierende Zeilen beibehalten
+    existing_content = ""
+    if SENT_STATE_FILE.exists():
+        existing_content = SENT_STATE_FILE.read_text(encoding="utf-8")
+
+    SENT_STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+
+    # Temp-Datei im gleichen Verzeichnis fuer atomares replace
+    fd, tmp_path = tempfile.mkstemp(
+        dir=str(SENT_STATE_FILE.parent),
+        prefix=".sent_state_",
+        suffix=".tmp",
+    )
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(existing_content)
+            f.write(new_line)
+        os.replace(tmp_path, str(SENT_STATE_FILE))
+    except Exception:
+        # Bei Fehler: Temp-Datei rueckstaendig loeschen
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
+        raise
+
 def mode_normal() -> int:
-    """Normaler Versand: Bericht finden, bauen, per SMTP versenden."""
+    """
+    Normaler Versand: Bericht finden, bauen, per SMTP versenden.
+
+    Exit-Code 0: Erfolg oder KW bereits gesendet (A2).
+    Exit-Code 1: SMTP-Fehler.
+    Exit-Code 3: Bericht fehlt und Woche nicht abgedeckt (A3).
+    """
+    # A2: Pruefen, ob die KW bereits gesendet wurde
+    if is_week_already_sent():
+        print("KW bereits gesendet, kein Zweitversand.")
+        return 0
+
     report_path = find_current_report()
     if report_path is None:
-        print("Keine Bericht-Datei fuer die aktuelle KW gefunden. Kein Versand.", file=sys.stderr)
-        return 0
+        # A3: Bericht fehlt und Woche nicht abgedeckt -> Exit 3
+        print(
+            "Fehler: Keine Bericht-Datei fuer die aktuelle KW gefunden, "
+            "Woche noch nicht gesendet. Exit 3.",
+            file=sys.stderr,
+        )
+        return 3
 
     print(f"Bericht gefunden: {report_path}")
 
     try:
         msg = build_email_message(report_path)
         send_email_smtp(msg)
+        # A1: Nur nach erfolgreichem Versand den Nachweis schreiben
+        record_sent_week()
         print(f"E-Mail versendet: {report_path.name}")
         return 0
     except Exception as e:
