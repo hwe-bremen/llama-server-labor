@@ -13,7 +13,7 @@ und ein Test hat echt gesendet.
 | 1 Spec | Web-UI, `start_rollen`, neuer Chat | `python3 role-split/kette/kette.py prompt spec <kurztitel>` (dann `<AUFGABE>` ersetzen) |
 | – | Spec lesen; Außenwirkung? → **Sperre vor der Umsetzung** einbauen; `git commit` | |
 | 2 Umsetzung | OpenCode, Agent „umsetzung" | `… prompt umsetzung <kurztitel>` (Rücksetzpunkt = aktueller Commit) |
-| – | **Prüfen:** `… abgleich <kurztitel>` und `python3 -m unittest -v tests/test_<kurztitel>.py` | |
+| – | **Prüfen:** `… abgleich <kurztitel>`, `python3 -m unittest -v tests/test_<kurztitel>.py` und `… gegenprobe <kurztitel> --commit <rücksetzpunkt>` | |
 | 3 Review | Web-UI, neuer Chat | `… prompt review <kurztitel>` |
 | – | **Prüfen:** `… urteil docs/projekt_management/verdict_….md --anhaengen` | |
 | 4 Tiefenprüfung (optional, Eval) | `start_eval`, Modell laden, MCP aus/an, neuer Chat | `… prompt tief <kurztitel>` |
@@ -26,6 +26,8 @@ und ein Test hat echt gesendet.
   fehlt, unter „Nicht getestet", **anders** (Titel passt nicht, Hinweis auf Austausch)
   oder extra. Prüft, ob `tests/test_<kurztitel>.py` je Test eine Methode `test_<id>` hat.
   Auf das Handover vom 17.10. angewandt, meldet es den ausgetauschten Test NT9.
+- **`abgleich`** prüft zusätzlich jede Testmethode: **ohne assert/fail** (kann nicht rot werden) oder **doppelt** (gleicher Rumpf wie eine andere). Beides war am 18.10. in T9.
+- **`gegenprobe`**: Setzt jede seit dem Rücksetzpunkt geänderte Code-Datei **einzeln** auf den alten Stand zurück, lässt das Testskript laufen und stellt danach wieder her (Prüfsumme, eigener Bytecode-Cache). Je Test: `rot ← datei` (prüft die Änderung), `GRUEN` (prüft Bestehendes oder nichts), `LADEN` (rot nur, weil das Testskript ohne die neue Datei gar nicht lädt, schwacher Beleg). Achtung: verändert die Dateien für Sekunden; nicht laufen lassen, während launchd oder ein Agent arbeitet.
 - **`urteil`**: Ein Befund mit „ja" bei Datenverlust / Unbemerkt / Harte Vorgabe ist
   „hoch". Ein offener Befund „hoch" oder eine Anforderung „teilweise/nicht" ergibt
   NACHBESSERN. Die Regel **verschärft nur**: Ein strengeres Modellurteil bleibt stehen.

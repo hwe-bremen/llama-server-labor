@@ -109,7 +109,7 @@ class AbgleichTests(unittest.TestCase):
                       "**T3: Zaehler im Dateinamen**")
         (kette.ROOT / "tests").mkdir()
         (kette.ROOT / "tests/test_t.py").write_text(
-            "def test_t1_x(): pass\ndef test_t2_x(): pass\ndef test_t3(): pass\n", encoding="utf-8")
+            "def test_t1_x(): assert 1\ndef test_t2_x(): assert 2\ndef test_t3(): assert 3\n", encoding="utf-8")
         code, out = lauf(kette.abgleich, "t")
         self.assertEqual(code, 0, out)
         self.assertIn("alle 3 Tests als Methode", out)
@@ -122,6 +122,53 @@ class AbgleichTests(unittest.TestCase):
         code, out = lauf(kette.abgleich, "t")
         self.assertEqual(code, 1)
         self.assertIn("T2, T3", out)
+
+
+DS = chr(34) * 3
+
+class MethodenTests(unittest.TestCase):
+    def test_leere_und_doppelte_methoden(self):
+        code = (
+            "import unittest\n"
+            "class A(unittest.TestCase):\n"
+            "    def test_t1_ok(self):\n        self.assertEqual(1, 1)\n"
+            "    def test_t2_leer(self):\n        x = 1\n"
+            "    def test_t3_kopie(self):\n        " + DS + "anderer Docstring" + DS + "\n        self.assertEqual(1, 1)\n"
+            "    def test_t4_raises(self):\n        with self.assertRaises(ValueError):\n            int('x')\n")
+        h = kette.methoden_pruefen(code)
+        self.assertTrue(any("OHNE PRUEF test_t2_leer" in x for x in h), h)
+        self.assertTrue(any("DOPPELT   test_t3_kopie" in x for x in h), h)
+        self.assertFalse(any("test_t4_raises" in x for x in h), h)
+
+
+class GegenprobeTests(unittest.TestCase):
+    def test_rot_und_gruen(self):
+        import subprocess
+        d = tempfile.TemporaryDirectory(); self.addCleanup(d.cleanup)
+        root = Path(d.name)
+        def git(*a):
+            subprocess.run(["git", "-C", str(root), "-c", "user.name=t", "-c", "user.email=t@t", *a],
+                           check=True, capture_output=True)
+        git("init", "-q")
+        (root / "mod.py").write_text("def f():\n    return 1\n")
+        git("add", "."); git("commit", "-qm", "alt")
+        alt = subprocess.run(["git", "-C", str(root), "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+        (root / "mod.py").write_text("def f():\n    return 2\n")
+        (root / "neu.py").write_text("X = 1\n")
+        (root / "tests").mkdir()
+        (root / "tests" / "test_g.py").write_text(
+            "import sys, unittest\nfrom pathlib import Path\nsys.path.insert(0, str(Path(__file__).parent.parent))\n"
+            "class T(unittest.TestCase):\n"
+            "    def test_t1_neu(self):\n        import mod\n        self.assertEqual(mod.f(), 2)\n"
+            "    def test_t2_bestand(self):\n        self.assertEqual(1, 1)\n")
+        alt_root = kette.ROOT; kette.ROOT = root
+        self.addCleanup(lambda: setattr(kette, "ROOT", alt_root))
+        code, out = lauf(kette.gegenprobe, "g", alt, 60)
+        self.assertEqual(code, 1, out)
+        self.assertIn("rot   test_t1_neu  <- mod.py", out)
+        self.assertIn("GRUEN test_t2_bestand", out)
+        self.assertEqual((root / "mod.py").read_text(), "def f():\n    return 2\n")
+        self.assertTrue((root / "neu.py").exists())
 
 
 class PromptTests(unittest.TestCase):

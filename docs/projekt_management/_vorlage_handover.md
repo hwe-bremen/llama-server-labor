@@ -34,6 +34,13 @@ $ python3 -m unittest -v tests/test_<kurztitel>.py
 <echte Ausgabe>
 ```
 
+## Gegenprobe (führt Hawe aus, Ausgabe hier einfügen)
+
+```
+$ python3 role-split/kette/kette.py gegenprobe <kurztitel> --commit <rücksetzpunkt>
+<Ausgabe>
+```
+
 ## Außenwirkung
 
 - <„Keine Befehle mit Außenwirkung ausgeführt." — oder genau, was passiert ist (Versand, Netz, echte Daten).>

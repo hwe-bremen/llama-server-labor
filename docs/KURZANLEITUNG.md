@@ -86,6 +86,7 @@ OpenCode darf im ganzen Projekt Dateien ändern; Shell-Befehle fragt es vorher
 
 `python3 role-split/kette/kette.py prompt spec|umsetzung|review|tief <kurztitel>` liefert den Startprompt
 (gleich in der Zwischenablage). Nach der Umsetzung: `… abgleich <kurztitel>` + `python3 -m unittest -v tests/test_<kurztitel>.py`.
+Danach `… gegenprobe <kurztitel> --commit <rücksetzpunkt>` (welche Tests werden mit altem Code rot?).
 Nach dem Review: `… urteil <verdikt.md> --anhaengen`. Hat die Aufgabe Außenwirkung (Mail, Netz, echte Daten):
 **Sperre vor der Umsetzung**. Ablauf: `role-split/kette/README.md`.
 

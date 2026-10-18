@@ -12,6 +12,11 @@ Drei Befehle, nur Standardbibliothek, liest/schreibt nur im Projekt:
         Vergleicht die Test-IDs der Spec mit dem Handover (fehlt, ausgetauscht,
         nicht getestet) und prueft, ob tests/test_<kurztitel>.py je Test eine Methode hat.
 
+  python3 role-split/kette/kette.py gegenprobe <kurztitel> --commit <ruecksetzpunkt>
+        Setzt die geaenderten Code-Dateien voruebergehend auf den Stand von <commit>
+        zurueck, laesst das Testskript laufen und stellt danach alles wieder her.
+        Jeder Test, der dabei gruen bleibt, prueft die Aenderung nicht.
+
   python3 role-split/kette/kette.py urteil <verdikt.md> [--anhaengen]
         Leitet das Urteil mechanisch aus dem Verdikt ab: Ein Befund mit "ja" bei
         Datenverlust / Unbemerkt / Harte Vorgabe ist "hoch"; ein offener Befund "hoch"
@@ -24,11 +29,16 @@ Mode B: Lab, beruehrt AskValentinAI nicht.
 from __future__ import annotations
 
 import argparse
+import ast
 import datetime as dt
+import hashlib
+import json
+import os
 import re
 import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -176,6 +186,38 @@ def passt(spec_titel: str, ho_titel: str) -> float:
     return len(s & woerter(ho_titel)) / len(s)
 
 
+PRUEF_AUFRUFE = re.compile(r"^(assert\w*|fail\w*)$")
+
+
+def methoden_pruefen(code: str) -> list[str]:
+    """Findet Testmethoden ohne Pruefung und Testmethoden mit identischem Rumpf.
+    (17./18.10.: T9 bestand aus zwei identischen Methoden; ein Test ohne assert misst nichts.)"""
+    try:
+        baum = ast.parse(code)
+    except SyntaxError as e:
+        return [f"SYNTAX    Testskript laesst sich nicht parsen: {e}"]
+    hinweise, ruempfe = [], {}
+    for knoten in ast.walk(baum):
+        if not isinstance(knoten, ast.FunctionDef) or not knoten.name.startswith("test"):
+            continue
+        prueft = any(
+            (isinstance(n, ast.Assert)) or
+            (isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) and PRUEF_AUFRUFE.match(n.func.attr)) or
+            (isinstance(n, ast.Raise))
+            for n in ast.walk(knoten))
+        if not prueft:
+            hinweise.append(f"OHNE PRUEF {knoten.name}: kein assert/fail -- der Test kann nicht rot werden")
+        koerper = [b for b in knoten.body
+                   if not (isinstance(b, ast.Expr) and isinstance(getattr(b, "value", None), ast.Constant)
+                           and isinstance(b.value.value, str))]          # Docstring ignorieren
+        schluessel = ast.dump(ast.Module(body=koerper, type_ignores=[]))
+        if schluessel in ruempfe:
+            hinweise.append(f"DOPPELT   {knoten.name} hat denselben Rumpf wie {ruempfe[schluessel]}")
+        else:
+            ruempfe[schluessel] = knoten.name
+    return hinweise
+
+
 def datei_suchen(typ: str, kurztitel: str, datum: str | None) -> Path | None:
     if datum:
         p = PM / f"{typ}_{datum}_{kurztitel}.md"
@@ -224,11 +266,138 @@ def abgleich(kurztitel: str, datum: str | None = None, schwelle: float = 0.6) ->
             print(f"\n  Testskript {skript.relative_to(ROOT)}: keine Methode test_<id> fuer {', '.join(ohne)}")
         else:
             print(f"\n  Testskript {skript.relative_to(ROOT)}: alle {len(spec_tests)} Tests als Methode vorhanden")
-            print(f"  Selbst ausfuehren: python3 -m unittest -v {skript.relative_to(ROOT)}")
+        for hinweis in methoden_pruefen(code):
+            probleme += 1
+            print(f"  {hinweis}")
+        print(f"  Selbst ausfuehren: python3 -m unittest -v {skript.relative_to(ROOT)}")
     else:
         print(f"\n  Kein Testskript tests/test_{kurztitel}.py -- Tests sind nur behauptet, nicht wiederholbar.")
     print(f"\n{'Keine Abweichung.' if not probleme else f'{probleme} Abweichung(en).'}")
     return 0 if not probleme else 1
+
+# ---------------------------------------------------------------- gegenprobe
+
+LAEUFER = r"""
+import json, sys, unittest
+modul = sys.argv[1]
+suite = unittest.defaultTestLoader.loadTestsFromName(modul)
+def name(t): return t.id().split(".")[-1].split(" ")[0]
+stand = {}
+def alle(s):
+    for t in s:
+        if isinstance(t, unittest.TestSuite): alle(t)
+        elif t is not None: stand[name(t)] = "ok"
+alle(suite)                       # vor run(): unittest entfernt gelaufene Tests aus der Suite
+erg = unittest.TestResult()
+suite.run(erg)
+for t, _ in erg.failures: stand[name(t)] = "FAIL"
+for t, _ in erg.errors:
+    stand[name(t) if hasattr(t, "id") else str(t)] = "ERROR"
+if not stand and erg.errors: stand["<Laden>"] = "ERROR"
+for t, _ in erg.skipped: stand[name(t)] = "skipped"
+print("@@KETTE@@" + json.dumps(stand))
+"""
+
+
+def tests_laufen(skript: Path, timeout: int) -> dict[str, str] | None:
+    """Laesst das Testskript in einem eigenen Prozess laufen; Ergebnis je Testmethode."""
+    modul = ".".join(skript.relative_to(ROOT).with_suffix("").parts)
+    # Eigener, frischer Bytecode-Cache je Lauf: sonst kann Python eine alte .pyc weiterverwenden,
+    # wenn die zurueckgesetzte Datei gleich gross ist und in derselben Sekunde geschrieben wurde.
+    with tempfile.TemporaryDirectory(prefix="kette_pyc_") as cache:
+        try:
+            r = subprocess.run([sys.executable, "-X", f"pycache_prefix={cache}", "-c", LAEUFER, modul],
+                               cwd=ROOT, capture_output=True, text=True, timeout=timeout)
+        except subprocess.TimeoutExpired:
+            return None
+    for zeile in reversed(r.stdout.splitlines()):
+        if zeile.startswith("@@KETTE@@"):
+            return json.loads(zeile[len("@@KETTE@@"):])
+    return {"<Testskript laedt nicht>": "ERROR"}
+
+
+def _zuruecksetzen_und_testen(skript: Path, d: str, commit: str, timeout: int) -> dict[str, str] | None:
+    """Eine Datei voruebergehend auf <commit> zuruecksetzen, Tests laufen lassen, wiederherstellen."""
+    pfad = ROOT / d
+    sicherung = Path(tempfile.mkdtemp(prefix="gegenprobe_"))
+    kopie, weg = sicherung / "kopie", pfad.with_name(pfad.name + ".gegenprobe_weg")
+    summe = hashlib.sha256(pfad.read_bytes()).hexdigest() if pfad.exists() else None
+    try:
+        if pfad.exists():
+            shutil.copy2(pfad, kopie)
+        alt = subprocess.run(["git", "-C", str(ROOT), "show", f"{commit}:{d}"], capture_output=True)
+        if alt.returncode == 0:
+            pfad.write_bytes(alt.stdout)
+        elif pfad.exists():                       # Datei ist neu -> im alten Stand gab es sie nicht
+            pfad.rename(weg)                      # umbenennen statt loeschen
+        return tests_laufen(skript, timeout)
+    finally:
+        if weg.exists():
+            weg.rename(pfad)
+        elif kopie.exists():
+            shutil.copy2(kopie, pfad)
+        ok = summe is None or (pfad.exists() and hashlib.sha256(pfad.read_bytes()).hexdigest() == summe)
+        if ok:
+            shutil.rmtree(sicherung, ignore_errors=True)
+        else:
+            print(f"!!! {d} nicht sauber wiederhergestellt. Sicherung: {kopie}")
+
+
+def gegenprobe(kurztitel: str, commit: str, timeout: int = 300) -> int:
+    """Setzt jede seit <commit> geaenderte Code-Datei einzeln voruebergehend auf den alten Stand
+    zurueck und laesst das Testskript laufen. Ein Test, der dabei nie rot wird, prueft keine der
+    Aenderungen. Danach wird jeweils der aktuelle Stand wiederhergestellt (Pruefsumme)."""
+    skript = ROOT / "tests" / f"test_{kurztitel}.py"
+    if not skript.is_file():
+        print(f"Kein Testskript {skript.relative_to(ROOT)}"); return 2
+    try:
+        diff = subprocess.run(["git", "-C", str(ROOT), "diff", "--name-only", commit],
+                              capture_output=True, text=True, check=True).stdout.split()
+        neu = subprocess.run(["git", "-C", str(ROOT), "ls-files", "--others", "--exclude-standard"],
+                             capture_output=True, text=True, check=True).stdout.split()
+    except subprocess.CalledProcessError as e:
+        print(f"git-Fehler: {e.stderr.strip()}"); return 2
+    dateien = sorted({d for d in diff + neu
+                      if d.endswith((".py", ".sh", ".command")) and (ROOT / d).exists()
+                      and not d.startswith(("tests/", "docs/", "role-split/kette/", "experiments/"))})
+    if not dateien:
+        print(f"Keine geaenderten Code-Dateien seit {commit}."); return 2
+
+    vorher = tests_laufen(skript, timeout)
+    if not vorher or any(v not in ("ok", "skipped") for v in vorher.values()):
+        print(f"Abbruch: Das Testskript laeuft auf dem aktuellen Stand nicht gruen ({vorher}). Erst reparieren.")
+        return 2
+    print(f"Gegenprobe gegen {commit}: {len(vorher)} Tests, je Datei einzeln zurueckgesetzt\n")
+    rot_durch: dict[str, list[str]] = {t: [] for t in vorher}
+    laden_scheitert: list[str] = []
+    for d in dateien:
+        nachher = _zuruecksetzen_und_testen(skript, d, commit, timeout)
+        if nachher is None:
+            print(f"  {d}: Zeitueberschreitung"); continue
+        if set(nachher) - set(vorher):            # Laden gescheitert
+            print(f"  {d}: ohne die neue Fassung laedt das Testskript gar nicht -- alle Tests rot, aber ohne Einzelaussage")
+            laden_scheitert.append(Path(d).name)
+            continue
+        rote = [t for t, v in nachher.items() if v in ("FAIL", "ERROR")]
+        for t in rote:
+            rot_durch[t].append(d)
+        print(f"  {d}: {len(rote)} Test(s) rot")
+    print()
+    gruen = [t for t, ds in rot_durch.items() if not ds]
+    for t in sorted(rot_durch):
+        if rot_durch[t]:
+            print(f"  rot   {t}  <- {', '.join(Path(x).name for x in rot_durch[t])}")
+        elif laden_scheitert:
+            print(f"  LADEN {t}  (rot nur, weil das Skript ohne {', '.join(laden_scheitert)} nicht laedt -- schwacher Beleg)")
+        else:
+            print(f"  GRUEN {t}  (wird mit keiner alten Datei rot -- prueft Bestehendes oder nichts)")
+    print(f"\n{len(vorher) - len(gruen)} von {len(vorher)} Tests werden durch eine einzelne alte Datei rot"
+          + (f", {len(gruen)} nur ueber das Laden" if laden_scheitert else "") + ". Aktueller Stand ist wiederhergestellt.")
+    if gruen:
+        print("GRUEN/LADEN-Tests einzeln ansehen: Pruefen sie bewusst Bestehendes (in Ordnung) "
+              "oder gar nichts (Befund)? Tipp: Neue Funktionen im Test erst in der Methode importieren, "
+              "dann wird die Gegenprobe je Test aussagekraeftig.")
+    return 0 if not gruen else 1
 
 # ---------------------------------------------------------------- prompt
 
@@ -262,7 +431,12 @@ def main(argv=None) -> int:
     p.add_argument("--datum"); p.add_argument("--commit")
     a = sub.add_parser("abgleich"); a.add_argument("kurztitel"); a.add_argument("--datum")
     u = sub.add_parser("urteil"); u.add_argument("verdikt"); u.add_argument("--anhaengen", action="store_true")
+    g = sub.add_parser("gegenprobe"); g.add_argument("kurztitel")
+    g.add_argument("--commit", required=True, help="Ruecksetzpunkt vor der Umsetzung")
+    g.add_argument("--timeout", type=int, default=300)
     args = ap.parse_args(argv)
+    if args.cmd == "gegenprobe":
+        return gegenprobe(args.kurztitel, args.commit, args.timeout)
     if args.cmd == "prompt":
         return prompt(args.schritt, args.kurztitel, args.datum, args.commit)
     if args.cmd == "abgleich":
