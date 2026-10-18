@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Zuletzt aktualisiert: 2026-10-13 -->
+<!-- Zuletzt aktualisiert: 2026-10-18 -->
 <!-- Gesamtdarstellung des LLM-Lokal-Labors (llama-server + retrieval-bench + local-memory).
      Gestaltung nach dem Muster readme/prozess/GESAMTARCHITEKTUR.html (AskValentinAI):
      Ulmer Raster, IBM Plex, nummerierte Kapitel, Inline-SVG. Nur Gestaltung übernommen, kein Inhalt. -->
@@ -93,10 +93,10 @@ footer{padding:46px 0 0;font-family:var(--mono);font-size:11.5px;color:var(--tin
   Zugänge — nackt, mit Katalogwissen, mit Gedächtnis. Diese Seite erzählt die
   Verbindungen und die Befunde; die Bedienung steht im Runbook.</p>
   <div class="stand">
-    Zuletzt aktualisiert: 2026-10-13 · Stand nach den Sessions 07.–13.10.2026<br>
+    Zuletzt aktualisiert: 2026-10-18 · Stand nach den Sessions 07.–18.10.2026 (neu: Kapitel 10 Rollenkette)<br>
     Rechner: M4 MacBook Pro 48 GB (zuhause) · M2 Mac mini 24 GB (Büro, Client)<br>
     Quellen: docs/RUNBOOK.md · docs/runbook-retrieval-bench.md · docs/notizen-local-memory.md ·
-    docs/session_kontext.md · docs/architektur-lab.svg · Projekt-Notizen (Claude-Projekt „LLM-Lokal-Labor")<br>
+    docs/session_kontext.md · docs/architektur-lab.svg · docs/notizen-kette-standort.md · role-split/kette/README.md · Projekt-Notizen (Claude-Projekt „LLM-Lokal-Labor")<br>
     Gestaltung nach readme/prozess/GESAMTARCHITEKTUR.html (AskValentinAI) — nur die Form, kein Inhalt.
   </div>
   <nav class="inhalt" aria-label="Inhalt">
@@ -109,8 +109,9 @@ footer{padding:46px 0 0;font-family:var(--mono);font-size:11.5px;color:var(--tin
     <a href="#k7"><span class="n">07</span>Betrieb: Launcher und Tag</a>
     <a href="#k8"><span class="n">08</span>Von außen: Büro, iPad, OpenCode</a>
     <a href="#k9"><span class="n">09</span>Sicherheit und Hygiene</a>
-    <a href="#k10"><span class="n">10</span>Befunde und Stand</a>
-    <a href="#k11"><span class="n">11</span>Wegweiser</a>
+    <a href="#k10"><span class="n">10</span>Die Rollenkette</a>
+    <a href="#k11"><span class="n">11</span>Befunde und Stand</a>
+    <a href="#k12"><span class="n">12</span>Wegweiser</a>
   </nav>
 </header>
 
@@ -161,14 +162,14 @@ footer{padding:46px 0 0;font-family:var(--mono);font-size:11.5px;color:var(--tin
       <marker id="pk" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L8,4 L0,8 z" fill="#1B6670"/></marker>
       <marker id="ps" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L8,4 L0,8 z" fill="#9A7B18"/></marker>
       <style>
-        .t{font-family:'IBM Plex Sans Condensed',sans-serif}
-        .m{font-family:'IBM Plex Mono',monospace;font-size:9.5px;fill:#4A535E}
-        .k{font-size:12.5px;font-weight:700}
-        .sp{font-family:'IBM Plex Mono',monospace;font-size:8.5px;letter-spacing:.14em;fill:#4A535E}
-        .e{fill:none;stroke:#4A535E;stroke-width:1.3;marker-end:url(#p)}
-        .ek{fill:none;stroke:#1B6670;stroke-width:1.3;marker-end:url(#pk)}
-        .es{fill:none;stroke:#9A7B18;stroke-width:1.3;marker-end:url(#ps)}
-        .d{stroke-dasharray:5 4}
+        svg .t{font-family:'IBM Plex Sans Condensed',sans-serif}
+        svg .m{font-family:'IBM Plex Mono',monospace;font-size:9.5px;fill:#4A535E}
+        svg .k{font-size:12.5px;font-weight:700}
+        svg .sp{font-family:'IBM Plex Mono',monospace;font-size:8.5px;letter-spacing:.14em;fill:#4A535E}
+        svg .e{fill:none;stroke:#4A535E;stroke-width:1.3;marker-end:url(#p)}
+        svg .ek{fill:none;stroke:#1B6670;stroke-width:1.3;marker-end:url(#pk)}
+        svg .es{fill:none;stroke:#9A7B18;stroke-width:1.3;marker-end:url(#ps)}
+        svg .d{stroke-dasharray:5 4}
       </style>
     </defs>
 
@@ -606,7 +607,197 @@ footer{padding:46px 0 0;font-family:var(--mono);font-size:11.5px;color:var(--tin
 
 <!-- ══════════════════════════════════════════ 10 -->
 <section id="k10">
-  <h2><span class="nr">10</span> Befunde und Stand</h2>
+  <h2><span class="nr">10</span> Die Rollenkette</h2>
+  <p class="lede">Seit 15.10. arbeiten zwei lokale Modelle in getrennten Rollen:
+  eines schreibt Specs und prüft, eines setzt um. Sie reden nicht miteinander,
+  sondern über Dateien in <code>docs/projekt_management/</code>. Dazwischen
+  stehen Prüfungen, die eine Maschine ausführt, und am Ende entscheidet Hawe.</p>
+
+  <figure>
+  <svg viewBox="0 0 1000 600" xmlns="http://www.w3.org/2000/svg" role="img"
+       aria-label="Rollenkette: 1 Spec in der Web-UI, Hawe liest und committet, 2 Umsetzung in OpenCode, Maschinenprüfungen, 3 Review in der Web-UI, kette.py urteil, optional 4 Tiefenprüfung, Entscheidung und Commit durch Hawe; bei NACHBESSERN zurück zur Umsetzung. Eine externe Stimme prüft Spec, Tests und Urteil gegen.">
+    <defs>
+      <marker id="rp" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L8,4 L0,8 z" fill="#4A535E"/></marker>
+      <marker id="rpk" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L8,4 L0,8 z" fill="#1B6670"/></marker>
+      <marker id="rpb" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L8,4 L0,8 z" fill="#A8322A"/></marker>
+      <style>
+        svg .rt{font-family:'IBM Plex Sans Condensed',sans-serif}
+        svg .rm{font-family:'IBM Plex Mono',monospace;font-size:9.5px;fill:#4A535E}
+        svg .rk{font-size:12.5px;font-weight:700}
+        svg .rsp{font-family:'IBM Plex Mono',monospace;font-size:8.5px;letter-spacing:.14em;fill:#4A535E}
+        svg .re{fill:none;stroke:#4A535E;stroke-width:1.3;marker-end:url(#rp)}
+        svg .rek{fill:none;stroke:#1B6670;stroke-width:1.3;marker-end:url(#rpk)}
+        svg .reb{fill:none;stroke:#A8322A;stroke-width:1.3;marker-end:url(#rpb)}
+        svg .rd{stroke-dasharray:5 4}
+      </style>
+    </defs>
+
+    <text class="rsp" x="20" y="30">HIN · SPEC → CODE → MASCHINENPRÜFUNG</text>
+    <text class="rsp" x="20" y="226">ZURÜCK · REVIEW → URTEIL → ENTSCHEIDUNG</text>
+
+    <!-- 1 Spec -->
+    <rect x="20" y="42" width="210" height="122" rx="3" fill="#E8F0F0" stroke="#1B6670" stroke-width="1.5"/>
+    <text class="rt rk" x="34" y="64" fill="#1B6670">1 · Spec</text>
+    <text class="rm" x="34" y="82">Web-UI 8092 · @review</text>
+    <text class="rm" x="34" y="96">Qwen3.8 · Rollenlauf</text>
+    <text class="rm" x="34" y="110">Vorlage: Außenwirkung,</text>
+    <text class="rm" x="34" y="124">Einstiegspunkte, Fehlerpfade,</text>
+    <text class="rm" x="34" y="138">Tests T1… mit Gegenprobe</text>
+    <text class="rm" x="34" y="154" fill="#1B6670">→ spec_&lt;datum&gt;_&lt;titel&gt;.md</text>
+
+    <!-- Gate Hawe -->
+    <rect x="260" y="42" width="200" height="122" rx="3" fill="#F5F5F1" stroke="#767C84" stroke-width="1.5"/>
+    <text class="rt rk" x="274" y="64" fill="#161C24">Hawe · Gegenlesen</text>
+    <text class="rm" x="274" y="82">Spec prüfen (lassen)</text>
+    <text class="rm" x="274" y="96">git commit = Rücksetzpunkt</text>
+    <rect x="270" y="110" width="180" height="44" rx="2" fill="#F7E9E7" stroke="#A8322A" stroke-width="1.2"/>
+    <text class="rm" x="280" y="128" fill="#A8322A">Außenwirkung? → Sperre</text>
+    <text class="rm" x="280" y="144" fill="#A8322A">vor der Umsetzung bauen</text>
+
+    <!-- 2 Umsetzung -->
+    <rect x="490" y="42" width="210" height="122" rx="3" fill="#E8F0F0" stroke="#1B6670" stroke-width="1.5"/>
+    <text class="rt rk" x="504" y="64" fill="#1B6670">2 · Umsetzung</text>
+    <text class="rm" x="504" y="82">OpenCode · Agent „umsetzung"</text>
+    <text class="rm" x="504" y="96">Qwen3.6 · Shell nur mit Freigabe</text>
+    <text class="rm" x="504" y="110">Code + tests/test_&lt;titel&gt;.py</text>
+    <text class="rm" x="504" y="124">Nachbesserung nur ergänzen</text>
+    <text class="rm" x="504" y="138">kein eigener Commit</text>
+    <text class="rm" x="504" y="154" fill="#1B6670">→ handover_&lt;datum&gt;_&lt;titel&gt;.md</text>
+
+    <!-- Mechanik 1 -->
+    <rect x="730" y="42" width="250" height="122" rx="3" fill="#FAF6E8" stroke="#9A7B18" stroke-width="1.5"/>
+    <text class="rt rk" x="744" y="64" fill="#9A7B18">Maschinen prüfen</text>
+    <text class="rm" x="744" y="82">kette.py abgleich</text>
+    <text class="rm" x="744" y="96">  Test-IDs, leere / doppelte Tests</text>
+    <text class="rm" x="744" y="110">python3 -m unittest -v tests/…</text>
+    <text class="rm" x="744" y="124">kette.py gegenprobe --commit …</text>
+    <text class="rm" x="744" y="138">  wird der Test mit altem Code rot?</text>
+    <text class="rm" x="744" y="154" fill="#9A7B18">Einstiegspunkt wirklich starten</text>
+
+    <!-- 3 Review -->
+    <rect x="730" y="238" width="250" height="122" rx="3" fill="#E8F0F0" stroke="#1B6670" stroke-width="1.5"/>
+    <text class="rt rk" x="744" y="260" fill="#1B6670">3 · Review</text>
+    <text class="rm" x="744" y="278">Web-UI · neuer Chat · @review</text>
+    <text class="rm" x="744" y="292">Qwen3.8 · liest Spec, Diff, Code</text>
+    <text class="rm" x="744" y="306">je Befund drei Fragen (ja/nein):</text>
+    <text class="rm" x="744" y="320">Datenverlust · Unbemerkt ·</text>
+    <text class="rm" x="744" y="334">Harte Vorgabe</text>
+    <text class="rm" x="744" y="350" fill="#1B6670">→ verdict_…_&lt;kürzel&gt;.md (geschützt)</text>
+
+    <!-- urteil -->
+    <rect x="490" y="238" width="210" height="122" rx="3" fill="#FAF6E8" stroke="#9A7B18" stroke-width="1.5"/>
+    <text class="rt rk" x="504" y="260" fill="#9A7B18">kette.py urteil</text>
+    <text class="rm" x="504" y="278">ein „ja" → Befund hoch</text>
+    <text class="rm" x="504" y="292">hoch offen oder Anforderung</text>
+    <text class="rm" x="504" y="306">teilweise → NACHBESSERN</text>
+    <text class="rm" x="504" y="320">verschärft nur, schwächt</text>
+    <text class="rm" x="504" y="334">ein strengeres Urteil nie ab</text>
+    <text class="rm" x="504" y="350" fill="#9A7B18">--anhaengen schreibt ins Verdikt</text>
+
+    <!-- 4 Tiefenprüfung -->
+    <rect x="260" y="238" width="200" height="122" rx="3" fill="none" stroke="#1B6670" stroke-width="1.3" stroke-dasharray="4 3"/>
+    <text class="rt rk" x="274" y="260" fill="#1B6670">4 · Tiefenprüfung</text>
+    <text class="rm" x="274" y="278">optional · start_eval</text>
+    <text class="rm" x="274" y="292">8092 direkt auf 8080,</text>
+    <text class="rm" x="274" y="306">ohne Gedächtnis, git_log aus,</text>
+    <text class="rm" x="274" y="320">ein Modell im Speicher</text>
+    <text class="rm" x="274" y="350" fill="#1B6670">→ verdict_…_tief_&lt;kürzel&gt;.md</text>
+
+    <!-- Entscheidung -->
+    <rect x="20" y="238" width="210" height="122" rx="3" fill="#F5F5F1" stroke="#161C24" stroke-width="1.8"/>
+    <text class="rt rk" x="34" y="260" fill="#161C24">Entscheidung · Hawe</text>
+    <text class="rm" x="34" y="278">PASS → git commit</text>
+    <text class="rm" x="34" y="292">NACHBESSERN → Liste an 2,</text>
+    <text class="rm" x="34" y="306">  dann erneut prüfen</text>
+    <text class="rm" x="34" y="320">echter Lauf / Versand:</text>
+    <text class="rm" x="34" y="334">  nur Hawe, bewusst</text>
+
+    <!-- Externe Stimme -->
+    <rect x="20" y="410" width="960" height="62" rx="3" fill="#F5F5F1" stroke="#767C84" stroke-width="1.3" stroke-dasharray="4 3"/>
+    <text class="rt rk" x="34" y="432" fill="#4A535E">Externe Stimme (bisher Claude) · prüft, was Maschinen nicht prüfen</text>
+    <text class="rm" x="34" y="450">Fragen die Tests das Richtige? Fehlen Fehlerpfade? Stimmt der Befund im Code? — hat in allen drei</text>
+    <text class="rm" x="34" y="464">Messketten (17.–18.10.) den jeweils kritischen Defekt gefunden, den Spec, Umsetzung und Review übersehen hatten</text>
+
+    <!-- Dateiband -->
+    <text class="rsp" x="20" y="512">ÜBERGABE NUR ÜBER DATEIEN · docs/projekt_management/</text>
+    <rect x="20" y="524" width="300" height="44" rx="3" fill="#F5F5F1" stroke="#C3C6BE" stroke-width="1.2"/>
+    <text class="rm" x="34" y="542">_vorlage_spec.md · _vorlage_handover.md</text>
+    <text class="rm" x="34" y="556">_vorlage_verdict.md</text>
+    <rect x="340" y="524" width="300" height="44" rx="3" fill="#F5F5F1" stroke="#C3C6BE" stroke-width="1.2"/>
+    <text class="rm" x="354" y="542">Startprompts: kette.py prompt</text>
+    <text class="rm" x="354" y="556">spec | umsetzung | review | tief</text>
+    <rect x="660" y="524" width="320" height="44" rx="3" fill="#F7E9E7" stroke="#A8322A" stroke-width="1.2"/>
+    <text class="rm" x="674" y="542" fill="#A8322A">Lösungsschlüssel der Messläufe: nie im Repo</text>
+    <text class="rm" x="674" y="556" fill="#A8322A">(die Modelle lesen das Repo)</text>
+
+    <!-- Kanten Hinweg -->
+    <path class="rek" d="M230,103 L260,103"/>
+    <path class="re"  d="M460,103 L490,103"/>
+    <path class="rek" d="M700,103 L730,103"/>
+    <path class="re"  d="M855,164 L855,238"/>
+    <!-- Rückweg -->
+    <path class="rek" d="M730,299 L700,299"/>
+    <path class="re rd" d="M490,280 L460,280"/>
+    <path class="re"  d="M595,360 L595,386 L180,386 L180,362"/>
+    <path class="re rd" d="M260,299 L230,299"/>
+    <!-- Nachbesserung -->
+    <path class="reb" d="M125,238 L125,196 C 125,186 135,186 145,186 L 585,186 C 595,186 595,176 595,164"/>
+    <text class="rm" x="250" y="181" fill="#A8322A">NACHBESSERN → zurück zu 2 (nur ergänzen)</text>
+    <!-- Externe Stimme -->
+    <path class="re rd" d="M475,410 L475,140 L462,140"/>
+    <path class="re rd" d="M855,410 L855,360"/>
+    <path class="re rd" d="M125,410 L125,360"/>
+  </svg>
+  <figcaption>
+    Petrol: Schritte, die ein lokales Modell ausführt. Ocker: Prüfungen, die ein
+    Programm ausführt (Ja/Nein, keine Deutung). Grau/Schwarz: Mensch und externe
+    Stimme. Rot: Grenzen — technische Sperre bei Außenwirkung, Rücksprung bei
+    NACHBESSERN, Schlüssel außerhalb des Repos. Gestrichelt: optional bzw. Gegenprüfung.
+  </figcaption>
+  </figure>
+  <div class="legende">
+    <span><i class="swatch" style="background:#1B6670"></i>Modellschritt (lokal)</span>
+    <span><i class="swatch" style="background:#9A7B18"></i>Maschinenprüfung (kette.py, unittest)</span>
+    <span><i class="swatch" style="background:#767C84"></i>Mensch / externe Stimme</span>
+    <span><i class="swatch" style="background:#A8322A"></i>Grenze / Sperre</span>
+    <span><i class="swatch gestr"></i>optional / Gegenprüfung</span>
+  </div>
+
+  <h3>Was trägt — Stand nach drei Messketten (17.–18.10.)</h3>
+  <div class="tabelle"><table>
+    <thead><tr><th>Rolle</th><th>Trägt</th><th>Trägt nicht</th><th>Ampel</th></tr></thead>
+    <tbody>
+      <tr><td>Spec (Qwen3.8)</td><td>Ursachen, Gliederung, begründeter Widerspruch</td><td>Seiteneffekte und Testqualität; eine behauptete, nie erfolgte „Prüfung" wanderte bis in den Code; ~3 Eingriffe je Spec</td><td class="m" style="color:#9A7B18">● gelb</td></tr>
+      <tr><td>Umsetzung (Qwen3.6)</td><td>Logik auf Stufe 3–4 durchgehend sauber</td><td>Start und Zusammenspiel (relativer Import: Scout bei jedem Lauf abgestürzt, 12 Tests grün); Tests getauscht, gelöscht, ohne Prüfung; Vorgaben eigenmächtig geändert; einmal echte Mail im Test</td><td class="m" style="color:#9A7B18">● gelb</td></tr>
+      <tr><td>Review (Qwen3.8)</td><td>Urteil 3 von 4 richtig</td><td>Hauptdefekt 0 von 4 gefunden; dreimal Befund erfunden oder Code falsch gelesen</td><td class="m" style="color:#A8322A">● rot</td></tr>
+      <tr><td>Tiefenprüfung</td><td>etwas mehr Befunde</td><td>ein Lauf, Urteil PASS war falsch</td><td class="m" style="color:#A8322A">● rot</td></tr>
+      <tr><td>Maschinenprüfung</td><td>macht jeden Defekt sichtbar, sobald ein Test das Richtige ausführt; abgleich fand gelöschte Tests, urteil hob einmal korrekt auf „hoch"</td><td>findet nur, was als Test oder Regel formuliert ist</td><td class="m" style="color:#1B6670">● grün</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="merk">
+    <div class="kopf">Wo die Halluzinationen lagen</div>
+    <p>Nicht im Code, sondern im <b>Prüfen und Berichten</b>: Prüfungen, die
+    nie stattfanden; Programmabläufe, die falsch gelesen wurden; „alle Tests
+    bestanden", nachdem Tests gelöscht waren. Am wenigsten belastbar ist
+    damit genau das, was beruhigen soll — Review und Handover.</p>
+  </div>
+
+  <div class="merk k">
+    <div class="kopf">Betriebsmodell</div>
+    <p><b>Modelle schreiben</b> (Spec, Code, Testskript). <b>Maschinen
+    prüfen</b> (unittest, gegenprobe, abgleich, Einstiegspunkt starten, urteil) —
+    das kann Hawe alles selbst ausführen. <b>Eine externe Stimme</b> prüft, ob die
+    Tests das Richtige fragen. <b>Außenwirkung</b> nur mit technischer Sperre
+    vor der Umsetzung. Das lokale Review ist Zweitmeinung, keine Freigabe.</p>
+    <p>Schwelle für „tragfähiger": drei Ketten in Folge ohne durchgerutschten
+    kritischen Defekt, ohne Eingriff während der Kette. Erster Lauf: K4 ab 19.10.</p>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════ 11 -->
+<section id="k11">
+  <h2><span class="nr">11</span> Befunde und Stand</h2>
   <p class="lede">Was das Labor bis zum 13.10.2026 belegt hat, in einem
   Satz je Befund — mit dem Vorbehalt, der dazugehört.</p>
   <div class="tabelle"><table>
@@ -618,6 +809,8 @@ footer{padding:46px 0 0;font-family:var(--mono);font-size:11.5px;color:var(--tin
       <tr><td>Ein Gedächtnis aus Markdown + lokalem Modell funktioniert in den Grundfällen</td><td>5 Fälle + 8 Alltagsrunden mit Qwen</td><td>Streichquote noch ohne Modell-Einträge; Schreibseite unfertig</td></tr>
       <tr><td>Gleicher Kontext, anderes Modell: Mellum greift die falsche Zeile</td><td>eine Frage vom iPhone</td><td>eine Frage, Coding-Modell, Thinking-Schalter unklar</td></tr>
       <tr><td>Gedächtnis-Fakten über Werkzeuge werden als Fähigkeiten gelesen</td><td>Abendgespräch 12.10.</td><td>einmal beobachtet</td></tr>
+      <tr><td>Rollenkette: lokale Modelle schreiben brauchbaren Code, prüfen aber nicht verlässlich — kritischer Defekt in 3 von 3 Ketten erst durch Ausführen/Gegenprüfung gefunden</td><td>3 Messketten mit vorab geschriebenem Schlüssel, 17.–18.10.</td><td>ein Aufgabentyp (Scout-Mail), Stufe 4–6; Details Kapitel 10</td></tr>
+      <tr><td>Halluzinationen sitzen im Prüfen und Berichten, nicht im Code</td><td>erfundene Prüfung, falsch gelesene Abläufe, „bestanden" für gelöschte Tests</td><td>Qwen3.6/3.8, Rollenlauf ohne Thinking</td></tr>
     </tbody>
   </table></div>
 
@@ -630,12 +823,13 @@ footer{padding:46px 0 0;font-family:var(--mono);font-size:11.5px;color:var(--tin
     <li>Mittelklasse 12–14B lokal messen, bevor ein Lokal-Angebot entsteht.</li>
     <li>Tailscale: SSH-Entscheidung, ACL-Härtung, Serve-Port in der Regel prüfen.</li>
     <li>Korpus: high_level-Dokumente und Artikelliste in den Lader; Komposita für BM25.</li>
+    <li>Rollenkette: K4 (Scout-Bericht wird beim Zweitlauf überschrieben) als erster Lauf ohne Eingriff; danach Qwen3.6 als Reviewer und Review mit Thinking vergleichen.</li>
   </ol>
 </section>
 
-<!-- ══════════════════════════════════════════ 11 -->
-<section id="k11">
-  <h2><span class="nr">11</span> Wegweiser</h2>
+<!-- ══════════════════════════════════════════ 12 -->
+<section id="k12">
+  <h2><span class="nr">12</span> Wegweiser</h2>
   <div class="tabelle"><table>
     <thead><tr><th>Ich suche …</th><th>Dort</th></tr></thead>
     <tbody>
@@ -643,6 +837,8 @@ footer{padding:46px 0 0;font-family:var(--mono);font-size:11.5px;color:var(--tin
       <tr><td>das Henne-Experiment im Detail (Setup, Env, Messungen)</td><td class="m">docs/runbook-retrieval-bench.md</td></tr>
       <tr><td>das Gedächtnis: Architektur, Ergebnisse, Entscheidungen</td><td class="m">docs/notizen-local-memory.md · local-memory/README.md · memory/README.md</td></tr>
       <tr><td>wo wir stehen, was als Nächstes</td><td class="m">docs/session_kontext.md</td></tr>
+      <tr><td>Rollenkette: Ablauf, Befehle (prompt, abgleich, gegenprobe, urteil)</td><td class="m">role-split/kette/README.md · docs/runbook-role-split.md</td></tr>
+      <tr><td>Tragfähigkeit der Kette, Ampel, Betriebsmodell</td><td class="m">docs/notizen-kette-standort.md</td></tr>
       <tr><td>das Bild aus 02 als Datei</td><td class="m">docs/architektur-lab.svg</td></tr>
       <tr><td>Kirby-MCP, zweite Instanz</td><td class="m">docs/runbook-mcp-kirby.md</td></tr>
       <tr><td>Entscheidungsvorlage Retrieval für AskValentinAI</td><td class="m">Claude-Projekt „LLM-Lokal-Labor" · entscheidungsvorlage-retrieval-avai.md</td></tr>
@@ -652,7 +848,7 @@ footer{padding:46px 0 0;font-family:var(--mono);font-size:11.5px;color:var(--tin
 </section>
 
 <footer>
-  LLM-Lokal-Labor · Gesamtübersicht · 2026-10-13<br>
+  LLM-Lokal-Labor · Gesamtübersicht · 2026-10-18<br>
   Diese Seite erzählt Verbindungen und Befunde. Werte, die driften (Ports,
   Modell-IDs, Parameter), stehen im Runbook und im Session-Kontext — dort
   nachschlagen, nicht hier.
