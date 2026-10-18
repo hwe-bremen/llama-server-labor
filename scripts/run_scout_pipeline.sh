@@ -57,6 +57,10 @@ if [ ${SCOUT_EXIT} -ne 0 ]; then
     else
         # Fehler-Mail versuchen (set -e gefangen, damit der Wrapper den originalen Exit-Code gibt)
         "${PYTHON}" "${REPO_ROOT}/scripts/send_scout_email.py" --fail-mail --exit-code ${SCOUT_EXIT} || :
+        # Pipeline-Lauf-Datei schreiben (auch bei Scout-Fehler, damit der Exit-Code sichtbar ist)
+        PIPELINE_LOG="${LAB_DIR}/pipeline_runs.log"
+        TIMESTAMP="$(date '+%Y-%m-%d %H:%M:%S')"
+        echo "${TIMESTAMP} SCOUT_EXIT=${SCOUT_EXIT} EMAIL_EXIT=skipped" >> "${PIPELINE_LOG}"
     fi
     exit ${SCOUT_EXIT}
 fi
