@@ -40,6 +40,8 @@ UPSTREAM = os.environ.get("ROLE_UPSTREAM", "http://127.0.0.1:8091")
 HOST = os.environ.get("ROLE_HOST", "127.0.0.1")
 PORT = int(os.environ.get("ROLE_PORT", "8092"))
 LOG_FILE = Path(os.environ.get("ROLE_LOG", str(HERE / "results" / "role_log.jsonl")))
+# Modellname, wenn die Anfrage keinen nennt (Web-UI an einem Server mit nur einem Modell schickt kein "model").
+DEFAULT_MODEL = os.environ.get("ROLE_DEFAULT_MODEL", "").strip() or None
 
 RESET_WORDS = {"aus", "off"}
 # "@review …" und "@review: …"; "@reviewer" oder "@review/x" zählen nicht.
@@ -213,7 +215,7 @@ def apply_roles(body: dict, roles: dict[str, str],
 
     if active:
         info = date_line(today)
-        mline = model_line(body.get("model"))
+        mline = model_line(effective_model(body))
         if mline:
             info += "\n" + mline
         _prepend_system(new_msgs, roles[active].strip() + "\n\n" + info)
@@ -232,13 +234,21 @@ def last_user_text(body: dict) -> str:
     return ""
 
 
+def effective_model(body: dict, default: str | None = None) -> str | None:
+    """Modell aus der Anfrage; fehlt es (oder heißt "default"), der konfigurierte Standardname."""
+    model = body.get("model")
+    if isinstance(model, str) and model.strip() and model.strip() != "default":
+        return model
+    return default if default is not None else DEFAULT_MODEL
+
+
 def log_event(role: str | None, path: str, body: dict) -> None:
     try:
         LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
         entry = {
             "zeit": _dt.datetime.now().isoformat(timespec="seconds"),
             "rolle": role,
-            "modell": body.get("model"),
+            "modell": effective_model(body),
             "pfad": path,
             "nachrichten": len(body.get("messages") or []),
             "letzte_nutzernachricht": last_user_text(body)[:120],

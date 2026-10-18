@@ -290,5 +290,17 @@ class ProxyIntegrationTests(unittest.TestCase):
             rp.UPSTREAM = old
 
 
+class DefaultModelTest(unittest.TestCase):
+    def test_effective_model_prefers_request(self):
+        self.assertEqual(rp.effective_model({"model": "x-27B"}, "std"), "x-27B")
+
+    def test_effective_model_falls_back(self):
+        self.assertEqual(rp.effective_model({}, "Qwen3-Coder-Next-80B-A3B"), "Qwen3-Coder-Next-80B-A3B")
+        self.assertEqual(rp.effective_model({"model": "default"}, "std"), "std")
+
+    def test_tag_for_default(self):
+        self.assertEqual(rp.model_tag("Qwen3-Coder-Next-80B-A3B"), "qwen3-80b")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
