@@ -103,3 +103,23 @@ $ python3 role-split/kette/kette.py gegenprobe scout_bericht_ueberschreiben --co
 ## Offene Punkte / bekannte Schwächen
 
 - Beim ersten Upgrade auf das neue `.sent_state`-Format: Falls es eine alte `.sent_state` mit nur einem Datum pro Woche gibt (altes Format `YYYY_WW DATE`), ignoriert `get_last_sent_lauf_nr()` diese Zeilen (da sie keinen `lauf_nr`-Teil haben). Das ist beabsichtigt – alte Einträge werden nicht als gesendet gezählt, und die Woche wird neu versendet.
+
+---
+
+## Nachtrag 19.10.2026: Nachbesserung (Claude)
+
+**Geändert:** `scripts/send_scout_email.py`, `tests/test_scout_bericht_ueberschreiben.py`. `llm_scout.py` und `run_scout_pipeline.sh` unverändert.
+
+| # | Defekt | Änderung | Test |
+|---|---|---|---|
+| D1 | Merker vor dem Versand → nach SMTP-Fehler nie gesendet | Merker erst nach Erfolg; Fehler beim Merken nach erfolgreichem Versand → Exit 1 mit Hinweis | T3 (umgedreht) |
+| – | Erfolgsfall ungetestet | Test ergänzt | T10 (neu) |
+| D2 | Nachtrag-Mail schickte die ganze Datei, gleicher Betreff | nur ungesendete Abschnitte, Betreff „– Nachtrag" | T11 (neu) |
+| – | Präfix-Vergleich traf Alt-Zeilen (`KEY 2026-…`) bei lauf_nr 2 → Versand bei jedem Lauf | exakter Parser `_sent_lauf_nrs()`, Alt-Zeile = lauf_nr 1 | T12 (neu) |
+| – | `count("## Nachtrag KW")` zählte Teilstrings | `split_report_runs()` an der echten Trennstelle | T13 (neu) |
+| – | T7 maß nichts (`bash -n`) | echtes `run_scout_pipeline.sh` in Wegwerf-Repo mit Platzhaltern für Scout/Versand: Exit-Weitergabe, Lauf-Datei, Fehler-Mail-Aufruf, Trockenlauf | T7 (neu geschrieben) |
+
+**Getestet (VM-Kopie, `feedparser` als Import-Platzhalter):** 13/13 OK.
+**Gegenprobe:** alter Versandcode → T3, T11, T12, T13 rot; T10 grün (sichert Bestehendes). Pipeline mit `exit 0` statt `exit ${EMAIL_EXIT}` → T7 rot.
+**Nicht getestet:** echter Versand (bewusst; erster echter Lauf ist der nächste Scout-Lauf mit `SCOUT_ALLOW_SEND=1` aus der plist).
+**Hawe kann prüfen:** `python3 -m unittest -v tests/test_scout_bericht_ueberschreiben.py` und `python3 role-split/kette/kette.py gegenprobe scout_bericht_ueberschreiben --commit 31ad471`.

@@ -18,6 +18,7 @@ Modi:
 
 import argparse
 import os
+import re
 import smtplib
 import subprocess
 import sys
@@ -91,18 +92,24 @@ def find_current_report() -> Path | None:
     return None
 
 
-def build_email_message(report_path: Path) -> MIMEText:
+def build_email_message(report_path: Path, md_content: str | None = None,
+                        subject_suffix: str = "") -> MIMEText:
     """
     Liest den Markdown-Bericht, konvertiert zu HTML und baut eine MIME-Message.
     Gibt die fertige MIMEText-Instanz zurück (ohne Versand).
+
+    md_content: nur diesen Markdown-Text senden (z. B. nur die ungesendeten
+    Nachträge, Nachbesserung 19.10.); Default: die ganze Datei.
+    subject_suffix: Zusatz zum Betreff, z. B. " – Nachtrag".
     """
     iso_cal = datetime.now().isocalendar()
     kw_year = iso_cal[0]
     week = iso_cal[1]
-    subject = f"LLM Scout KW{week} {kw_year}"
+    subject = f"LLM Scout KW{week} {kw_year}{subject_suffix}"
 
     # Markdown lesen und zu HTML konvertieren
-    md_content = report_path.read_text(encoding="utf-8")
+    if md_content is None:
+        md_content = report_path.read_text(encoding="utf-8")
     # N6: lazy import – nur hier nötig, nicht in build_fail_email()
     import markdown as md_lib
     html_body = md_lib.markdown(
@@ -239,46 +246,49 @@ def get_current_week_key() -> str:
     return f"{iso_year}_{iso_week:02d}"
 
 
+# Trennstelle, die llm_scout.save_report() vor jeden Nachtrag schreibt.
+# Nur diese Stelle zaehlt als Nachtrag, nicht jedes Vorkommen von "## Nachtrag KW" im Text.
+NACHTRAG_SPLIT = re.compile(r"\n\n---\n\n(?=## Nachtrag KW\d+_\d{4} \()")
+
+
+def split_report_runs(content: str) -> list[str]:
+    """Zerlegt den Bericht in [Erstbericht, Nachtrag 1, Nachtrag 2, ...]."""
+    return NACHTRAG_SPLIT.split(content)
+
+
+def _sent_lauf_nrs(content: str, current_key: str) -> set[int]:
+    """
+    Liest die gesendeten lauf_nr fuer current_key aus dem Inhalt der Zustandsdatei.
+
+    Format seit 18.10.: "{key} {lauf_nr} {datum}".
+    Altes Format aus Kette 3: "{key} {datum}" (ein Versand pro Woche) -> zaehlt als lauf_nr 1.
+    Unbekannte Zeilen werden ignoriert.
+    """
+    result: set[int] = set()
+    for line in content.splitlines():
+        parts = line.split()
+        if not parts or parts[0] != current_key:
+            continue
+        if len(parts) >= 3 and parts[1].isdigit():
+            result.add(int(parts[1]))
+        elif len(parts) == 2 and re.fullmatch(r"\d{4}-\d{2}-\d{2}", parts[1]):
+            result.add(1)
+    return result
+
+
 def get_last_sent_lauf_nr() -> int:
     """
-    Liest die hoechste lauf_nr fuer die aktuelle ISO-KW aus der Zustandsdatei.
-    Gibt 0 zurueck, wenn keine Zeile fuer diese KW existiert.
-
-    A2: Zustandsformat pro Zeile: "{iso_year}_{iso_week:02d} {lauf_nr} {datum}"
+    Liest die hoechste gesendete lauf_nr fuer die aktuelle ISO-KW (0, wenn keine).
     """
     if not SENT_STATE_FILE.exists():
         return 0
-    current_key = get_current_week_key()
-    content = SENT_STATE_FILE.read_text(encoding="utf-8").strip()
-    if not content:
-        return 0
-    max_lauf = 0
-    for line in content.splitlines():
-        line = line.strip()
-        if not line:
-            continue
-        # Zeilenformat: "YYYY_WW lauf_nr YYYY-MM-DD"
-        parts = line.split()
-        if len(parts) >= 2 and parts[0] == current_key:
-            try:
-                lauf = int(parts[1])
-                if lauf > max_lauf:
-                    max_lauf = lauf
-            except ValueError:
-                pass
-    return max_lauf
+    lauf_nrs = _sent_lauf_nrs(SENT_STATE_FILE.read_text(encoding="utf-8"), get_current_week_key())
+    return max(lauf_nrs, default=0)
 
 
 def count_report_runs(report_path: Path) -> int:
-    """
-    Zaehlt die Anzahl der Berichts-Laeufe in der Datei.
-    Erstbericht + Anzahl der "Nachtrag KW"-Header = Gesamtzahl der Laeufe.
-
-    A2: Ein Nachtrag ist erkennbar an der Zeile "## Nachtrag KW".
-    """
-    content = report_path.read_text(encoding="utf-8")
-    nachtrag_count = content.count("## Nachtrag KW")
-    return 1 + nachtrag_count  # 1 fuer den Erstbericht
+    """Erstbericht + Anzahl der Nachtraege (an der echten Trennstelle gezaehlt)."""
+    return len(split_report_runs(report_path.read_text(encoding="utf-8")))
 
 
 def record_sent_week(lauf_nr: int) -> None:
@@ -286,8 +296,9 @@ def record_sent_week(lauf_nr: int) -> None:
     Speichert eine Zustandszeile fuer die aktuelle ISO-KW und lauf_nr atomar.
 
     A2: Format: "{iso_year}_{iso_week:02d} {lauf_nr} {datum}"
-    A3: Wird VOR dem SMTP-Versand aufgerufen (Reservierung).
-    Wenn dieselbe lauf_nr bereits existiert, wird nichts geschrieben.
+    Wird erst NACH erfolgreichem SMTP-Versand aufgerufen (Nachbesserung 19.10.,
+    wie in Kette 3): scheitert der Versand, sendet der naechste Lauf nach.
+    Wenn dieselbe lauf_nr bereits existiert (exakter Vergleich), wird nichts geschrieben.
 
     Nutzt atomares Schreiben (Temp-Datei + os.replace).
     """
@@ -295,14 +306,10 @@ def record_sent_week(lauf_nr: int) -> None:
     today = datetime.now().strftime("%Y-%m-%d")
     new_line = f"{current_key} {lauf_nr} {today}\n"
 
-    # Pruefen, ob dieselbe lauf_nr bereits im Nachweis steht
+    # Pruefen, ob dieselbe lauf_nr bereits im Nachweis steht (exakt, kein Praefix)
     if SENT_STATE_FILE.exists():
-        content = SENT_STATE_FILE.read_text(encoding="utf-8").strip()
-        for line in content.splitlines():
-            line = line.strip()
-            if line and line.startswith(f"{current_key} {lauf_nr}"):
-                # Bereits vorhanden, nichts tun
-                return
+        if lauf_nr in _sent_lauf_nrs(SENT_STATE_FILE.read_text(encoding="utf-8"), current_key):
+            return
 
     # Atomares Schreiben: zuerst in Temp-Datei, dann os.replace
     existing_content = ""
@@ -336,7 +343,7 @@ def mode_normal() -> int:
     Normaler Versand: Bericht finden, bauen, per SMTP versenden.
 
     A2: Versand-Nachweis pro Lauf, nicht pro Woche.
-    A3: Zustandszeile wird VOR dem SMTP-Versand reserviert.
+    Merker erst nach erfolgreichem Versand; Nachtrag-Mail nur mit Neuem (Nachbesserung 19.10.).
 
     Exit-Code 0: Erfolg oder alles bereits gesendet.
     Exit-Code 1: SMTP-Fehler.
@@ -355,26 +362,40 @@ def mode_normal() -> int:
     print(f"Bericht gefunden: {report_path}")
 
     # A2: Wie viele Laeufe hat die Datei? Wie viele sind bereits gesendet?
-    expected_lauf = count_report_runs(report_path)
+    sections = split_report_runs(report_path.read_text(encoding="utf-8"))
+    expected_lauf = len(sections)
     last_sent = get_last_sent_lauf_nr()
 
     if last_sent >= expected_lauf:
         print(f"Alles gesendet (lauf_nr {last_sent} >= {expected_lauf}).")
         return 0
 
-    # Neuer Lauf zum Senden: naechste lauf_nr
-    next_lauf = last_sent + 1
+    # Nur senden, was noch nicht gesendet ist (Nachbesserung 19.10., D2):
+    # nichts gesendet -> ganzer Bericht; sonst nur die neuen Nachtraege.
+    if last_sent == 0:
+        md_content, suffix = None, ""
+    else:
+        md_content = "\n\n---\n\n".join(sections[last_sent:])
+        neu = expected_lauf - last_sent
+        suffix = " – Nachtrag" if neu == 1 else f" – {neu} Nachträge"
 
     try:
-        msg = build_email_message(report_path)
-        # A3: Zustandszeile VOR dem Versand reservieren
-        record_sent_week(next_lauf)
+        msg = build_email_message(report_path, md_content=md_content, subject_suffix=suffix)
         send_email_smtp(msg)
-        print(f"E-Mail versendet (lauf_nr {next_lauf}): {report_path.name}")
-        return 0
     except Exception as e:
+        # Kein Merker geschrieben: der naechste Lauf sendet nach (D1).
         print(f"Fehler beim E-Mail-Versand: {e}", file=sys.stderr)
         return 1
+
+    # Merker erst nach erfolgreichem Versand (D1)
+    try:
+        record_sent_week(expected_lauf)
+    except Exception as e:
+        print(f"Mail versendet, aber Versand-Nachweis nicht gespeichert: {e} "
+              f"(naechster Lauf sendet ggf. doppelt)", file=sys.stderr)
+        return 1
+    print(f"E-Mail versendet (lauf_nr {last_sent + 1}–{expected_lauf}): {report_path.name}{suffix}")
+    return 0
 
 
 def mode_dry_run() -> int:

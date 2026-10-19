@@ -196,7 +196,7 @@ class TestA2VersandNachweis(unittest.TestCase):
 
 
 class TestA3CrashSafety(unittest.TestCase):
-    """T3, T6: Zustandszeile vor Versand, atomares Schreiben."""
+    """T3, T6: Merker erst nach Versand (Nachbesserung 19.10.), atomares Schreiben."""
 
     def setUp(self):
         self.tmpdir = tempfile.mkdtemp()
@@ -224,81 +224,27 @@ class TestA3CrashSafety(unittest.TestCase):
         else:
             os.environ.pop("SCOUT_SMTP_PORT", None)
 
-    def test_t3_smtp_fehler_nach_zustands_reservierung(self):
-        """T3: SMTP-Fehler nach Zustands-Reservierung → Zustandszeile bleibt, Mail fehlt, kein Zweitversand."""
+    def test_t3_smtp_fehler_kein_merker_naechster_lauf_sendet_nach(self):
+        """T3: SMTP-Fehler → kein Merker, Exit 1; der nächste Lauf sendet nach (Nachbesserung 19.10., D1)."""
         import unittest.mock as mock
-
-        now = datetime.now()
-        iso_year, iso_week, _ = now.isocalendar()
-        date_str = now.strftime("%Y-%m-%d %H:%M")
-
-        # Bericht mit zwei Läufen (Erstbericht + ein Nachtrag)
-        filename = f"llm_scout_kw{iso_week}_{iso_year}.md"
-        report_path = self.report_dir / filename
-        report_path.write_text(
-            "ERSTBERICHT"
-            + f"\n\n---\n\n"
-            + f"## Nachtrag KW{iso_week}_{iso_year} ({date_str})\n\n"
-            + "NACHTRAG1",
-            encoding="utf-8",
-        )
-
-        # Zustandsdatei: lauf_nr 1 schon gesendet
+        _bericht(self.report_dir, "ERSTBERICHT", "NACHTRAG1")
         sent_state = self.report_dir / ".sent_state"
-        sent_state.write_text(
-            f"{iso_year}_{iso_week:02d} 1 2026-10-10\n",
-            encoding="utf-8",
-        )
+        sent_state.write_text(f"{_key()} 1 2026-10-10\n", encoding="utf-8")
+        mod = _lade_send_modul()
 
-        # Module importieren (in der Methode)
-        sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
-        # send_scout_email muss neu geladen werden, damit BASE_DIR auf tmpdir zeigt
-        if "send_scout_email" in sys.modules:
-            del sys.modules["send_scout_email"]
-        import send_scout_email
+        smtp, gesendet = _smtp_mock(fehler_beim_ersten=True)
+        with mock.patch('smtplib.SMTP', return_value=smtp), \
+                mock.patch.object(mod, 'get_password', return_value='testpass'):
+            exit1 = mod.mode_normal()
+            zeilen_nach_fehler = _zeilen(sent_state)
+            exit2 = mod.mode_normal()
 
-        # SMTP-Mock: wirft SMTPException beim ersten sendmail
-        smtp_instance = mock.MagicMock()
-        sendmail_call_count = [0]
-
-        def fake_sendmail(*args, **kwargs):
-            sendmail_call_count[0] += 1
-            raise smtplib.SMTPException("Verbindung abgebrochen")
-
-        smtp_instance.sendmail = fake_sendmail
-        # WICHTIG: 'with smtplib.SMTP(...) as server' ruft __enter__ auf.
-        # MagicMock.__enter__ gibt standardmaessig einen NEUEN Mock zurueck.
-        # Wir muessen __enter__ auf smtp_instance zurueckgeben, damit
-        # server.sendmail unser fake_sendmail triggert.
-        smtp_instance.__enter__ = mock.MagicMock(return_value=smtp_instance)
-
-        # Patch als String-Pfad auf dem Modul, das send_scout_email importiert
-        with mock.patch('smtplib.SMTP', return_value=smtp_instance):
-            with mock.patch.object(send_scout_email, 'get_password', return_value='testpass'):
-                exit_code = send_scout_email.mode_normal()
-
-        self.assertEqual(exit_code, 1,
-                         f"Erwartet Exit 1 nach SMTP-Fehler, bekam {exit_code}")
-
-        # Zustandsdatei hat zwei Zeilen (lauf_nr 1 + lauf_nr 2)
-        lines = [l for l in sent_state.read_text(encoding="utf-8").strip().splitlines() if l.strip()]
-        self.assertEqual(len(lines), 2,
-                         f"Zustandsdatei soll 2 Zeilen haben (lauf 1+2), hat {len(lines)}: {lines!r}")
-
-        # sendmail wurde genau einmal aufgerufen
-        self.assertEqual(sendmail_call_count[0], 1,
-                         f"sendmail soll 1x aufgerufen werden, war {sendmail_call_count[0]}x")
-
-        # Zweiter Aufruf: alles gesendet, keine Mail
-        with mock.patch('smtplib.SMTP', return_value=smtp_instance):
-            with mock.patch.object(send_scout_email, 'get_password', return_value='testpass'):
-                exit_code2 = send_scout_email.mode_normal()
-
-        self.assertEqual(exit_code2, 0,
-                         f"Zweiter Aufruf soll Exit 0 liefern, bekam {exit_code2}")
-        # sendmail immer noch nur einmal
-        self.assertEqual(sendmail_call_count[0], 1,
-                         f"sendmail soll nach zweitem Aufruf immer noch 1x aufgerufen sein, war {sendmail_call_count[0]}x")
+        self.assertEqual(exit1, 1, "Erster Lauf (SMTP-Fehler) muss Exit 1 liefern")
+        self.assertEqual(zeilen_nach_fehler, [f"{_key()} 1 2026-10-10"],
+                         "Nach SMTP-Fehler darf kein neuer Merker stehen")
+        self.assertEqual(exit2, 0, "Zweiter Lauf muss nachsenden und Exit 0 liefern")
+        self.assertEqual(len(gesendet), 2, "sendmail: 1 Fehlversuch + 1 Nachsendung")
+        self.assertEqual(sorted(mod._sent_lauf_nrs(sent_state.read_text(encoding="utf-8"), _key())), [1, 2])
 
     def test_t6_atomarer_zustand_os_replace_fehler(self):
         """T6: Atomarer Zustand – Zustandsdatei bleibt unverändert bei simuliertem os.replace-Fehler."""
@@ -446,35 +392,185 @@ class TestA4Pipeline(unittest.TestCase):
         else:
             os.environ.pop("SCOUT_SMTP_PORT", None)
 
-    def test_t7_pipeline_gibt_exit_code_weiter_und_schreibt_lauf_datei(self):
-        """T7: Pipeline gibt Exit-Code an launchd weiter und schreibt Lauf-Datei."""
-        # Kein Bericht vorhanden → send_scout_email.py liefert Exit 3
-        # Wir rufen nur den Email-Schritt direkt auf (ohne Scout, da dieser
-        # echte Netzwerkanfragen machen wuerde)
+    def _fake_repo(self, scout_exit: int, mail_exit: int) -> Path:
+        """Wegwerf-Repo mit dem ECHTEN Pipeline-Skript und Platzhaltern fuer Scout und Versand."""
+        import shutil
         repo_root = Path(__file__).resolve().parent.parent
+        fake = Path(tempfile.mkdtemp())
+        (fake / "scripts").mkdir()
+        (fake / "agents" / "llm_scout").mkdir(parents=True)
+        (fake / ".venv" / "bin").mkdir(parents=True)
+        shutil.copy(repo_root / "scripts" / "run_scout_pipeline.sh", fake / "scripts")
+        py = fake / ".venv" / "bin" / "python3"
+        py.write_text(f"#!/bin/sh\nexec {sys.executable} \"$@\"\n")
+        py.chmod(0o755)
+        calls = fake / "calls.log"
+        (fake / "agents" / "llm_scout" / "llm_scout.py").write_text(
+            f"import sys\nopen({str(calls)!r}, 'a').write('scout\\n')\nsys.exit({scout_exit})\n")
+        (fake / "scripts" / "send_scout_email.py").write_text(
+            f"import sys\nopen({str(calls)!r}, 'a').write('mail ' + ' '.join(sys.argv[1:]) + '\\n')\n"
+            f"sys.exit(0 if '--fail-mail' in sys.argv else {mail_exit})\n")
+        return fake
 
-        result = subprocess.run(
-            [sys.executable, str(repo_root / "scripts" / "send_scout_email.py")],
-            capture_output=True,
-            text=True,
-            env=os.environ.copy(),
-        )
-        self.assertEqual(result.returncode, 3,
-                         f"Erwartet Exit 3 bei fehlendem Bericht, bekam {result.returncode}")
+    def _run(self, fake: Path, *args: str):
+        env = os.environ.copy()
+        env["LAB_DIR"] = self.tmpdir
+        return subprocess.run(["bash", str(fake / "scripts" / "run_scout_pipeline.sh"), *args],
+                              capture_output=True, text=True, env=env, timeout=60)
 
-        # Pipeline-Lauf-Datei: Die Pipeline selbst (run_scout_pipeline.sh)
-        # kann wir nicht komplett ausfuehren (Scout wuerde echte Netzwerkanfragen machen).
-        # Wir pruefen stattdessen, dass das Skript die Exit-Code-Logik korrekt hat.
-        # Der Test prueft, dass send_scout_email.py den richtigen Exit-Code liefert
-        # und dass die Pipeline-Logik (bash -n) korrekt ist.
-        pipeline_script = repo_root / "scripts" / "run_scout_pipeline.sh"
-        bash_check = subprocess.run(
-            ["bash", "-n", str(pipeline_script)],
-            capture_output=True,
-            text=True,
-        )
-        self.assertEqual(bash_check.returncode, 0,
-                         f"Pipeline-Skript hat Syntaxfehler: {bash_check.stderr}")
+    def test_t7_pipeline_gibt_exit_code_weiter_und_schreibt_lauf_datei(self):
+        """T7: Pipeline gibt Exit-Code an launchd weiter und schreibt Lauf-Datei (echter Pipeline-Lauf, Platzhalter)."""
+        log = Path(self.tmpdir) / "pipeline_runs.log"
+
+        # (a) Scout ok, Versand Exit 3 -> Pipeline Exit 3, Lauf-Datei EMAIL_EXIT=3
+        fake = self._fake_repo(scout_exit=0, mail_exit=3)
+        r = self._run(fake)
+        self.assertEqual(r.returncode, 3, r.stderr)
+        self.assertIn("SCOUT_EXIT=0 EMAIL_EXIT=3", log.read_text())
+
+        # (b) Scout Exit 2 -> Fehler-Mail angestossen, Pipeline Exit 2, Lauf-Datei EMAIL_EXIT=skipped
+        fake = self._fake_repo(scout_exit=2, mail_exit=0)
+        r = self._run(fake)
+        self.assertEqual(r.returncode, 2, r.stderr)
+        self.assertIn("SCOUT_EXIT=2 EMAIL_EXIT=skipped", log.read_text())
+        self.assertIn("mail --fail-mail --exit-code 2", (fake / "calls.log").read_text())
+
+        # (c) Trockenlauf: keine Lauf-Datei-Zeile, Versand nur mit --dry-run
+        zeilen_vorher = log.read_text().count("\n")
+        fake = self._fake_repo(scout_exit=0, mail_exit=0)
+        r = self._run(fake, "--dry-run")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(log.read_text().count("\n"), zeilen_vorher)
+        self.assertIn("mail --dry-run", (fake / "calls.log").read_text())
+
+
+class TestNachbesserung(unittest.TestCase):
+    """T10–T13: Nachbesserung 19.10. (Erfolgsfall, Nachtrag-Mail, Alt-Zeilen, Zaehlung)."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp()
+        self.report_dir = Path(self.tmpdir) / "weekly-reports"
+        self.report_dir.mkdir(parents=True, exist_ok=True)
+        self._env = {k: os.environ.get(k) for k in ("LAB_DIR", "SCOUT_SMTP_HOST", "SCOUT_SMTP_PORT")}
+        os.environ["LAB_DIR"] = self.tmpdir
+        os.environ["SCOUT_SMTP_HOST"] = "127.0.0.1"
+        os.environ["SCOUT_SMTP_PORT"] = "9"
+
+    def tearDown(self):
+        for k, v in self._env.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+
+    def _lauf(self, mod, smtp):
+        import unittest.mock as mock
+        with mock.patch('smtplib.SMTP', return_value=smtp), \
+                mock.patch.object(mod, 'get_password', return_value='testpass'):
+            return mod.mode_normal()
+
+    def test_t10_erfolgreicher_versand_setzt_merker_genau_einmal(self):
+        """T10: Erfolgsfall Erstbericht: Mail einmal, Merker lauf_nr 1, zweiter Lauf sendet nicht."""
+        _bericht(self.report_dir, "ERSTBERICHT")
+        mod = _lade_send_modul()
+        smtp, gesendet = _smtp_mock()
+        self.assertEqual(self._lauf(mod, smtp), 0)
+        self.assertEqual(self._lauf(mod, smtp), 0)
+        self.assertEqual(len(gesendet), 1, "genau eine Mail")
+        self.assertIn("ERSTBERICHT", _mailtext(gesendet[0]))
+        self.assertEqual(_zeilen(self.report_dir / ".sent_state")[0].split()[:2], [_key(), "1"])
+
+    def test_t11_nachtrag_mail_nur_mit_neuem_und_eigenem_betreff(self):
+        """T11: Nachtrag-Mail enthaelt nur den Nachtrag, nicht den gesendeten Erstbericht; Betreff „Nachtrag"."""
+        _bericht(self.report_dir, "ERSTBERICHT_TEXT", "NACHTRAG1_TEXT")
+        (self.report_dir / ".sent_state").write_text(f"{_key()} 1 2026-10-10\n", encoding="utf-8")
+        mod = _lade_send_modul()
+        smtp, gesendet = _smtp_mock()
+        self.assertEqual(self._lauf(mod, smtp), 0)
+        self.assertEqual(len(gesendet), 1)
+        text = _mailtext(gesendet[0])
+        self.assertIn("NACHTRAG1_TEXT", text)
+        self.assertNotIn("ERSTBERICHT_TEXT", text)
+        self.assertIn("Nachtrag", _betreff(gesendet[0]))
+
+    def test_t12_altzeile_aus_kette3_zaehlt_als_erstbericht_gesendet(self):
+        """T12: Merkerzeile im alten Format ("KEY DATUM") = Erstbericht gesendet; Nachtrag einmal, dann Ruhe."""
+        _bericht(self.report_dir, "ERSTBERICHT_TEXT", "NACHTRAG1_TEXT")
+        sent_state = self.report_dir / ".sent_state"
+        sent_state.write_text(f"{_key()} 2026-10-12\n", encoding="utf-8")
+        mod = _lade_send_modul()
+        smtp, gesendet = _smtp_mock()
+        self.assertEqual(self._lauf(mod, smtp), 0)
+        self.assertEqual(self._lauf(mod, smtp), 0)
+        self.assertEqual(len(gesendet), 1, "nur der Nachtrag, und nur einmal")
+        self.assertNotIn("ERSTBERICHT_TEXT", _mailtext(gesendet[0]))
+        self.assertIn(2, mod._sent_lauf_nrs(sent_state.read_text(encoding="utf-8"), _key()))
+
+    def test_t13_nachtrag_nur_an_der_trennstelle_gezaehlt(self):
+        """T13: „## Nachtrag KW" im Berichtstext zaehlt nicht als eigener Lauf."""
+        _bericht(self.report_dir, "Text mit Zitat:\n## Nachtrag KW1_2026 (aus einem Beispiel)\nEnde")
+        mod = _lade_send_modul()
+        self.assertEqual(mod.count_report_runs(mod.find_current_report()), 1)
+
+
+# --- Hilfsfunktionen (Nachbesserung 19.10.) ---
+
+def _key() -> str:
+    y, w, _ = datetime.now().isocalendar()
+    return f"{y}_{w:02d}"
+
+
+def _bericht(report_dir: Path, erst: str, *nachtraege: str) -> Path:
+    """Legt den Bericht so an, wie llm_scout.save_report() ihn schreibt (Dateiname ueber week_key)."""
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "agents" / "llm_scout"))
+    from week_key import week_key_for_filename
+    now = datetime.now()
+    y, w, _ = now.isocalendar()
+    text = erst
+    for n in nachtraege:
+        text += f"\n\n---\n\n## Nachtrag KW{w}_{y} ({now.strftime('%Y-%m-%d %H:%M')})\n\n{n}"
+    path = report_dir / week_key_for_filename(now)
+    path.write_text(text, encoding="utf-8")
+    return path
+
+
+def _lade_send_modul():
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+    sys.modules.pop("send_scout_email", None)
+    import send_scout_email
+    return send_scout_email
+
+
+def _smtp_mock(fehler_beim_ersten: bool = False):
+    import unittest.mock as mock
+    gesendet: list[str] = []
+    smtp = mock.MagicMock()
+    smtp.__enter__ = mock.MagicMock(return_value=smtp)
+
+    def fake_sendmail(absender, empfaenger, nachricht):
+        gesendet.append(nachricht)
+        if fehler_beim_ersten and len(gesendet) == 1:
+            raise smtplib.SMTPException("Verbindung abgebrochen")
+
+    smtp.sendmail = fake_sendmail
+    # Fehlversuch nicht als gesendete Mail zaehlen? -> bewusst mitgezaehlt (Aufrufe von sendmail)
+    return smtp, gesendet
+
+
+def _mailtext(rohmail: str) -> str:
+    import email
+    msg = email.message_from_string(rohmail)
+    return msg.get_payload(decode=True).decode("utf-8")
+
+
+def _betreff(rohmail: str) -> str:
+    import email
+    from email.header import decode_header, make_header
+    return str(make_header(decode_header(email.message_from_string(rohmail)["Subject"])))
+
+
+def _zeilen(path: Path) -> list[str]:
+    return [l.strip() for l in path.read_text(encoding="utf-8").splitlines() if l.strip()]
 
 
 class TestT8Import(unittest.TestCase):
