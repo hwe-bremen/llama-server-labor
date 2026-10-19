@@ -1,0 +1,4 @@
+# Protokolle der Diagnose (gross); die beiden vom 19.10. sind bewusst versioniert
+requests_*.jsonl
+!requests_20261019T192135.jsonl
+!requests_20261019T192731.jsonl
