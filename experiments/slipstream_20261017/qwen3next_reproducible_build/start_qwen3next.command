@@ -4,7 +4,8 @@
 #
 # Einstellbar per Umgebungsvariable, z. B.:  CACHE_GB=18 CTX=32768 bash start_qwen3next.command
 #   PORT       (8083)    Host bleibt fest 127.0.0.1
-#   CACHE_GB   (18)      PGRN-Expertencache in GiB  (18.10.: 18 GiB ~7,7 tok/s / 88,7 % Treffer; 12 GiB ~5,3 tok/s / 79 %)
+#   CACHE_GB   (auto)    PGRN-Expertencache in GiB. auto = groesster, der jetzt passt (max 24, min 12).
+#                        Gemessen: 24 GiB 10,8 tok/s / 92 % (19.10., kalt); 18 GiB 7,7 / 88,7 %; 12 GiB 5,3 / 79 %
 #   HEADROOM_GB (8)      Reserve fuer das System
 #   CTX        (16384)   Kontext; gemessen nur 4096 (fuer OpenCode eher 32768, KV-Bedarf ungeprueft)
 #   IO_THREADS (leer)    --pgrn-io-threads, nur gesetzt wenn angegeben
@@ -16,7 +17,7 @@ B="$(cd "$(dirname "$0")" && pwd)"
 BIN="$B/fixed/bin/llama-server-pgrn-fixed"
 GGUF="/Volumes/Extern M4 Speicher/LLM-Experimente/slipstream/qwen3-coder-next-q4_k_m/Qwen3-Coder-Next-Q4_K_M.gguf"
 PGRN="$B/../pgrn/qwen3-coder-next/Qwen3-Coder-Next-Q4_K_M.pgrn"
-PORT="${PORT:-8083}"; CACHE_GB="${CACHE_GB:-18}"; HEADROOM_GB="${HEADROOM_GB:-8}"; CTX="${CTX:-16384}"
+PORT="${PORT:-8083}"; CACHE_GB="${CACHE_GB:-auto}"; CACHE_MAX=24; CACHE_MIN=12; HEADROOM_GB="${HEADROOM_GB:-8}"; CTX="${CTX:-16384}"
 IO_THREADS="${IO_THREADS:-}"; VERBOSITY="${VERBOSITY:-3}"; MCP_PROXY="${MCP_PROXY:-0}"
 die(){ echo "ABBRUCH: $*" >&2; exit 1; }
 
@@ -36,8 +37,23 @@ echo "Freier Speicher: ${FREE:-?} %   Cache: ${CACHE_GB} GiB   Reserve: ${HEADRO
 PAGE=$(vm_stat | sed -n 's/.*page size of \([0-9]*\) bytes.*/\1/p')
 PFREE=$(vm_stat | awk '/^Pages free/ {gsub("\\.","",$3); print $3}')
 PINACT=$(vm_stat | awk '/^Pages inactive/ {gsub("\\.","",$3); print $3}')
+AVAIL_MIB=""
 if [ -n "$PAGE" ] && [ -n "$PFREE" ] && [ -n "$PINACT" ]; then
   AVAIL_MIB=$(( (PFREE + PINACT) * PAGE / 1048576 ))
+fi
+if [ "$CACHE_GB" = auto ]; then
+  [ -n "$AVAIL_MIB" ] || die "CACHE_GB=auto braucht vm_stat; bitte CACHE_GB=<Zahl> setzen"
+  FIT=$(( (AVAIL_MIB - 4771 - HEADROOM_GB * 1024) / 1024 ))
+  [ "$FIT" -le "$CACHE_MAX" ] || FIT=$CACHE_MAX
+  if [ "$FIT" -lt "$CACHE_MIN" ]; then
+    echo "ABBRUCH: nur ${AVAIL_MIB} MiB frei+inaktiv, nicht einmal ${CACHE_MIN} GiB Cache passen." >&2
+    echo "  -> sudo purge (Dateicache leeren), grosse Programme/Lab beenden, neu starten" >&2
+    exit 1
+  fi
+  CACHE_GB=$FIT
+  echo "Cache automatisch: ${CACHE_GB} GiB (max ${CACHE_MAX}; frei+inaktiv ${AVAIL_MIB} MiB)"
+elif [ -n "$AVAIL_MIB" ]; then
+  # Gleiche Rechnung wie Slipstreams Zulassung (peregrine_system_memory.c): verfuegbar = freie + inaktive Seiten.
   NEED_MIB=$(( 4771 + CACHE_GB * 1024 + HEADROOM_GB * 1024 ))
   echo "Slipstream-Rechnung: verfuegbar ${AVAIL_MIB} MiB, benoetigt ${NEED_MIB} MiB"
   if [ "$AVAIL_MIB" -lt "$NEED_MIB" ]; then

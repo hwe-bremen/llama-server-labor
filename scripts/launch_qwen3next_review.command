@@ -11,7 +11,7 @@
 #          Settings -> Tools: eingebaute Tools aus). Ctrl+C stoppt alles, was dieser Starter gestartet hat.
 #
 # Router 8080 und Gedaechtnis 8091 werden NICHT gestartet (Speicher gehoert dem 80B-Modell).
-# Ueberschreibbar: CACHE_GB (18), CTX (65536), ROLE_PORT (8093), MCP_PORT (8787).
+# Ueberschreibbar: CACHE_GB (auto = groesster passender, max 24), CTX (65536), ROLE_PORT (8093), MCP_PORT (8787).
 # Mode B: Lab. Beruehrt AskValentinAI nicht.
 set -uo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
