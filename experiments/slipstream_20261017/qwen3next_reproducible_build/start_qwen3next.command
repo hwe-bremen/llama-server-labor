@@ -7,7 +7,7 @@
 #   CACHE_GB   (auto)    PGRN-Expertencache in GiB. auto = groesster, der jetzt passt (max 24, min 12).
 #                        Gemessen: 24 GiB 10,8 tok/s / 92 % (19.10., kalt); 18 GiB 7,7 / 88,7 %; 12 GiB 5,3 / 79 %
 #   HEADROOM_GB (8)      Reserve fuer das System
-#   CTX        (16384)   Kontext; gemessen nur 4096 (fuer OpenCode eher 32768, KV-Bedarf ungeprueft)
+#   CTX        (16384)   Kontext; Speicher ~1030 MiB bei 131072 (gemessen 19.10.), fuer OpenCode 131072
 #   IO_THREADS (leer)    --pgrn-io-threads, nur gesetzt wenn angegeben
 #   VERBOSITY  (3)
 #   MCP_PROXY  (0)       1 = --ui-mcp-proxy (Web-UI erreicht MCP 8787 ueber den Server; nur 127.0.0.1)
@@ -38,12 +38,14 @@ PAGE=$(vm_stat | sed -n 's/.*page size of \([0-9]*\) bytes.*/\1/p')
 PFREE=$(vm_stat | awk '/^Pages free/ {gsub("\\.","",$3); print $3}')
 PINACT=$(vm_stat | awk '/^Pages inactive/ {gsub("\\.","",$3); print $3}')
 AVAIL_MIB=""
+# Kontext (KV + Rechenpuffer) belegt erst nach dem Laden Speicher; gemessen 19.10.: ~1030 MiB bei 131072 Token.
+CTX_MIB=$(( CTX * 1100 / 131072 + 256 ))
 if [ -n "$PAGE" ] && [ -n "$PFREE" ] && [ -n "$PINACT" ]; then
   AVAIL_MIB=$(( (PFREE + PINACT) * PAGE / 1048576 ))
 fi
 if [ "$CACHE_GB" = auto ]; then
   [ -n "$AVAIL_MIB" ] || die "CACHE_GB=auto braucht vm_stat; bitte CACHE_GB=<Zahl> setzen"
-  FIT=$(( (AVAIL_MIB - 4771 - HEADROOM_GB * 1024) / 1024 ))
+  FIT=$(( (AVAIL_MIB - 4771 - CTX_MIB - HEADROOM_GB * 1024) / 1024 ))
   [ "$FIT" -le "$CACHE_MAX" ] || FIT=$CACHE_MAX
   if [ "$FIT" -lt "$CACHE_MIN" ]; then
     echo "ABBRUCH: nur ${AVAIL_MIB} MiB frei+inaktiv, nicht einmal ${CACHE_MIN} GiB Cache passen." >&2
@@ -51,13 +53,13 @@ if [ "$CACHE_GB" = auto ]; then
     exit 1
   fi
   CACHE_GB=$FIT
-  echo "Cache automatisch: ${CACHE_GB} GiB (max ${CACHE_MAX}; frei+inaktiv ${AVAIL_MIB} MiB)"
+  echo "Cache automatisch: ${CACHE_GB} GiB (max ${CACHE_MAX}; frei+inaktiv ${AVAIL_MIB} MiB, Kontext ~${CTX_MIB} MiB)"
 elif [ -n "$AVAIL_MIB" ]; then
   # Gleiche Rechnung wie Slipstreams Zulassung (peregrine_system_memory.c): verfuegbar = freie + inaktive Seiten.
-  NEED_MIB=$(( 4771 + CACHE_GB * 1024 + HEADROOM_GB * 1024 ))
+  NEED_MIB=$(( 4771 + CTX_MIB + CACHE_GB * 1024 + HEADROOM_GB * 1024 ))
   echo "Slipstream-Rechnung: verfuegbar ${AVAIL_MIB} MiB, benoetigt ${NEED_MIB} MiB"
   if [ "$AVAIL_MIB" -lt "$NEED_MIB" ]; then
-    FIT=$(( (AVAIL_MIB - 4771 - HEADROOM_GB * 1024) / 1024 ))
+    FIT=$(( (AVAIL_MIB - 4771 - CTX_MIB - HEADROOM_GB * 1024) / 1024 ))
     echo "ABBRUCH: Slipstream wuerde nach dem Laden ablehnen (Dateicache belegt Speicher)." >&2
     echo "  -> sudo purge   und neu starten" >&2
     [ "$FIT" -ge 4 ] && echo "  -> oder CACHE_GB=${FIT} (passt jetzt, aber langsamer)" >&2
