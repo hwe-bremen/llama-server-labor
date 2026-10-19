@@ -4,3 +4,7 @@
 /empty-models/
 /empty-cache/
 /__pycache__/
+
+# Loesungsschluessel und Bewertungen: nicht im Repo, Review-Instanzen koennen das Repo lesen (19.10.)
+/reviewer_eval_6cases/private/
+/reviewer_eval_6cases/runs/*/BEWERTUNG.*
