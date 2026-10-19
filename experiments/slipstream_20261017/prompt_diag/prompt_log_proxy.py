@@ -31,8 +31,20 @@ class H(BaseHTTPRequestHandler):
                 print("Protokollfehler:", e, file=sys.stderr)
         conn = http.client.HTTPConnection(UP.hostname, UP.port or 80, timeout=3600)
         hdrs = {k: v for k, v in self.headers.items() if k.lower() not in HOP}
-        conn.request(self.command, self.path, body=body or None, headers=hdrs)
-        r = conn.getresponse()
+        try:
+            conn.request(self.command, self.path, body=body or None, headers=hdrs)
+            r = conn.getresponse()
+        except OSError as e:
+            msg = f"Upstream {UP.geturl()} nicht erreichbar: {e}".encode()
+            print(msg.decode(), file=sys.stderr, flush=True)
+            self.send_response(502)
+            self.send_header("Content-Type", "text/plain; charset=utf-8")
+            self.send_header("Content-Length", str(len(msg)))
+            self.send_header("Connection", "close")
+            self.end_headers()
+            self.wfile.write(msg)
+            self.close_connection = True
+            return
         self.send_response(r.status, r.reason)
         for k, v in r.getheaders():
             if k.lower() not in HOP:
