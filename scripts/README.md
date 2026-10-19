@@ -6,6 +6,7 @@ Belegung:
 - launch_router.command   (macOS-Doppelklick-Starter fuer den Router)
 - launch_qwen3next.command (Qwen3-Coder-Next 80B per Slipstream-PGRN auf 8083; Wrapper ins Experiment slipstream_20261017)
 - launch_qwen3next_review.command (dazu MCP 8787 wie start_eval + eigener Rollen-Proxy 8093 -> 8083; Browser :8093)
+- launch_qwen3next_opencode.command (wie launch_qwen3next, Kontext 131072 fuer OpenCode; Auto-Compaction sonst bei ~57k)
 - run_ab.py               (A/B-Vergleich von Modellen)
 - tool_demo.py            (Tool-Calling-Demo, liest aus ../sandbox/)
 
