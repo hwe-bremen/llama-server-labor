@@ -1,0 +1,33 @@
+{
+  "frozen_at": "2026-10-17T17:12:37.177650+00:00",
+  "verification_exit_code": 0,
+  "files": {
+    "instruction.txt": "dd4a4cd92db1269e23b936f9206358e10226d3faef3645ad428fe0095089d313",
+    "model_cases/case01/CONTEXT.txt": "9478540a3e03db1d09888c806daa047823403f18900c15ff0c1ef0e0e51d008d",
+    "model_cases/case01/api.py": "1c9e8646f6ae5fb6393447c46bccc6a573d92756e4b2e7322acd23119d2af1ef",
+    "model_cases/case01/index.py": "318befa0432edbd69e6eb894cc080484afa791a0b4fe3b2f5edfaf1ea464054d",
+    "model_cases/case01/retrieval.py": "fcf386913ece5465b942945bafa3f514f5955f2a4d342a9e62123010afcdc9ff",
+    "model_cases/case02/CONTEXT.txt": "3375abfed4bc2ee6f8903327c928ac3c3e84eaf1e31de6814189e9ca98a9d967",
+    "model_cases/case02/provider.py": "cd066cb582267db95d086d89cb01fb75486781388d1cbd4a25cd433d114c3192",
+    "model_cases/case03/CONTEXT.txt": "a96c23bc6d8c0c793cf442070887047bc92d9dc6404dce61cbc07ecc9155571f",
+    "model_cases/case03/memory.py": "aa82e8c5e7c41ee07f3ba8c40b950d08e08acd31052d22e82fadafe36316ce12",
+    "model_cases/case04/CONTEXT.txt": "8d439d826a7b45ac91ad7f44dd283073c658f2719e925379f42dafca50f5fc31",
+    "model_cases/case04/chat.py": "a6f3b38bdd0b6de2dfda68e01785b9e20d4320cb7ab3ee17145b5038402abc53",
+    "model_cases/case05/CONTEXT.txt": "3375abfed4bc2ee6f8903327c928ac3c3e84eaf1e31de6814189e9ca98a9d967",
+    "model_cases/case05/provider.py": "d30df3835f0dde57a789c5fabe582bb53a4a1d10b3d929340be2d15441d1b5a9",
+    "model_cases/case06/CONTEXT.txt": "513e462fc9864b9bc9c2add4f4eebba04f3214a732c9127052395870f6683b44",
+    "model_cases/case06/cache.py": "4358f747f671ebaaf1c59ceeefadbc6dfbf20efb6550f741b14fb0d78b91532f",
+    "private/RUBRIK.md": "36f3de68bc400e4582541345e70dd3e897c45bc87f13405914e7b0a5e0ed05ca",
+    "private/answer_key.json": "e9cc4be4156481198ec8086951424b35d499a512e5901b1d3fddc44321d9f6e8",
+    "private/verification.txt": "772d21cdc7be5702295663e0e3844eaa4316f50db08c29203611836e518a9adc",
+    "private/verify_cases.py": "8fd53e69c5db20d9f2eff668a04c32a9a0df9379f7418042f223ef0f61066692",
+    "prompts/case01.json": "e20a18bace56df0fcf55c15e96ae74c5a57394d2db8668e2dba4a6a0ac5cd52c",
+    "prompts/case02.json": "fd84417c985daefe75e351a81cfa467163e46ffe2629007884882189dba202af",
+    "prompts/case03.json": "03dc655c57b481929cca3776b05202a660729124bfa0526ee23b6db7a3d244c0",
+    "prompts/case04.json": "99d2788e4ecb9f0dfd3c95730d3375ebbef1ab6b423f49ef76773d88256912b2",
+    "prompts/case05.json": "bcf064b0f192ae8f6fe3342f51f08388600ae5e6236168eaa0b7699df9b21c53",
+    "prompts/case06.json": "f280062da0469337772da0a17d029e1320c16990d67109d9b41d90519b41a8cc",
+    "settings.json": "b18b833463acf4575697686dac884579df83d85f992ee31cfbc79e9a2f586ad8"
+  },
+  "model_responses_present_at_freeze": false
+}

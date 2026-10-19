@@ -1,0 +1,41 @@
+{
+  "reviewed_at": "2026-10-17T17:04:30.877053+00:00",
+  "six_runs_passed": true,
+  "all_twelve_requests_128_tokens": true,
+  "engine_only_pgrn_argument_changed": true,
+  "copy_size": 20128754176,
+  "copy_sha256": "732a314b95cb3a63e31c3c9cd44e284757721d13a29d7aecd10360d13e193269",
+  "external_path_verified": true,
+  "external_cache_misses_verified": true,
+  "physical_external_reads_verified_during_inference": true,
+  "external_device_read_gb_per_request_min_max": [
+    36.883103744,
+    38.730645504
+  ],
+  "external_decode_subset_read_gb_min_max": [
+    29.016973312,
+    33.002569728
+  ],
+  "external_idle_reads_all_six_windows_bytes": 0,
+  "attribution_limit": "Physical block-device counters, not exclusive per-process/file tracing; six quiet idle controls and zero T7 reads in A support attribution to external PGRN inference.",
+  "swapout_deltas_A_B": {
+    "A": [
+      0,
+      0,
+      0
+    ],
+    "B": [
+      0,
+      0,
+      0
+    ]
+  },
+  "recommendation": "Keep active PGRN internal for speed; T7 expert streaming operationally verified at approximately one third decode rate in this exact 2 GiB-cache profile.",
+  "not_proven": [
+    "models larger than 48 GB",
+    "GLM inference",
+    "reviewer quality",
+    "Haiku equivalence",
+    "cold OS-cache performance"
+  ]
+}

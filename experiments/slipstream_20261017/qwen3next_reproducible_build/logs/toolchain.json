@@ -1,0 +1,47 @@
+{
+  "compiler": {
+    "argv": [
+      "clang",
+      "--version"
+    ],
+    "exit_code": 0,
+    "stdout": "Apple clang version 21.0.0 (clang-2100.3.34.2)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Library/Developer/CommandLineTools/usr/bin\n",
+    "stderr": ""
+  },
+  "sdk": {
+    "argv": [
+      "xcrun",
+      "--show-sdk-version"
+    ],
+    "exit_code": 0,
+    "stdout": "27.0\n",
+    "stderr": ""
+  },
+  "cmake": {
+    "argv": [
+      "cmake",
+      "--version"
+    ],
+    "exit_code": 0,
+    "stdout": "cmake version 4.1.1\n\nCMake suite maintained and supported by Kitware (kitware.com/cmake).\n",
+    "stderr": ""
+  },
+  "make": {
+    "argv": [
+      "make",
+      "--version"
+    ],
+    "exit_code": 0,
+    "stdout": "GNU Make 3.81\nCopyright (C) 2006  Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.\nThere is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A\nPARTICULAR PURPOSE.\n\nThis program built for i386-apple-darwin11.3.0\n",
+    "stderr": ""
+  },
+  "git": {
+    "argv": [
+      "git",
+      "--version"
+    ],
+    "exit_code": 0,
+    "stdout": "git version 2.47.1\n",
+    "stderr": ""
+  }
+}

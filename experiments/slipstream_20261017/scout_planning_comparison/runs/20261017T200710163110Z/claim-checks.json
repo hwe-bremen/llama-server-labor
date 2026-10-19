@@ -1,0 +1,48 @@
+{
+  "at": "2026-10-17T20:43:31.365689+00:00",
+  "blind": false,
+  "network_smtp_keychain_used": false,
+  "calendar": [
+    {
+      "date": "2026-12-29",
+      "weekday": "Tuesday",
+      "iso_year": 2026,
+      "iso_week": 53,
+      "writer_filename": "llm_scout_kw53_2026.md",
+      "sender_filename": "llm_scout_kw53_2026.md"
+    },
+    {
+      "date": "2027-01-01",
+      "weekday": "Friday",
+      "iso_year": 2026,
+      "iso_week": 53,
+      "writer_filename": "llm_scout_kw53_2027.md",
+      "sender_filename": "llm_scout_kw53_2026.md"
+    },
+    {
+      "date": "2026-10-19",
+      "weekday": "Monday",
+      "iso_year": 2026,
+      "iso_week": 43,
+      "writer_filename": "llm_scout_kw43_2026.md",
+      "sender_filename": "llm_scout_kw43_2026.md"
+    },
+    {
+      "date": "2026-10-20",
+      "weekday": "Tuesday",
+      "iso_year": 2026,
+      "iso_week": 43,
+      "writer_filename": "llm_scout_kw43_2026.md",
+      "sender_filename": "llm_scout_kw43_2026.md"
+    }
+  ],
+  "mode_normal_twice_with_inmemory_smtp_stub": {
+    "exit_codes": [
+      0,
+      0
+    ],
+    "send_stub_calls": 2
+  },
+  "daily_dedupe_counterexample": "2026-10-19 und20 sind verschiedene Tage derselben ISO-Woche2026-W43. Ein pro-Tag-Status würde beide zulassen.",
+  "overwrite_claim": "Codelektüre main321-324: ohne neue Items sys.exit(0), vor Reportschreiben337. Überschreiben bei neuem Bericht möglich, nicht bei jedem zweiten Lauf."
+}

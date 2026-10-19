@@ -1,0 +1,35 @@
+{
+  "checked_at": "2026-10-17T21:05:42.164525+00:00",
+  "raw_inputs_and_reports_verified": true,
+  "six_prompt_payloads_match_frozen": true,
+  "all_six_answer_sha256": "8e9a7778f221d8fb1f71dd9c9b85218884272b0f63811dd26474b956218f9538",
+  "only_cache_cli_arg_differs_verified": true,
+  "quality_evaluated": false,
+  "actual_cache_gib_A": 1.998076171875,
+  "actual_cache_gib_B": 11.9991796875,
+  "median_miss_count_reduction_percent": 84.4735926864411,
+  "median_internal_read_gb": {
+    "A2GiB": 154.059956224,
+    "B12GiB": 24.008454144
+  },
+  "speed_ratios": {
+    "prompt_s": 0.33774394123919393,
+    "prompt_tps": 2.9608229131541672,
+    "ttft_s": 0.33788742716233217,
+    "decode_tps": 3.162581651633111,
+    "wall_s": 0.3165561546520893
+  },
+  "both_clean_exit_zero": true,
+  "both_no_extra_swapouts": true,
+  "lab_remained_stopped": true,
+  "current_ports_free": true,
+  "conclusion": "Technical potential confirmed more strongly:2GiBcache was substantial performance bottleneck in tested workload. Keep12GiB as documented candidate profile for future use, no product config modified. Reviewer expansion remains paused, no new model/download/long benchmark warranted by this result alone.",
+  "limits": [
+    "558input/128output only; no direct extrapolation to13772tokenScout",
+    "one process pair AthenB; OSfilecache uncontrolled",
+    "three requests perprocess not three independent processrepeats",
+    "RSSnotwhole unified memory consumption",
+    "Differentmodel Qwen38 comparison not pureenginebenchmark",
+    "Same output => speed result only, no newfoundquality advantage"
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "prepared_at": "2026-10-17T21:09:05.025491+00:00",
+  "task": "Exactly one real project diffreview repetition with12GiBcache",
+  "baseline_run": "/Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017/real_review_model_tags/runs/20261017T181920893653Z",
+  "baseline_prompt_sha256": "6e08d0ed84977d884a169731aa8113581b6d494d188f653039d474f7885a3029",
+  "prompt_byteidentical_to_baseline": true,
+  "baseline_request_messages_match": true,
+  "sole_intended_cli_change": "--pgrn-cache-gb2 ->12",
+  "context": 16384,
+  "output_limit": 4096,
+  "token_budget_reason": "Thinking is off;4096 is retained for exact comparison and accommodates requested approximately500word final response. Prior length overflow was visible repetitive content, not separately returned reasoning. No guarantee of instruction compliance; no retry if length.",
+  "user_prompt_resolution": "User expressly requested exact existing task/context; original fuller reviewer wording kept verbatim, new paraphrase not substituted.",
+  "prior_reference_outcomes_known_to_evaluator": true,
+  "reference_not_in_model_context": true,
+  "classification_after_run_only": [
+    {
+      "id": 1,
+      "label": "Als zusätzlicher Reviewer praktisch hilfreich"
+    },
+    {
+      "id": 2,
+      "label": "Inhaltlich hilfreich, aber noch zu langsam oder unzuverlässig"
+    },
+    {
+      "id": 3,
+      "label": "Kein ausreichender Zusatznutzen erkennbar"
+    }
+  ],
+  "limits": "One model run; evaluator knows previous answers/reference; unblind. Empty correct list acceptable. No Haiku claim."
+}

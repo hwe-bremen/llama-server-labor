@@ -1,0 +1,118 @@
+diff --git a/role-split/role_proxy.py b/role-split/role_proxy.py
+index 2299ea9..d304d23 100644
+--- a/role-split/role_proxy.py
++++ b/role-split/role_proxy.py
+@@ -40,17 +40,17 @@ UPSTREAM = os.environ.get("ROLE_UPSTREAM", "http://127.0.0.1:8091")
+ HOST = os.environ.get("ROLE_HOST", "127.0.0.1")
+ PORT = int(os.environ.get("ROLE_PORT", "8092"))
+ LOG_FILE = Path(os.environ.get("ROLE_LOG", str(HERE / "results" / "role_log.jsonl")))
+ 
+ RESET_WORDS = {"aus", "off"}
+ # "@review …" und "@review: …"; "@reviewer" oder "@review/x" zählen nicht.
+ TRIGGER_RE = re.compile(r"^\s*@([A-Za-z0-9_-]+):?(?=\s|$)")
+ # Bekannte Modellfamilien für das Kürzel im Dateinamen (Reihenfolge = Priorität).
+-MODEL_FAMILIES = ("qwen", "gemma", "mellum", "apertus", "llama", "mistral", "phi", "deepseek", "gpt-oss")
++MODEL_FAMILIES = ("qwen", "gemma", "mellum", "apertus", "devstral", "llama", "mistral", "phi", "deepseek", "gpt-oss")
+ WOCHENTAGE = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
+ # Nach @aus: ohne diesen Hinweis setzt das Modell die Rolle aus dem Verlauf fort
+ # (Messung 14.10.: Qwen3.6 27B nannte sich nach @aus weiter Review-Instanz).
+ RESET_NOTE = ("Es ist keine besondere Rolle aktiv. Rollenanweisungen und Selbstbeschreibungen "
+               "aus früheren Nachrichten dieses Verlaufs gelten nicht mehr. "
+               "Antworte als allgemeiner Assistent.")
+ 
+ # Header, die beim Weiterreichen nicht kopiert werden. Accept-Encoding bleibt erhalten:
+@@ -87,27 +87,41 @@ def load_roles(roles_dir: Path = None) -> dict[str, str]:
+     return roles
+ 
+ 
+ def date_line(today: _dt.date | None = None) -> str:
+     today = today or _dt.date.today()
+     return f"Heutiges Datum: {today.isoformat()} ({WOCHENTAGE[today.weekday()]})."
+ 
+ 
+-def model_tag(model: str) -> str:
+-    """Kurzes, dateinamentaugliches Kürzel: Modellfamilie, sonst bereinigter Repo-Name.
++_SIZE_RE = re.compile(r"(?<![a-z0-9.])(\d+(?:\.\d+)?)b(?![a-z0-9])")
++
+ 
+-    "unsloth/gemma-4-26B-A4B-it-GGUF:Q4_K_XL" -> "gemma"
+-    "unsloth/Qwen3.6-27B-MTP-GGUF:Q4_K_XL"    -> "qwen"
++def model_tag(model: str) -> str:
++    """Kurzes, dateinamentaugliches Kürzel: Familie + Version + Größe.
++
++    Unterscheidet Modelle derselben Familie, damit sich Verdikte nicht überschreiben:
++    "unsloth/Qwen3.6-27B-MTP-GGUF:Q4_K_XL"    -> "qwen36-27b"
++    "unsloth/Qwen3.8-27B-GGUF:Q4_K_XL"        -> "qwen38-27b"
++    "unsloth/gemma-4-26B-A4B-it-GGUF:Q4_K_XL" -> "gemma4-26b"
++    "unsloth/gemma-4-31B-it-GGUF:Q4_K_XL"     -> "gemma4-31b"
++    Unbekannte Familie: bereinigter Repo-Name (max. 20 Zeichen).
+     """
+-    low = (model or "").lower()
++    name = (model or "").lower().split(":", 1)[0].rsplit("/", 1)[-1]
+     for fam in MODEL_FAMILIES:
+-        if fam in low:
+-            return fam.replace("-", "")
+-    name = low.split(":", 1)[0].rsplit("/", 1)[-1]
++        idx = name.find(fam)
++        if idx == -1:
++            continue
++        rest = name[idx + len(fam):]
++        ver = re.match(r"[-_ ]?(\d+(?:\.\d+)?)(?![\d.]|b)", rest)  # "8B" ist Größe, keine Version
++        size = _SIZE_RE.search(name)
++        tag = fam.replace("-", "") + (ver.group(1).replace(".", "") if ver else "")
++        if size:
++            tag += "-" + size.group(1).replace(".", "") + "b"
++        return tag
+     tag = re.sub(r"[^a-z0-9]+", "", name)[:20]
+     return tag or "modell"
+ 
+ 
+ def model_line(model: str | None) -> str:
+     """Satz für den System-Prompt; leer, wenn die Anfrage kein Modell nennt."""
+     if not isinstance(model, str) or not model.strip() or model.strip() == "default":
+         return ""
+diff --git a/role-split/test_role_proxy.py b/role-split/test_role_proxy.py
+index 607d3be..077890c 100644
+--- a/role-split/test_role_proxy.py
++++ b/role-split/test_role_proxy.py
+@@ -117,27 +117,36 @@ class TriggerTests(unittest.TestCase):
+         self.assertEqual(out["tools"], [{"type": "function"}])
+ 
+ 
+ class ModelTests(unittest.TestCase):
+     QWEN = "unsloth/Qwen3.6-27B-MTP-GGUF:Q4_K_XL"
+     GEMMA = "unsloth/gemma-4-26B-A4B-it-GGUF:Q4_K_XL"
+ 
+     def test_kuerzel(self):
+-        self.assertEqual(rp.model_tag(self.QWEN), "qwen")
+-        self.assertEqual(rp.model_tag(self.GEMMA), "gemma")
+-        self.assertEqual(rp.model_tag("JetBrains/Mellum2-12B-A2.5B-Thinking-GGUF-Q6_K:Q6_K"), "mellum")
++        self.assertEqual(rp.model_tag(self.QWEN), "qwen36-27b")
++        self.assertEqual(rp.model_tag("unsloth/Qwen3.8-27B-GGUF:Q4_K_XL"), "qwen38-27b")
++        self.assertEqual(rp.model_tag(self.GEMMA), "gemma4-26b")
++        self.assertEqual(rp.model_tag("unsloth/gemma-4-31B-it-GGUF:Q4_K_XL"), "gemma4-31b")
++        self.assertEqual(rp.model_tag("JetBrains/Mellum2-12B-A2.5B-Thinking-GGUF-Q6_K:Q6_K"), "mellum2-12b")
++        self.assertEqual(rp.model_tag("jondale/Apertus-8B-Instruct-2509-GGUF:Q4_K_M"), "apertus-8b")
+         self.assertEqual(rp.model_tag("foo/Neues-Modell_7B:Q4"), "neuesmodell7b")
+         self.assertEqual(rp.model_tag(""), "modell")
+ 
++    def test_kuerzel_unterscheidet_familienmitglieder(self):
++        tags = {rp.model_tag(m) for m in (
++            self.QWEN, "unsloth/Qwen3.8-27B-GGUF:Q4_K_XL",
++            self.GEMMA, "unsloth/gemma-4-31B-it-GGUF:Q4_K_XL")}
++        self.assertEqual(len(tags), 4)
++
+     def test_modell_im_system_prompt(self):
+         out, _ = rp.apply_roles({"model": self.GEMMA, "messages": [u("@review A")]}, ROLES, TODAY)
+         sys_text = out["messages"][0]["content"]
+         self.assertIn(f"Du läufst als Modell: {self.GEMMA}", sys_text)
+-        self.assertIn("Kürzel für Dateinamen: gemma", sys_text)
++        self.assertIn("Kürzel für Dateinamen: gemma4-26b", sys_text)
+ 
+     def test_ohne_modell_keine_zeile(self):
+         for body in ({"messages": [u("@review A")]}, {"model": "default", "messages": [u("@review A")]}):
+             out, _ = rp.apply_roles(body, ROLES, TODAY)
+             self.assertNotIn("Du läufst als Modell", out["messages"][0]["content"])
+ 
+     def test_modell_nur_bei_aktiver_rolle(self):
+         out, _ = rp.apply_roles({"model": self.QWEN, "messages": [u("hallo")]}, ROLES, TODAY)

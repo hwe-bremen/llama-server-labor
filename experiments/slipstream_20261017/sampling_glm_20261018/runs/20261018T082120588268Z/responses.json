@@ -1,0 +1,84 @@
+[
+  {
+    "label": "A",
+    "temperature": 0,
+    "answer": "Keine Beanstandung",
+    "reasoning": "",
+    "finish_reasons": [
+      "stop"
+    ],
+    "usage": {
+      "completion_tokens": 6,
+      "prompt_tokens": 215,
+      "total_tokens": 221,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "done": true,
+    "http_status": 200,
+    "http_headers": {
+      "Content-Type": "text/event-stream",
+      "Connection": "close",
+      "Server": "llama.cpp",
+      "X-Accel-Buffering": "no",
+      "Access-Control-Allow-Origin": "",
+      "Transfer-Encoding": "chunked"
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 215,
+      "prompt_ms": 7260.875,
+      "prompt_per_token_ms": 33.771511627906975,
+      "prompt_per_second": 29.610756279374044,
+      "predicted_n": 6,
+      "predicted_ms": 433.763,
+      "predicted_per_token_ms": 72.29383333333332,
+      "predicted_per_second": 13.832438451412408,
+      "draft_n": 4,
+      "draft_n_accepted": 4
+    },
+    "elapsed_s": 7.707517207949422
+  },
+  {
+    "label": "B",
+    "temperature": 0.6,
+    "answer": "Keine Beanstandung",
+    "reasoning": "",
+    "finish_reasons": [
+      "stop"
+    ],
+    "usage": {
+      "completion_tokens": 6,
+      "prompt_tokens": 215,
+      "total_tokens": 221,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "done": true,
+    "http_status": 200,
+    "http_headers": {
+      "Content-Type": "text/event-stream",
+      "Connection": "close",
+      "Server": "llama.cpp",
+      "X-Accel-Buffering": "no",
+      "Access-Control-Allow-Origin": "",
+      "Transfer-Encoding": "chunked"
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 215,
+      "prompt_ms": 5232.537,
+      "prompt_per_token_ms": 24.33738139534884,
+      "prompt_per_second": 41.08905488867064,
+      "predicted_n": 6,
+      "predicted_ms": 446.096,
+      "predicted_per_token_ms": 74.34933333333333,
+      "predicted_per_second": 13.4500197266956,
+      "draft_n": 4,
+      "draft_n_accepted": 4
+    },
+    "elapsed_s": 5.695937833050266
+  }
+]

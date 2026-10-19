@@ -228,7 +228,7 @@ def send_email_smtp(msg: MIMEText) -> None:
 # --- MODI ---
 
 
-# --- VERSEND-NACHWEIS (A1, A2, A6) ---
+# --- VERSEND-NACHWEIS (A2, A3) ---
 
 def get_current_week_key() -> str:
     """
@@ -239,50 +239,72 @@ def get_current_week_key() -> str:
     return f"{iso_year}_{iso_week:02d}"
 
 
-def is_week_already_sent() -> bool:
+def get_last_sent_lauf_nr() -> int:
     """
-    Prueft, ob die aktuelle ISO-Kalenderwoche bereits im Versand-Nachweis steht.
-    Gibt True zurueck, wenn eine Zeile mit dem aktuellen Wochenschluessel existiert.
+    Liest die hoechste lauf_nr fuer die aktuelle ISO-KW aus der Zustandsdatei.
+    Gibt 0 zurueck, wenn keine Zeile fuer diese KW existiert.
+
+    A2: Zustandsformat pro Zeile: "{iso_year}_{iso_week:02d} {lauf_nr} {datum}"
     """
     if not SENT_STATE_FILE.exists():
-        return False
+        return 0
     current_key = get_current_week_key()
     content = SENT_STATE_FILE.read_text(encoding="utf-8").strip()
     if not content:
-        return False
+        return 0
+    max_lauf = 0
     for line in content.splitlines():
         line = line.strip()
         if not line:
             continue
-        # Zeilenformat: "YYYY_WW YYYY-MM-DD"
+        # Zeilenformat: "YYYY_WW lauf_nr YYYY-MM-DD"
         parts = line.split()
-        if parts and parts[0] == current_key:
-            return True
-    return False
+        if len(parts) >= 2 and parts[0] == current_key:
+            try:
+                lauf = int(parts[1])
+                if lauf > max_lauf:
+                    max_lauf = lauf
+            except ValueError:
+                pass
+    return max_lauf
 
 
-def record_sent_week() -> None:
+def count_report_runs(report_path: Path) -> int:
     """
-    Speichert eine Zustandszeile fuer die aktuelle ISO-Kalenderwoche atomar.
-    Format: "YYYY_WW YYYY-MM-DD" pro Zeile.
-    Nutzt atomares Schreiben (Temp-Datei + os.replace) (A6).
-    Wenn die Woche bereits im Nachweis steht, wird nichts geschrieben.
+    Zaehlt die Anzahl der Berichts-Laeufe in der Datei.
+    Erstbericht + Anzahl der "Nachtrag KW"-Header = Gesamtzahl der Laeufe.
+
+    A2: Ein Nachtrag ist erkennbar an der Zeile "## Nachtrag KW".
+    """
+    content = report_path.read_text(encoding="utf-8")
+    nachtrag_count = content.count("## Nachtrag KW")
+    return 1 + nachtrag_count  # 1 fuer den Erstbericht
+
+
+def record_sent_week(lauf_nr: int) -> None:
+    """
+    Speichert eine Zustandszeile fuer die aktuelle ISO-KW und lauf_nr atomar.
+
+    A2: Format: "{iso_year}_{iso_week:02d} {lauf_nr} {datum}"
+    A3: Wird VOR dem SMTP-Versand aufgerufen (Reservierung).
+    Wenn dieselbe lauf_nr bereits existiert, wird nichts geschrieben.
+
+    Nutzt atomares Schreiben (Temp-Datei + os.replace).
     """
     current_key = get_current_week_key()
     today = datetime.now().strftime("%Y-%m-%d")
-    new_line = f"{current_key} {today}\n"
+    new_line = f"{current_key} {lauf_nr} {today}\n"
 
-    # Pruefen, ob die Woche bereits im Nachweis steht
+    # Pruefen, ob dieselbe lauf_nr bereits im Nachweis steht
     if SENT_STATE_FILE.exists():
         content = SENT_STATE_FILE.read_text(encoding="utf-8").strip()
         for line in content.splitlines():
             line = line.strip()
-            if line and line.split()[0] == current_key:
+            if line and line.startswith(f"{current_key} {lauf_nr}"):
                 # Bereits vorhanden, nichts tun
                 return
 
     # Atomares Schreiben: zuerst in Temp-Datei, dann os.replace
-    # Existierende Zeilen beibehalten
     existing_content = ""
     if SENT_STATE_FILE.exists():
         existing_content = SENT_STATE_FILE.read_text(encoding="utf-8")
@@ -308,22 +330,21 @@ def record_sent_week() -> None:
             pass
         raise
 
+
 def mode_normal() -> int:
     """
     Normaler Versand: Bericht finden, bauen, per SMTP versenden.
 
-    Exit-Code 0: Erfolg oder KW bereits gesendet (A2).
-    Exit-Code 1: SMTP-Fehler.
-    Exit-Code 3: Bericht fehlt und Woche nicht abgedeckt (A3).
-    """
-    # A2: Pruefen, ob die KW bereits gesendet wurde
-    if is_week_already_sent():
-        print("KW bereits gesendet, kein Zweitversand.")
-        return 0
+    A2: Versand-Nachweis pro Lauf, nicht pro Woche.
+    A3: Zustandszeile wird VOR dem SMTP-Versand reserviert.
 
+    Exit-Code 0: Erfolg oder alles bereits gesendet.
+    Exit-Code 1: SMTP-Fehler.
+    Exit-Code 3: Bericht fehlt und Woche nicht abgedeckt.
+    """
     report_path = find_current_report()
     if report_path is None:
-        # A3: Bericht fehlt und Woche nicht abgedeckt -> Exit 3
+        # Bericht fehlt und Woche nicht abgedeckt -> Exit 3
         print(
             "Fehler: Keine Bericht-Datei fuer die aktuelle KW gefunden, "
             "Woche noch nicht gesendet. Exit 3.",
@@ -333,12 +354,23 @@ def mode_normal() -> int:
 
     print(f"Bericht gefunden: {report_path}")
 
+    # A2: Wie viele Laeufe hat die Datei? Wie viele sind bereits gesendet?
+    expected_lauf = count_report_runs(report_path)
+    last_sent = get_last_sent_lauf_nr()
+
+    if last_sent >= expected_lauf:
+        print(f"Alles gesendet (lauf_nr {last_sent} >= {expected_lauf}).")
+        return 0
+
+    # Neuer Lauf zum Senden: naechste lauf_nr
+    next_lauf = last_sent + 1
+
     try:
         msg = build_email_message(report_path)
+        # A3: Zustandszeile VOR dem Versand reservieren
+        record_sent_week(next_lauf)
         send_email_smtp(msg)
-        # A1: Nur nach erfolgreichem Versand den Nachweis schreiben
-        record_sent_week()
-        print(f"E-Mail versendet: {report_path.name}")
+        print(f"E-Mail versendet (lauf_nr {next_lauf}): {report_path.name}")
         return 0
     except Exception as e:
         print(f"Fehler beim E-Mail-Versand: {e}", file=sys.stderr)

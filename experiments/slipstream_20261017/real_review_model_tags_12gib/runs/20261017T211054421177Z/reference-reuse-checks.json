@@ -1,0 +1,74 @@
+{
+  "at": "2026-10-18T06:57:58.288451+00:00",
+  "blind": false,
+  "model_response_not_executed": true,
+  "same_frozen_sources_as_old_reference": true,
+  "examples": [
+    {
+      "model": "JetBrains/Mellum2-12B-A2.5B-Thinking-GGUF",
+      "actual": "mellum2-12b",
+      "expected": "mellum2-12b",
+      "pass": true
+    },
+    {
+      "model": "unsloth/Qwen3.6-27B-MTP-GGUF",
+      "actual": "qwen36-27b",
+      "expected": "qwen36-27b",
+      "pass": true
+    },
+    {
+      "model": "unsloth/Qwen3.8-27B-GGUF",
+      "actual": "qwen38-27b",
+      "expected": "qwen38-27b",
+      "pass": true
+    },
+    {
+      "model": "unsloth/gemma-4-26B-A4B-it-GGUF",
+      "actual": "gemma4-26b",
+      "expected": "gemma4-26b",
+      "pass": true
+    },
+    {
+      "model": "unsloth/gemma-4-31B-it-GGUF",
+      "actual": "gemma4-31b",
+      "expected": "gemma4-31b",
+      "pass": true
+    },
+    {
+      "model": "foo-10B-20B-test",
+      "actual": "foo10b20btest",
+      "expected": "foo10b20btest",
+      "pass": true
+    },
+    {
+      "model": "foo-1.5b-2.0b",
+      "actual": "foo15b20b",
+      "expected": "foo15b20b",
+      "pass": true
+    },
+    {
+      "model": "phi-3.1",
+      "actual": "phi31",
+      "expected": "phi31",
+      "pass": true
+    }
+  ],
+  "prior_tests_reused": {
+    "base": {
+      "run": 21,
+      "failures": 0,
+      "errors": 0,
+      "success": true,
+      "excluded": "RoleFileTests require roles fixtures absent from pinned snapshot; ProxyIntegrationTests bind sockets. Neither relevant integration nor full suite claimed."
+    },
+    "target": {
+      "run": 22,
+      "failures": 0,
+      "errors": 0,
+      "success": true,
+      "excluded": "RoleFileTests require roles fixtures absent from pinned snapshot; ProxyIntegrationTests bind sockets. Neither relevant integration nor full suite claimed."
+    }
+  },
+  "prior_reference_path": "experiments/slipstream_20261017/real_review_model_tags/runs/20261017T181920893653Z/VALIDIERUNG.md",
+  "original_response_identical": true
+}

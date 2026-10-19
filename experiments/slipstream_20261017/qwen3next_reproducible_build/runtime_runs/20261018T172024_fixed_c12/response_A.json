@@ -1,0 +1,36 @@
+{
+ "choices": [
+  {
+   "finish_reason": "stop",
+   "index": 0,
+   "message": {
+    "role": "assistant",
+    "content": "42"
+   }
+  }
+ ],
+ "created": 1792337117,
+ "model": "/Volumes/Extern M4 Speicher/LLM-Experimente/slipstream/qwen3-coder-next-q4_k_m/Qwen3-Coder-Next-Q4_K_M.gguf",
+ "system_fingerprint": "b101-b8391b7",
+ "object": "chat.completion",
+ "usage": {
+  "completion_tokens": 3,
+  "prompt_tokens": 25,
+  "total_tokens": 28,
+  "prompt_tokens_details": {
+   "cached_tokens": 0
+  }
+ },
+ "id": "chatcmpl-HG9aoK9YyK1hpP6aOwX8yySdxtNSKU51",
+ "timings": {
+  "cache_n": 0,
+  "prompt_n": 25,
+  "prompt_ms": 2479.223,
+  "prompt_per_token_ms": 99.16892,
+  "prompt_per_second": 10.083804482291429,
+  "predicted_n": 3,
+  "predicted_ms": 442.788,
+  "predicted_per_token_ms": 147.596,
+  "predicted_per_second": 6.775251361825523
+ }
+}

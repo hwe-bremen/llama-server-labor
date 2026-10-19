@@ -1,0 +1,104 @@
+{
+  "at": "2026-10-17T19:01:35.988177+00:00",
+  "blind": false,
+  "qwen_answer_already_read": true,
+  "existing_tests": {
+    "base": {
+      "run": 21,
+      "failures": 0,
+      "errors": 0,
+      "success": true,
+      "excluded": "RoleFileTests require roles fixtures absent from pinned snapshot; ProxyIntegrationTests bind sockets. Neither relevant integration nor full suite claimed."
+    },
+    "target": {
+      "run": 22,
+      "failures": 0,
+      "errors": 0,
+      "success": true,
+      "excluded": "RoleFileTests require roles fixtures absent from pinned snapshot; ProxyIntegrationTests bind sockets. Neither relevant integration nor full suite claimed."
+    }
+  },
+  "behavior_checks": [
+    {
+      "model": "JetBrains/Mellum2-12B-A2.5B-Thinking-GGUF",
+      "actual": "mellum2-12b",
+      "expected": "mellum2-12b",
+      "pass": true
+    },
+    {
+      "model": "unsloth/Qwen3.6-27B-MTP-GGUF",
+      "actual": "qwen36-27b",
+      "expected": "qwen36-27b",
+      "pass": true
+    },
+    {
+      "model": "unsloth/Qwen3.8-27B-GGUF",
+      "actual": "qwen38-27b",
+      "expected": "qwen38-27b",
+      "pass": true
+    },
+    {
+      "model": "unsloth/gemma-4-26B-A4B-it-GGUF",
+      "actual": "gemma4-26b",
+      "expected": "gemma4-26b",
+      "pass": true
+    },
+    {
+      "model": "unsloth/gemma-4-31B-it-GGUF",
+      "actual": "gemma4-31b",
+      "expected": "gemma4-31b",
+      "pass": true
+    },
+    {
+      "model": "jondale/Apertus-8B-Instruct-2509-GGUF:Q4_K_M",
+      "actual": "apertus-8b",
+      "expected": "apertus-8b",
+      "pass": true
+    },
+    {
+      "model": "mistral-7b",
+      "actual": "mistral-7b",
+      "expected": "mistral-7b",
+      "pass": true
+    },
+    {
+      "model": "mistral-0.1b",
+      "actual": "mistral-01b",
+      "expected": "mistral-01b",
+      "pass": true
+    },
+    {
+      "model": "phi-3.1",
+      "actual": "phi31",
+      "expected": "phi31",
+      "pass": true
+    },
+    {
+      "model": "foo-10B-20B-test",
+      "actual": "foo10b20btest",
+      "expected": "foo10b20btest",
+      "pass": true
+    },
+    {
+      "model": "foo-1.5b-2.0b",
+      "actual": "foo15b20b",
+      "expected": "foo15b20b",
+      "pass": true
+    },
+    {
+      "model": "vendor/Devstral-24B-GGUF:Q4_K_M",
+      "actual": "devstral-24b",
+      "expected": "devstral-24b",
+      "pass": true
+    }
+  ],
+  "model_line_guards_pass": true,
+  "expert_size_regex": {
+    "mellum_matches": [
+      "12"
+    ],
+    "gemma_matches": [
+      "26"
+    ]
+  }
+}

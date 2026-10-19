@@ -1,0 +1,14 @@
+@review Neue Aufgabe, Kurztitel „scout_kw_doppelversand":
+
+Zwei Bestandsschwächen im wöchentlichen Scout-Mailversand beheben:
+1. Um den Jahreswechsel herum findet der Versand in manchen Wochen den Bericht nicht, und es kommt still keine Mail.
+2. Läuft die Pipeline in derselben Woche ein zweites Mal (manueller Start, Nachholen nach Ruhezustand), wird erneut eine Mail verschickt.
+Betroffen sind agents/llm_scout/llm_scout.py, scripts/send_scout_email.py und scripts/run_scout_pipeline.sh. Die Versand-Sperre SCOUT_ALLOW_SEND gibt es schon; sie bleibt.
+
+Erst diskutieren: Nenne die stärkste Schwäche der Aufgabe und stelle höchstens eine Rückfrage, wenn die Antwort das Ergebnis ändert.
+Wenn ich „Spec schreiben" sage: nach docs/projekt_management/spec_20261018_scout_kw_doppelversand.md, genau nach der Vorlage docs/projekt_management/_vorlage_spec.md.
+Pflicht dabei:
+- Abschnitt „Außenwirkung und Sperre": Was kann diese Aufgabe außerhalb des Repos auslösen (Mail, Netz, echte Daten, Schlüsselbund)? Welche technische Sperre verhindert das in Tests?
+- Fehlerpfad-Tabelle: jede Standardfrage aus der Vorlage für jede Anforderung durchspielen, nicht nur die naheliegenden.
+- Jeder Test hat eine ID (T1, T2 …), eine prüfbare Erwartung (Zahl, Datei, Exit-Code) und läuft ohne Außenwirkung.
+- Keine Zeilennummern, die du nicht in der Datei gelesen hast.

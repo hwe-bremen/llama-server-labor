@@ -1,0 +1,12 @@
+{
+  "source": "/Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017/qwen_reference/run_internal_test.py",
+  "source_sha256": "6c5823f77b75d6034811b2e66a2074ebafaced36a8131cb8a08a13eeaa96a24d",
+  "copy": "/Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017/real_review_model_tags/isolated_runner.py",
+  "copy_sha256": "7ed4df02b923532de5435639ed71f280a857e08303006c237f4ba7c4b01c3769",
+  "copy_changes": [
+    "HERE references original qwen_reference artifacts/manifests",
+    "engine command appends --reasoning off --reasoning-format deepseek --reasoning-budget 0"
+  ],
+  "original_changed": false,
+  "caller_mode": "lab_stopped=True always; no model unload or lab restart"
+}

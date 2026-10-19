@@ -1,0 +1,65 @@
+{
+  "evaluated_at": "2026-10-18T06:59:00.808954+00:00",
+  "decision": 3,
+  "decision_text": "Kein ausreichender Zusatznutzen erkennbar",
+  "decision_scope": "Dieser eine echte Projektfall mit geprüftem Qwen3.6-35B-A3B/Slipstream12GiB-Profil, keine allgemeine Modellbewertung",
+  "complete": false,
+  "truncated": true,
+  "abort_cause": "max_tokens4096, finish_reasonlength, regularDONE; not engine/network failure",
+  "baseline_prompt_and_payload_identical": true,
+  "only_cache_cli_change": true,
+  "baseline_answer_byteidentical": true,
+  "answer_sha256": "70e630359a3b20ae990924e45f74b845f162d82661fce456e9d71161fb1269c8",
+  "confirmed_introduced_bugs": [],
+  "findings": [
+    {
+      "original_title": "Falsches Modellkürzel bei Modellen mit mehreren Größenangaben (Hoch)",
+      "classification": "Fehlalarm für genannte konkrete Projektmodelle; keine abgeschlossene belastbare Fehlerkette",
+      "validation": "Mellum total-size tag and Qwen/Gemma tags match documented targets;8targetedcodechecks passed. Hypothetical foo examples actually take unknownfamilyfallback, contradicting model outputs."
+    }
+  ],
+  "open_statements": "Beliebige nicht spezifizierte Modellnamen nicht umfassend geprüft. Keine Bewertung einer hypothetischen Fortsetzung nach Abschneiden.",
+  "reference_review_blind": false,
+  "reference_reuse": "Exactsameanswer and code snapshots, prior21base/22target tests reused;8targeted behavioral checks newlyexecuted. No model output executed.",
+  "runtime": {
+    "input_tokens": 9843,
+    "input_processing_s": 282.403909,
+    "ttft_final_s": 282.4158838749863,
+    "output_completion_tokens": 4096,
+    "separate_reasoning_chars": 0,
+    "reasoning_tokens_separately_reported": null,
+    "final_tokens_separately_reported": null,
+    "token_split_note": "API reports only completiontotal; allreturnedtext incontent, separatereasoning empty; no inventedreasoning0token measurement",
+    "final_words_whitespace": 1384,
+    "request_s": 546.1507025000174,
+    "load_s": 132.67248129099607,
+    "load_plus_request_s": 678.8231837910134,
+    "native_prompt_tps": 34.85433340796993,
+    "native_decode_tps": 15.530769292048802,
+    "native_cache_mib": 12287.16,
+    "native_misses": 334855,
+    "peak_rss_gib": 16.73956298828125,
+    "swapout_delta": 0,
+    "system_swap_used_before_after_mib": [
+      4814.31,
+      4814.31
+    ]
+  },
+  "baseline_comparison": {
+    "request_s_2gib": 1471.145145791932,
+    "request_speedup": 2.693661546268697,
+    "prompt_tps_factor": 2.559340950907305,
+    "decode_tps_factor": 2.8375535866994066,
+    "misses_2gib": 1933123,
+    "miss_reduction_percent": 82.67802928215121
+  },
+  "cleanup": {
+    "engine_exit": 0,
+    "lab_unchanged_stopped": true,
+    "port8083": "frei",
+    "no_forced_cleanup": true,
+    "no_safety_abort": true,
+    "worktree_index_head_unchanged": true
+  },
+  "followup": "No automatic retry or further inference. Keep technicalSlipstreamsetup, end reviewertrial with this configuration for now."
+}

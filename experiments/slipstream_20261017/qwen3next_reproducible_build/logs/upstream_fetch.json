@@ -1,0 +1,14 @@
+{
+  "argv": [
+    "git",
+    "-C",
+    "experiments/slipstream_20261017/qwen3next_reproducible_build/upstream",
+    "fetch",
+    "--depth=1",
+    "https://github.com/ggml-org/llama.cpp.git",
+    "79bba02a6741de194912d370015866414faa83ad"
+  ],
+  "exit_code": 128,
+  "stdout": "",
+  "stderr": "fatal: unable to access 'https://github.com/ggml-org/llama.cpp.git/': Could not resolve host: github.com\n"
+}

@@ -1,0 +1,9 @@
+{
+  "A": "42",
+  "B": "BernsteinFalke739",
+  "B_prompt_tokens_minimum": 200,
+  "C": [
+    "Null fälschlich eingeschlossen",
+    "Division durch null bei leerer Auswahl"
+  ]
+}

@@ -1,0 +1,126 @@
+{
+  "checked_at": "2026-10-17",
+  "release": "v0.3.4",
+  "release_commit": "0b30cac2a6a40439b74cce6a512f08166f6e3ab3",
+  "llama_cpp_base": "79bba02a6741",
+  "runtime_archive": {
+    "url": "https://github.com/Schero94/slipstream/releases/download/v0.3.4/Slipstream_0.3.4_aarch64.zip",
+    "size_bytes": 65780310,
+    "sha256": "8f2106b66ac1f809f0d1d82d1f1b17ad404974f158ce3d5e361ce0eb11fb9ce7",
+    "downloaded": true,
+    "publisher_metadata_rechecked_at": "2026-10-17T09:01:50.271406+00:00",
+    "publisher_metadata_url": "https://api.github.com/repos/Schero94/slipstream/releases/tags/v0.3.4",
+    "release_page": "https://github.com/Schero94/slipstream/releases/tag/v0.3.4",
+    "published_checksum_sources": [
+      "GitHub release asset digest",
+      "Release text: Artifacts table"
+    ],
+    "local_sha256_verified": "8f2106b66ac1f809f0d1d82d1f1b17ad404974f158ce3d5e361ce0eb11fb9ce7",
+    "local_verified_at": "2026-10-17T09:08:19.677307+00:00"
+  },
+  "gguf_repository": "unsloth/GLM-4.5-Air-GGUF",
+  "gguf_revision_note": "Full revision resolved from the published commit link; pinned raw pointers are revalidated by downloader before large transfer. Weights not yet downloaded in this session.",
+  "gguf_total_bytes": 72975748384,
+  "gguf_files": [
+    {
+      "path": "Q4_K_M/GLM-4.5-Air-Q4_K_M-00001-of-00002.gguf",
+      "size_bytes": 50000746752,
+      "sha256": "3e7e5d25a6db33b7c90f8c5203d6f490d6c0a4f04a46f228af0e33727db5df5e"
+    },
+    {
+      "path": "Q4_K_M/GLM-4.5-Air-Q4_K_M-00002-of-00002.gguf",
+      "size_bytes": 22975001632,
+      "sha256": "ac6e50523d45c53faf3bf72d8fe109f3dd54bc6abe98a7773a3636112ead82a6"
+    }
+  ],
+  "code_sources": [
+    "https://github.com/Schero94/slipstream/blob/v0.3.4/app/src-tauri/src/main.rs",
+    "https://github.com/Schero94/slipstream/blob/v0.3.4/engine/tools/pgrn-convert/pgrn-convert.cpp",
+    "https://github.com/Schero94/slipstream/blob/v0.3.4/patches/slipstream-seams.patch",
+    "https://github.com/ggml-org/llama.cpp/blob/79bba02a6741/src/models/glm4-moe.cpp",
+    "https://github.com/ggml-org/llama.cpp/blob/79bba02a6741/tools/server/server.cpp"
+  ],
+  "installed_engine": {
+    "build": "10116",
+    "commit": "852e7daa1",
+    "platform": "Darwin arm64",
+    "note": "Actual bundled binary version; not assumed equal to source reconstruction pin."
+  },
+  "model_less_smoke": {
+    "passed": true,
+    "engine_pid": 41843,
+    "proxy_pid": 41848,
+    "engine_port": 8083,
+    "proxy_port": 8093,
+    "lab_before_after_identical": true,
+    "processes_stopped": true,
+    "evaluated_at": "2026-10-17T09:15:37.529650+00:00",
+    "scope": "model-less process/listener/HTTP/UI delivery only"
+  },
+  "gguf_revision": "b0f8153e9e7cf57cd3b0aad146667abf9de56f0e",
+  "gguf_download": {
+    "authorized_at": "2026-10-17T11:20:57.596355+00:00",
+    "status": "complete_sha256_verified",
+    "script": "download_glm.py",
+    "destination": "/Volumes/Extern M4 Speicher/LLM-Experimente/slipstream/glm-4.5-air-q4_k_m",
+    "completed_at": "2026-10-17T12:59:33.398631+00:00",
+    "total_bytes": 72975748384
+  },
+  "gguf_converter_check": {
+    "checked_at": "2026-10-17T13:34:35.052786+00:00",
+    "mode": "metadata-only --dry-run",
+    "supported": false,
+    "exit_code": 1,
+    "error": "unsupported expert GGML type 8 in blk.1.ffn_down_exps.weight",
+    "expert_types": {
+      "8": 22,
+      "12": 92,
+      "6": 24
+    },
+    "type_names": {
+      "6": "Q5_0",
+      "8": "Q8_0",
+      "12": "Q4_K"
+    },
+    "converted": false,
+    "model_started": false,
+    "complete_inventory": "logs/glm-complete-tensor-inventory.json",
+    "all_shards_examined": true,
+    "actual_binary_allowlist_confirmed_by_disassembly": true,
+    "structural_cause": "Down expert rows have width 1408, not divisible by K-quant block size 256"
+  },
+  "pgrn_inference_check": {
+    "split_gguf_supported": false,
+    "source_and_actual_binary_guard_examined": true,
+    "model_started": false,
+    "binary_evidence": "logs/engine-split-guard-disassembly.txt"
+  },
+  "official_upgrade_check": {
+    "latest_release": "v0.3.5",
+    "fix_for_current_expert_types": false,
+    "fix_for_split_inference": false,
+    "converter_and_seams_source_blobs_identical_to_v034": true
+  },
+  "recommendation": "Pause GLM/PGRN attempt; no further large download until positive full metadata and inference-path support evidence.",
+  "remote_metadata_check": {
+    "completed_at": "2026-10-17T13:52:19.488635+00:00",
+    "results": "logs/remote-metadata/results.json",
+    "both_candidates_all_parts_examined": true,
+    "verified_206_requests": 78,
+    "payload_bytes": 19270312,
+    "ggml_org": {
+      "type_compatible": false,
+      "unsupported_experts": {
+        "Q4_0": 45
+      }
+    },
+    "bartowski": {
+      "type_compatible": false,
+      "unsupported_experts": {
+        "Q5_1": 22,
+        "Q5_0": 24
+      }
+    },
+    "practical_inference_tested": false
+  }
+}

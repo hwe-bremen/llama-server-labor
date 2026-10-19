@@ -1,0 +1,4 @@
+{
+  "verified_cases": 2541,
+  "argument": "For lower <= upper: max chooses at least lower; min caps at upper. The guard rejects reversed bounds."
+}

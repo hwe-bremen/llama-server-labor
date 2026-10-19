@@ -1,0 +1,159 @@
+{
+ "which": "fixed",
+ "started_at": "2026-10-18T15:12:41.053435+00:00",
+ "dry_run": false,
+ "server_started": true,
+ "requests_sent": 3,
+ "checks": {
+  "binary_sha256_ok": true,
+  "gguf_size_ok": true,
+  "pgrn_size_ok": true,
+  "port_8083_free": true,
+  "lab_ports_before": [],
+  "memory_free_percent": 91,
+  "port_8083_bindable": true
+ },
+ "cache_gb": 18,
+ "io_threads": null,
+ "argv": [
+  "/Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017/qwen3next_reproducible_build/fixed/bin/llama-server-pgrn-fixed",
+  "--model",
+  "/Volumes/Extern M4 Speicher/LLM-Experimente/slipstream/qwen3-coder-next-q4_k_m/Qwen3-Coder-Next-Q4_K_M.gguf",
+  "--pgrn",
+  "/Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017/pgrn/qwen3-coder-next/Qwen3-Coder-Next-Q4_K_M.pgrn",
+  "--host",
+  "127.0.0.1",
+  "--port",
+  "8083",
+  "--ctx-size",
+  "4096",
+  "--pgrn-cache-gb",
+  "18",
+  "--pgrn-headroom-gb",
+  "8",
+  "--batch-size",
+  "25",
+  "--ubatch-size",
+  "25",
+  "--parallel",
+  "1",
+  "--spec-type",
+  "none",
+  "--reasoning",
+  "off",
+  "--temp",
+  "0",
+  "--seed",
+  "42",
+  "--gpu-layers",
+  "99",
+  "--jinja",
+  "--verbosity",
+  "5",
+  "--log-colors",
+  "off"
+ ],
+ "env_removed": [],
+ "pid": 3750,
+ "load_seconds": 292.6,
+ "tests": {
+  "A": {
+   "http_status": 200,
+   "content": "42",
+   "usage": {
+    "completion_tokens": 3,
+    "prompt_tokens": 25,
+    "total_tokens": 28,
+    "prompt_tokens_details": {
+     "cached_tokens": 0
+    }
+   },
+   "timings": {
+    "cache_n": 0,
+    "prompt_n": 25,
+    "prompt_ms": 2635.909,
+    "prompt_per_token_ms": 105.43636000000001,
+    "prompt_per_second": 9.484394188114992,
+    "predicted_n": 3,
+    "predicted_ms": 470.22,
+    "predicted_per_token_ms": 156.74,
+    "predicted_per_second": 6.379992344009187
+   },
+   "finish_reason": "stop",
+   "seconds": 3.1,
+   "passed": true
+  },
+  "B": {
+   "http_status": 200,
+   "content": "BernsteinFalke739",
+   "usage": {
+    "completion_tokens": 8,
+    "prompt_tokens": 892,
+    "total_tokens": 900,
+    "prompt_tokens_details": {
+     "cached_tokens": 0
+    }
+   },
+   "timings": {
+    "cache_n": 0,
+    "prompt_n": 892,
+    "prompt_ms": 27128.267,
+    "prompt_per_token_ms": 30.41285538116592,
+    "prompt_per_second": 32.880832380483426,
+    "predicted_n": 8,
+    "predicted_ms": 1351.56,
+    "predicted_per_token_ms": 168.945,
+    "predicted_per_second": 5.919086093107224
+   },
+   "finish_reason": "stop",
+   "seconds": 28.5,
+   "passed": true
+  },
+  "C": {
+   "http_status": 200,
+   "content": "Die Funktion enthält **zwei Fehler** im Hinblick auf die Spezifikation:\n\n---\n\n### 🔴 **Fehler 1: Falsche Bedingung für „strikt positiv“**\n- **Problem**: Die Liste `positives` enthält alle Werte mit `x >= 0`, also auch **Null**.\n- **Spezifikation verlangt**: *strikt* positive Werte → also nur `x > 0`.\n- **Folge**: Null wird fälschlicherweise als positiv betrachtet und in den Mittelwert einbezogen.\n\n---\n\n### 🔴 **Fehler 2: Keine Behandlung des Falls „keine positiven Werte“**\n- **Problem**: Wenn `positives` leer ist (z. B. bei `values = [-1, 0, -2]`), führt `len(positives) == 0` zu einer **Division durch Null** (`ZeroDivisionError`).\n- **Spezifikation verlangt**: `None` zurückgeben, falls keine positiven Werte existieren.\n\n---\n\n## ✅ **Korrekte Implementierung**\n\n```python\ndef mean_positive(values):\n    positives = [x for x in values if x > 0]  # strikt positiv: x > 0\n    if not positives:                         # falls Liste leer ist\n        return None\n    return sum(positives) / len(positives)\n```\n\n---\n\n### 📌 Alternativ (kompakter, aber etwas weniger explizit):\n```python\ndef mean_positive(values):\n    positives = [x for x in values if x > 0]\n    return sum(positives) / len(positives) if positives else None\n```\n\nBeide Varianten erfüllen die Spezifikation korrekt.",
+   "usage": {
+    "completion_tokens": 392,
+    "prompt_tokens": 95,
+    "total_tokens": 487,
+    "prompt_tokens_details": {
+     "cached_tokens": 0
+    }
+   },
+   "timings": {
+    "cache_n": 0,
+    "prompt_n": 95,
+    "prompt_ms": 6105.941,
+    "prompt_per_token_ms": 64.27306315789474,
+    "prompt_per_second": 15.558617418674698,
+    "predicted_n": 392,
+    "predicted_ms": 50917.531,
+    "predicted_per_token_ms": 129.89166071428573,
+    "predicted_per_second": 7.698723647853232
+   },
+   "finish_reason": "stop",
+   "seconds": 57.1,
+   "passed": null,
+   "assessment": "fachlich pruefen: x >= 0 statt > 0; Division durch null"
+  }
+ },
+ "own_process_exit_code": 0,
+ "geometry_error_in_log": false,
+ "reproduced": false,
+ "outcome": "LAUFFAEHIG: A und B bestanden, C beantwortet (fachlich pruefen)",
+ "pgrn_cache_last": {
+  "cache_mib": 18431.84,
+  "hits": 336048,
+  "misses": 42875,
+  "hit_percent": 88.69
+ },
+ "pgrn_stage_ms_last": {
+  "stage": 43300.58,
+  "fetch": 27463.35,
+  "upload": 15773.36
+ },
+ "port_8083_free_after": true,
+ "lab_ports_after": [],
+ "lab_ports_unchanged": true,
+ "finished_at": "2026-10-18T15:19:02.763416+00:00"
+}

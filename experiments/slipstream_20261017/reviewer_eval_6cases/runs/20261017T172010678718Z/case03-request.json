@@ -1,0 +1,24 @@
+{
+  "model": "qwen-stream-reference",
+  "messages": [
+    {
+      "role": "system",
+      "content": "Prüfe den bereitgestellten Code auf konkrete Fehler und relevante Designrisiken. Nenne pro Befund Datei und Stelle, Auslöser, Auswirkung und Begründung. Trenne nachgewiesene Fehler von Vermutungen. Wenn du keinen belastbaren Befund findest, sage das. Keine Änderungen am Code."
+    },
+    {
+      "role": "user",
+      "content": "Rahmenbedingungen:\nPython 3.11+, ein Prozess und Eventloop, fester Pool von 32 Session-IDs. Store.load darf einen Snapshot vom Beginn des Lesevorgangs zurückgeben. Nach einer Speicherung ruft der Aufrufer invalidate auf. Bereits laufende get-Aufrufe dürfen ihren alten Snapshot beenden; spätere get-Aufrufe dürfen diesen alten Snapshot aber nicht dauerhaft aus dem Cache erhalten. Store-Zugriffe sollen nicht unter dem Cache-Lock warten.\n\n\nDie folgenden Dateien bilden ein Python-Paket; alle für diesen Ausschnitt benötigten Implementierungen sind enthalten.\n\nDatei: memory.py\n```python\n  1: import asyncio\n  2: from typing import Protocol\n  3: \n  4: class Store(Protocol):\n  5:     async def load(self, session_id: str) -> str: ...\n  6: \n  7: class MemoryView:\n  8:     def __init__(self, store: Store):\n  9:         self.store = store\n 10:         self._cache: dict[str, str] = {}\n 11:         self._lock = asyncio.Lock()\n 12: \n 13:     async def get(self, session_id: str) -> str:\n 14:         async with self._lock:\n 15:             if session_id in self._cache:\n 16:                 return self._cache[session_id]\n 17:         value = await self.store.load(session_id)\n 18:         async with self._lock:\n 19:             self._cache[session_id] = value\n 20:         return value\n 21: \n 22:     async def invalidate(self, session_id: str) -> None:\n 23:         async with self._lock:\n 24:             self._cache.pop(session_id, None)\n```"
+    }
+  ],
+  "temperature": 0,
+  "seed": 42,
+  "max_tokens": 1024,
+  "stream": true,
+  "cache_prompt": false,
+  "chat_template_kwargs": {
+    "enable_thinking": false
+  },
+  "stream_options": {
+    "include_usage": true
+  }
+}

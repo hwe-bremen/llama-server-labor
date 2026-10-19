@@ -1,0 +1,12 @@
+{
+  "at": "2026-10-17T21:09:56.980051+00:00",
+  "model_started": false,
+  "actual_review_pending": true,
+  "offline_client_tests_passed": 2,
+  "current_relevant_listeners": [],
+  "llama_lsof_returncode": 1,
+  "llama_pids": [],
+  "process_preflight": "No repeated sandbox-denied ps/localhost attempt; full model-process guard runs in normal macOS Terminal",
+  "git_status": "?? experiments/\n",
+  "final_decision": "Pending new response/measurements; not inferred from cache-speed benchmark"
+}

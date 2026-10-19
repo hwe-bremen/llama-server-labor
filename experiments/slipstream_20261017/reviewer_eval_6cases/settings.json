@@ -1,0 +1,29 @@
+{
+  "context": 4096,
+  "max_output_tokens": 1024,
+  "enable_thinking": false,
+  "expert_cache_gib": 2,
+  "headroom_gib": 8,
+  "batch": 32,
+  "ubatch": 32,
+  "parallel": 1,
+  "io_threads": 1,
+  "mtp_draft_max": 4,
+  "temperature": 0,
+  "seed": 42,
+  "per_case_timeout_s": 600,
+  "order": [
+    "case01",
+    "case02",
+    "case03",
+    "case04",
+    "case05",
+    "case06"
+  ],
+  "api": "/v1/chat/completions",
+  "cache_prompt": false,
+  "tools": null,
+  "conversation_policy": "Fresh system+user messages per case; no history, memory, tools, or repository access.",
+  "context_change_reason": "512 tokens cannot hold complete code plus review; 4096 with unchanged 2GiB cache/8GiB reserve.",
+  "output_policy": "1024 tokens, thinking off, no retry with extra clues. Length/transport truncation is incomplete."
+}

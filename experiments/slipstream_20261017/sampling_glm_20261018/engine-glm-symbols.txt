@@ -1,0 +1,6 @@
+20llama_model_glm4_moe
+N20llama_model_glm4_moe5graphE
+glm4moe
+/Users/schero/Desktop/Privat.nosync/LLM-BOOM/vendor/llama.cpp/src/models/glm4-moe.cpp
+hparams.n_expert > 0 && "n_expert must be > 0 for GLM4_MOE MoE layers"
+hparams.n_expert_used > 0 && "n_expert_used must be > 0 for GLM4_MOE MoE layers"

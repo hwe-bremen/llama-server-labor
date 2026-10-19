@@ -1,0 +1,24 @@
+{
+  "model": "qwen-stream-reference",
+  "messages": [
+    {
+      "role": "system",
+      "content": "Prüfe den bereitgestellten Code auf konkrete Fehler und relevante Designrisiken. Nenne pro Befund Datei und Stelle, Auslöser, Auswirkung und Begründung. Trenne nachgewiesene Fehler von Vermutungen. Wenn du keinen belastbaren Befund findest, sage das. Keine Änderungen am Code."
+    },
+    {
+      "role": "user",
+      "content": "Rahmenbedingungen:\nPython 3.11+, ein Prozess und Eventloop. Der Provider wird von mehreren HTTP-Anfragen verwendet. Bei Client-Abbruch wird die zugehörige complete-Task per task.cancel() abgebrochen; der Client lässt CancelledError durch. Nach Ende oder Abbruch eines Aufrufs sollen spätere Aufrufe wieder Kapazität bekommen. Der Client ist injiziert und sein Lebenszyklus wird außerhalb dieser Klasse verwaltet.\n\n\nDie folgenden Dateien bilden ein Python-Paket; alle für diesen Ausschnitt benötigten Implementierungen sind enthalten.\n\nDatei: provider.py\n```python\n  1: import asyncio\n  2: from typing import Protocol\n  3: \n  4: class Client(Protocol):\n  5:     async def generate(self, prompt: str) -> str: ...\n  6: \n  7: class LimitedProvider:\n  8:     def __init__(self, client: Client, parallel: int = 1):\n  9:         if parallel < 1:\n 10:             raise ValueError(\"parallel must be positive\")\n 11:         self.client = client\n 12:         self._slots = asyncio.Semaphore(parallel)\n 13: \n 14:     async def complete(self, prompt: str) -> str:\n 15:         async with self._slots:\n 16:             return await self.client.generate(prompt)\n```"
+    }
+  ],
+  "temperature": 0,
+  "seed": 42,
+  "max_tokens": 1024,
+  "stream": true,
+  "cache_prompt": false,
+  "chat_template_kwargs": {
+    "enable_thinking": false
+  },
+  "stream_options": {
+    "include_usage": true
+  }
+}

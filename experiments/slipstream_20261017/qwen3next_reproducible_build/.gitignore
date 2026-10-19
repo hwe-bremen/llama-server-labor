@@ -1,0 +1,8 @@
+# Quellbaeume, Builds und Binaries (reproduzierbar ueber build_ab.sh / build_fix.sh)
+/upstream/
+/slipstream/
+/reference/
+/diagnostic/
+/fixed/
+/fixed_diag/
+__pycache__/

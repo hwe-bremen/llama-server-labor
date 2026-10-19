@@ -1,0 +1,259 @@
+{
+  "started_at": "20261017T163646986349Z",
+  "order": [
+    "A1",
+    "B1",
+    "B2",
+    "A2",
+    "B3",
+    "A3"
+  ],
+  "output": "/Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017/qwen_reference/comparisons/20261017T163646986349Z",
+  "completed": true,
+  "engine_sha256": "7d022ad062d322bb6964b9828f4f529e867c7cea98447f84ffb19a05ff4e7f0e",
+  "initial_devices": {
+    "start_epoch": 1792255007.262881,
+    "devices": {
+      "internal": {
+        "volume_bsd": "disk3s5",
+        "physical_bsd": "disk0",
+        "media": "APPLE SSD AP2048Z Media",
+        "registry_id": "0x100000bad",
+        "read_bytes": 2602906595328,
+        "read_ops": 38186161,
+        "write_bytes": 730985021440
+      },
+      "external": {
+        "volume_bsd": "disk6s2",
+        "physical_bsd": "disk5",
+        "media": "Samsung PSSD T7 Media",
+        "registry_id": "0x100166a19",
+        "read_bytes": 166175365120,
+        "read_ops": 756613,
+        "write_bytes": 96239611904
+      }
+    },
+    "end_epoch": 1792255007.285768
+  },
+  "verified_copy": {
+    "path": "/Volumes/Extern M4 Speicher/LLM-Experimente/slipstream/qwen35b-pgrn-comparison/Qwen3.6-35B-A3B-UD-Q4_K_XL.pgrn",
+    "bytes": 20128754176,
+    "sha256": "732a314b95cb3a63e31c3c9cd44e284757721d13a29d7aecd10360d13e193269"
+  },
+  "active_run": "A3",
+  "lab_after": {
+    "8080": {
+      "listeners": ""
+    },
+    "8091": {
+      "listeners": ""
+    },
+    "8092": {
+      "listeners": ""
+    },
+    "8093": {
+      "listeners": ""
+    },
+    "8787": {
+      "listeners": ""
+    }
+  },
+  "port_8083_after": "frei",
+  "operations": [
+    {
+      "phase": "Original intern vollst\u00e4ndig hashen",
+      "start_epoch": 1792255007.321602,
+      "end_epoch": 1792255014.630259,
+      "before": {
+        "start_epoch": 1792255007.301149,
+        "devices": {
+          "internal": {
+            "volume_bsd": "disk3s5",
+            "physical_bsd": "disk0",
+            "media": "APPLE SSD AP2048Z Media",
+            "registry_id": "0x100000bad",
+            "read_bytes": 2602906595328,
+            "read_ops": 38186161,
+            "write_bytes": 730985324544
+          },
+          "external": {
+            "volume_bsd": "disk6s2",
+            "physical_bsd": "disk5",
+            "media": "Samsung PSSD T7 Media",
+            "registry_id": "0x100166a19",
+            "read_bytes": 166175365120,
+            "read_ops": 756613,
+            "write_bytes": 96239611904
+          }
+        },
+        "end_epoch": 1792255007.321588
+      },
+      "after": {
+        "start_epoch": 1792255014.606584,
+        "devices": {
+          "internal": {
+            "volume_bsd": "disk3s5",
+            "physical_bsd": "disk0",
+            "media": "APPLE SSD AP2048Z Media",
+            "registry_id": "0x100000bad",
+            "read_bytes": 2623040077824,
+            "read_ops": 38224810,
+            "write_bytes": 730990862336
+          },
+          "external": {
+            "volume_bsd": "disk6s2",
+            "physical_bsd": "disk5",
+            "media": "Samsung PSSD T7 Media",
+            "registry_id": "0x100166a19",
+            "read_bytes": 166175365120,
+            "read_ops": 756613,
+            "write_bytes": 96239611904
+          }
+        },
+        "end_epoch": 1792255014.630243
+      },
+      "delta": {
+        "internal": {
+          "read_bytes": 20133482496,
+          "read_ops": 38649,
+          "write_bytes": 5537792
+        },
+        "external": {
+          "read_bytes": 0,
+          "read_ops": 0,
+          "write_bytes": 0
+        }
+      }
+    },
+    {
+      "phase": "PGRN-Kopie auf T7 (kein Benchmark)",
+      "start_epoch": 1792255014.651497,
+      "end_epoch": 1792255039.1464808,
+      "before": {
+        "start_epoch": 1792255014.630286,
+        "devices": {
+          "internal": {
+            "volume_bsd": "disk3s5",
+            "physical_bsd": "disk0",
+            "media": "APPLE SSD AP2048Z Media",
+            "registry_id": "0x100000bad",
+            "read_bytes": 2623040077824,
+            "read_ops": 38224810,
+            "write_bytes": 730990862336
+          },
+          "external": {
+            "volume_bsd": "disk6s2",
+            "physical_bsd": "disk5",
+            "media": "Samsung PSSD T7 Media",
+            "registry_id": "0x100166a19",
+            "read_bytes": 166175365120,
+            "read_ops": 756613,
+            "write_bytes": 96239611904
+          }
+        },
+        "end_epoch": 1792255014.651484
+      },
+      "after": {
+        "start_epoch": 1792255039.121309,
+        "devices": {
+          "internal": {
+            "volume_bsd": "disk3s5",
+            "physical_bsd": "disk0",
+            "media": "APPLE SSD AP2048Z Media",
+            "registry_id": "0x100000bad",
+            "read_bytes": 2637991137280,
+            "read_ops": 38256471,
+            "write_bytes": 731047686144
+          },
+          "external": {
+            "volume_bsd": "disk6s2",
+            "physical_bsd": "disk5",
+            "media": "Samsung PSSD T7 Media",
+            "registry_id": "0x100166a19",
+            "read_bytes": 166176278528,
+            "read_ops": 756812,
+            "write_bytes": 116369412096
+          }
+        },
+        "end_epoch": 1792255039.1464682
+      },
+      "delta": {
+        "internal": {
+          "read_bytes": 14951059456,
+          "read_ops": 31661,
+          "write_bytes": 56823808
+        },
+        "external": {
+          "read_bytes": 913408,
+          "read_ops": 199,
+          "write_bytes": 20129800192
+        }
+      }
+    },
+    {
+      "phase": "Externe Kopie vollst\u00e4ndig hashen",
+      "start_epoch": 1792255039.16732,
+      "end_epoch": 1792255055.1753442,
+      "before": {
+        "start_epoch": 1792255039.1465201,
+        "devices": {
+          "internal": {
+            "volume_bsd": "disk3s5",
+            "physical_bsd": "disk0",
+            "media": "APPLE SSD AP2048Z Media",
+            "registry_id": "0x100000bad",
+            "read_bytes": 2637991211008,
+            "read_ops": 38256477,
+            "write_bytes": 731047686144
+          },
+          "external": {
+            "volume_bsd": "disk6s2",
+            "physical_bsd": "disk5",
+            "media": "Samsung PSSD T7 Media",
+            "registry_id": "0x100166a19",
+            "read_bytes": 166176278528,
+            "read_ops": 756812,
+            "write_bytes": 116369412096
+          }
+        },
+        "end_epoch": 1792255039.167307
+      },
+      "after": {
+        "start_epoch": 1792255055.150309,
+        "devices": {
+          "internal": {
+            "volume_bsd": "disk3s5",
+            "physical_bsd": "disk0",
+            "media": "APPLE SSD AP2048Z Media",
+            "registry_id": "0x100000bad",
+            "read_bytes": 2638043062272,
+            "read_ops": 38258880,
+            "write_bytes": 731067957248
+          },
+          "external": {
+            "volume_bsd": "disk6s2",
+            "physical_bsd": "disk5",
+            "media": "Samsung PSSD T7 Media",
+            "registry_id": "0x100166a19",
+            "read_bytes": 177961715712,
+            "read_ops": 779293,
+            "write_bytes": 116369412096
+          }
+        },
+        "end_epoch": 1792255055.175327
+      },
+      "delta": {
+        "internal": {
+          "read_bytes": 51851264,
+          "read_ops": 2403,
+          "write_bytes": 20271104
+        },
+        "external": {
+          "read_bytes": 11785437184,
+          "read_ops": 22481,
+          "write_bytes": 0
+        }
+      }
+    }
+  ]
+}

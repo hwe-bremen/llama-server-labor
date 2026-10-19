@@ -1,0 +1,784 @@
+{
+  "order": [
+    "A1",
+    "B1",
+    "B2",
+    "A2",
+    "B3",
+    "A3"
+  ],
+  "variants": {
+    "A": {
+      "runs_passed": true,
+      "load_s": {
+        "n": 3,
+        "median": 127.13431116600987,
+        "min": 126.67901129205711,
+        "max": 143.75724691699725
+      },
+      "peak_rss_gib": {
+        "n": 3,
+        "median": 6.484039306640625,
+        "min": 6.4833221435546875,
+        "max": 6.48406982421875
+      },
+      "swapout_deltas": [
+        0,
+        0,
+        0
+      ],
+      "requests": [
+        {
+          "run": "A1",
+          "prompt": 1,
+          "ttft_s": 3.1160088749602437,
+          "wall_s": 25.845437499927357,
+          "decode_tokens_s": 5.631436721173402,
+          "actual_output_tokens": 128,
+          "physical_io_delta": {
+            "internal": {
+              "read_bytes": 46000500736,
+              "read_ops": 49933,
+              "write_bytes": 45047808
+            },
+            "external": {
+              "read_bytes": 0,
+              "read_ops": 0,
+              "write_bytes": 0
+            }
+          },
+          "idle_io_delta": {
+            "internal": {
+              "read_bytes": 360448,
+              "read_ops": 13,
+              "write_bytes": 155648
+            },
+            "external": {
+              "read_bytes": 0,
+              "read_ops": 0,
+              "write_bytes": 0
+            }
+          },
+          "idle_window_s": 3.028144121170044,
+          "cache_hits_delta": 12547,
+          "cache_misses_delta": 33356,
+          "decode_subset_io_delta": {
+            "internal": {
+              "read_bytes": 36651659264,
+              "read_ops": 39811,
+              "write_bytes": 36147200
+            },
+            "external": {
+              "read_bytes": 0,
+              "read_ops": 0,
+              "write_bytes": 0
+            }
+          },
+          "decode_subset_window_s": 21.031066179275513
+        },
+        {
+          "run": "A1",
+          "prompt": 2,
+          "ttft_s": 4.039917708025314,
+          "wall_s": 24.679590541054495,
+          "decode_tokens_s": 6.2016855987654775,
+          "actual_output_tokens": 128,
+          "physical_io_delta": {
+            "internal": {
+              "read_bytes": 43507863552,
+              "read_ops": 46623,
+              "write_bytes": 56119296
+            },
+            "external": {
+              "read_bytes": 0,
+              "read_ops": 0,
+              "write_bytes": 0
+            }
+          },
+          "idle_io_delta": {
+            "internal": {
+              "read_bytes": 2658304,
+              "read_ops": 138,
+              "write_bytes": 249856
+            },
+            "external": {
+              "read_bytes": 0,
+              "read_ops": 0,
+              "write_bytes": 0
+            }
+          },
+          "idle_window_s": 3.0668931007385254,
+          "cache_hits_delta": 10006,
+          "cache_misses_delta": 30763,
+          "decode_subset_io_delta": {
+            "internal": {
+              "read_bytes": 31941582848,
+              "read_ops": 34198,
+              "write_bytes": 53800960
+            },
+            "external": {
+              "read_bytes": 0,
+              "read_ops": 0,
+              "write_bytes": 0
+            }
+          },
+          "decode_subset_window_s": 18.836366891860962
+        },
+        {
+          "run": "A2",
+          "prompt": 1,
+          "ttft_s": 3.2017865410307422,
+          "wall_s": 26.52568437496666,
+          "decode_tokens_s": 5.487926390443325,
+          "actual_output_tokens": 128,
+          "physical_io_delta": {
+            "internal": {
+              "read_bytes": 45968683008,
+              "read_ops": 49228,
+              "write_bytes": 38723584
+            },
+            "external": {
+              "read_bytes": 0,
+              "read_ops": 0,
+              "write_bytes": 0
+            }
+          },
+          "idle_io_delta": {
+            "internal": {
+              "read_bytes": 0,
+              "read_ops": 0,
+              "write_bytes": 221184
+            },
+            "external": {
+              "read_bytes": 0,
+              "read_ops": 0,
+              "write_bytes": 0
+            }
+          },
+          "idle_window_s": 3.0545811653137207,
+          "cache_hits_delta": 12547,
+          "cache_misses_delta": 33356,
+          "decode_subset_io_delta": {
+            "internal": {
+              "read_bytes": 35792633856,
+              "read_ops": 38378,
+              "write_bytes": 5963776
+            },
+            "external": {
+              "read_bytes": 0,
+              "read_ops": 0,
+              "write_bytes": 0
+            }
+          },
+          "decode_subset_window_s": 21.074827909469604
+        },
+        {
+          "run": "A2",
+          "prompt": 2,
+          "ttft_s": 4.002391583984718,
+          "wall_s": 24.427117291954346,
+          "decode_tokens_s": 6.26695198271183,
+          "actual_output_tokens": 128,
+          "physical_io_delta": {
+            "internal": {
+              "read_bytes": 43505385472,
+              "read_ops": 46456,
+              "write_bytes": 3289088
+            },
+            "external": {
+              "read_bytes": 0,
+              "read_ops": 0,
+              "write_bytes": 0
+            }
+          },
+          "idle_io_delta": {
+            "internal": {
+              "read_bytes": 217088,
+              "read_ops": 12,
+              "write_bytes": 524288
+            },
+            "external": {
+              "read_bytes": 0,
+              "read_ops": 0,
+              "write_bytes": 0
+            }
+          },
+          "idle_window_s": 3.0568439960479736,
+          "cache_hits_delta": 10006,
+          "cache_misses_delta": 30763,
+          "decode_subset_io_delta": {
+            "internal": {
+              "read_bytes": 32232235008,
+              "read_ops": 34385,
+              "write_bytes": 2539520
+            },
+            "external": {
+              "read_bytes": 0,
+              "read_ops": 0,
+              "write_bytes": 0
+            }
+          },
+          "decode_subset_window_s": 18.88822603225708
+        },
+        {
+          "run": "A3",
+          "prompt": 1,
+          "ttft_s": 3.1851630830205977,
+          "wall_s": 26.548444041982293,
+          "decode_tokens_s": 5.478672235223368,
+          "actual_output_tokens": 128,
+          "physical_io_delta": {
+            "internal": {
+              "read_bytes": 45962878976,
+              "read_ops": 48924,
+              "write_bytes": 12496896
+            },
+            "external": {
+              "read_bytes": 0,
+              "read_ops": 0,
+              "write_bytes": 0
+            }
+          },
+          "idle_io_delta": {
+            "internal": {
+              "read_bytes": 299008,
+              "read_ops": 11,
+              "write_bytes": 5091328
+            },
+            "external": {
+              "read_bytes": 0,
+              "read_ops": 0,
+              "write_bytes": 0
+            }
+          },
+          "idle_window_s": 3.056504964828491,
+          "cache_hits_delta": 12547,
+          "cache_misses_delta": 33356,
+          "decode_subset_io_delta": {
+            "internal": {
+              "read_bytes": 35800522752,
+              "read_ops": 38109,
+              "write_bytes": 11157504
+            },
+            "external": {
+              "read_bytes": 0,
+              "read_ops": 0,
+              "write_bytes": 0
+            }
+          },
+          "decode_subset_window_s": 21.10048794746399
+        },
+        {
+          "run": "A3",
+          "prompt": 2,
+          "ttft_s": 4.040591084049083,
+          "wall_s": 24.45721079199575,
+          "decode_tokens_s": 6.269445382820417,
+          "actual_output_tokens": 128,
+          "physical_io_delta": {
+            "internal": {
+              "read_bytes": 43503464448,
+              "read_ops": 46381,
+              "write_bytes": 3006464
+            },
+            "external": {
+              "read_bytes": 0,
+              "read_ops": 0,
+              "write_bytes": 0
+            }
+          },
+          "idle_io_delta": {
+            "internal": {
+              "read_bytes": 180224,
+              "read_ops": 7,
+              "write_bytes": 23445504
+            },
+            "external": {
+              "read_bytes": 0,
+              "read_ops": 0,
+              "write_bytes": 0
+            }
+          },
+          "idle_window_s": 3.0541257858276367,
+          "cache_hits_delta": 10006,
+          "cache_misses_delta": 30763,
+          "decode_subset_io_delta": {
+            "internal": {
+              "read_bytes": 32344580096,
+              "read_ops": 34508,
+              "write_bytes": 2879488
+            },
+            "external": {
+              "read_bytes": 0,
+              "read_ops": 0,
+              "write_bytes": 0
+            }
+          },
+          "decode_subset_window_s": 18.907636880874634
+        }
+      ],
+      "all_requested_128_tokens": true,
+      "ttft_s": {
+        "n": 6,
+        "median": 3.60208906250773,
+        "min": 3.1160088749602437,
+        "max": 4.040591084049083
+      },
+      "wall_s": {
+        "n": 6,
+        "median": 25.262514020490926,
+        "min": 24.427117291954346,
+        "max": 26.548444041982293
+      },
+      "decode_tokens_s": {
+        "n": 6,
+        "median": 5.91656115996944,
+        "min": 5.478672235223368,
+        "max": 6.269445382820417
+      }
+    },
+    "B": {
+      "runs_passed": true,
+      "load_s": {
+        "n": 3,
+        "median": 127.68890995893162,
+        "min": 127.13282149995212,
+        "max": 128.64260529191233
+      },
+      "peak_rss_gib": {
+        "n": 3,
+        "median": 6.4818115234375,
+        "min": 6.48175048828125,
+        "max": 6.4821014404296875
+      },
+      "swapout_deltas": [
+        0,
+        0,
+        0
+      ],
+      "requests": [
+        {
+          "run": "B1",
+          "prompt": 1,
+          "ttft_s": 10.291098458925262,
+          "wall_s": 77.8722265419783,
+          "decode_tokens_s": 1.8940149202505043,
+          "actual_output_tokens": 128,
+          "physical_io_delta": {
+            "internal": {
+              "read_bytes": 45309952,
+              "read_ops": 1649,
+              "write_bytes": 78860288
+            },
+            "external": {
+              "read_bytes": 38730645504,
+              "read_ops": 41134,
+              "write_bytes": 0
+            }
+          },
+          "idle_io_delta": {
+            "internal": {
+              "read_bytes": 483328,
+              "read_ops": 25,
+              "write_bytes": 6225920
+            },
+            "external": {
+              "read_bytes": 0,
+              "read_ops": 0,
+              "write_bytes": 0
+            }
+          },
+          "idle_window_s": 3.053255319595337,
+          "cache_hits_delta": 12547,
+          "cache_misses_delta": 33356,
+          "decode_subset_io_delta": {
+            "internal": {
+              "read_bytes": 44990464,
+              "read_ops": 1635,
+              "write_bytes": 69447680
+            },
+            "external": {
+              "read_bytes": 33002569728,
+              "read_ops": 35062,
+              "write_bytes": 0
+            }
+          },
+          "decode_subset_window_s": 67.00438594818115
+        },
+        {
+          "run": "B1",
+          "prompt": 2,
+          "ttft_s": 13.109002124983817,
+          "wall_s": 73.58128895796835,
+          "decode_tokens_s": 2.1166648446261345,
+          "actual_output_tokens": 128,
+          "physical_io_delta": {
+            "internal": {
+              "read_bytes": 15949824,
+              "read_ops": 728,
+              "write_bytes": 80236544
+            },
+            "external": {
+              "read_bytes": 36883103744,
+              "read_ops": 39152,
+              "write_bytes": 0
+            }
+          },
+          "idle_io_delta": {
+            "internal": {
+              "read_bytes": 311296,
+              "read_ops": 21,
+              "write_bytes": 3764224
+            },
+            "external": {
+              "read_bytes": 0,
+              "read_ops": 0,
+              "write_bytes": 0
+            }
+          },
+          "idle_window_s": 3.052510976791382,
+          "cache_hits_delta": 10006,
+          "cache_misses_delta": 30763,
+          "decode_subset_io_delta": {
+            "internal": {
+              "read_bytes": 15220736,
+              "read_ops": 699,
+              "write_bytes": 70148096
+            },
+            "external": {
+              "read_bytes": 29136183296,
+              "read_ops": 30939,
+              "write_bytes": 0
+            }
+          },
+          "decode_subset_window_s": 58.70657801628113
+        },
+        {
+          "run": "B2",
+          "prompt": 1,
+          "ttft_s": 10.304510209010914,
+          "wall_s": 78.14160233410075,
+          "decode_tokens_s": 1.8868720830597552,
+          "actual_output_tokens": 128,
+          "physical_io_delta": {
+            "internal": {
+              "read_bytes": 62672896,
+              "read_ops": 2425,
+              "write_bytes": 60690432
+            },
+            "external": {
+              "read_bytes": 38730645504,
+              "read_ops": 41134,
+              "write_bytes": 0
+            }
+          },
+          "idle_io_delta": {
+            "internal": {
+              "read_bytes": 0,
+              "read_ops": 0,
+              "write_bytes": 233472
+            },
+            "external": {
+              "read_bytes": 0,
+              "read_ops": 0,
+              "write_bytes": 0
+            }
+          },
+          "idle_window_s": 3.0549697875976562,
+          "cache_hits_delta": 12547,
+          "cache_misses_delta": 33356,
+          "decode_subset_io_delta": {
+            "internal": {
+              "read_bytes": 60887040,
+              "read_ops": 2344,
+              "write_bytes": 55709696
+            },
+            "external": {
+              "read_bytes": 31943688192,
+              "read_ops": 33932,
+              "write_bytes": 0
+            }
+          },
+          "decode_subset_window_s": 64.94656205177307
+        },
+        {
+          "run": "B2",
+          "prompt": 2,
+          "ttft_s": 13.126817791955546,
+          "wall_s": 73.65840491699055,
+          "decode_tokens_s": 2.1145911830303397,
+          "actual_output_tokens": 128,
+          "physical_io_delta": {
+            "internal": {
+              "read_bytes": 35311616,
+              "read_ops": 1122,
+              "write_bytes": 44802048
+            },
+            "external": {
+              "read_bytes": 36883103744,
+              "read_ops": 39152,
+              "write_bytes": 0
+            }
+          },
+          "idle_io_delta": {
+            "internal": {
+              "read_bytes": 520192,
+              "read_ops": 25,
+              "write_bytes": 466944
+            },
+            "external": {
+              "read_bytes": 0,
+              "read_ops": 0,
+              "write_bytes": 0
+            }
+          },
+          "idle_window_s": 3.04225492477417,
+          "cache_hits_delta": 10006,
+          "cache_misses_delta": 30763,
+          "decode_subset_io_delta": {
+            "internal": {
+              "read_bytes": 9945088,
+              "read_ops": 587,
+              "write_bytes": 41377792
+            },
+            "external": {
+              "read_bytes": 29016973312,
+              "read_ops": 30816,
+              "write_bytes": 0
+            }
+          },
+          "decode_subset_window_s": 58.67381978034973
+        },
+        {
+          "run": "B3",
+          "prompt": 1,
+          "ttft_s": 10.694356749998406,
+          "wall_s": 81.01929275004659,
+          "decode_tokens_s": 1.8201229379286887,
+          "actual_output_tokens": 128,
+          "physical_io_delta": {
+            "internal": {
+              "read_bytes": 1314816,
+              "read_ops": 56,
+              "write_bytes": 51994624
+            },
+            "external": {
+              "read_bytes": 38730645504,
+              "read_ops": 41134,
+              "write_bytes": 0
+            }
+          },
+          "idle_io_delta": {
+            "internal": {
+              "read_bytes": 241664,
+              "read_ops": 10,
+              "write_bytes": 331776
+            },
+            "external": {
+              "read_bytes": 0,
+              "read_ops": 0,
+              "write_bytes": 0
+            }
+          },
+          "idle_window_s": 3.052767038345337,
+          "cache_hits_delta": 12547,
+          "cache_misses_delta": 33356,
+          "decode_subset_io_delta": {
+            "internal": {
+              "read_bytes": 1064960,
+              "read_ops": 48,
+              "write_bytes": 49840128
+            },
+            "external": {
+              "read_bytes": 32881827840,
+              "read_ops": 34935,
+              "write_bytes": 0
+            }
+          },
+          "decode_subset_window_s": 69.43688297271729
+        },
+        {
+          "run": "B3",
+          "prompt": 2,
+          "ttft_s": 13.58069379196968,
+          "wall_s": 76.21821954194456,
+          "decode_tokens_s": 2.043497211113234,
+          "actual_output_tokens": 128,
+          "physical_io_delta": {
+            "internal": {
+              "read_bytes": 494342144,
+              "read_ops": 3639,
+              "write_bytes": 47751168
+            },
+            "external": {
+              "read_bytes": 36883218432,
+              "read_ops": 39164,
+              "write_bytes": 1634304
+            }
+          },
+          "idle_io_delta": {
+            "internal": {
+              "read_bytes": 0,
+              "read_ops": 0,
+              "write_bytes": 2981888
+            },
+            "external": {
+              "read_bytes": 0,
+              "read_ops": 0,
+              "write_bytes": 0
+            }
+          },
+          "idle_window_s": 3.0529489517211914,
+          "cache_hits_delta": 10006,
+          "cache_misses_delta": 30763,
+          "decode_subset_io_delta": {
+            "internal": {
+              "read_bytes": 484659200,
+              "read_ops": 3294,
+              "write_bytes": 44945408
+            },
+            "external": {
+              "read_bytes": 29210419200,
+              "read_ops": 31028,
+              "write_bytes": 90112
+            }
+          },
+          "decode_subset_window_s": 61.05574822425842
+        }
+      ],
+      "all_requested_128_tokens": true,
+      "ttft_s": {
+        "n": 6,
+        "median": 11.901679437491111,
+        "min": 10.291098458925262,
+        "max": 13.58069379196968
+      },
+      "wall_s": {
+        "n": 6,
+        "median": 77.04522304196144,
+        "min": 73.58128895796835,
+        "max": 81.01929275004659
+      },
+      "decode_tokens_s": {
+        "n": 6,
+        "median": 1.9687560656818692,
+        "min": 1.8201229379286887,
+        "max": 2.1166648446261345
+      }
+    }
+  },
+  "per_prompt": {
+    "A/prompt1": {
+      "ttft_s": {
+        "n": 3,
+        "median": 3.1851630830205977,
+        "min": 3.1160088749602437,
+        "max": 3.2017865410307422
+      },
+      "wall_s": {
+        "n": 3,
+        "median": 26.52568437496666,
+        "min": 25.845437499927357,
+        "max": 26.548444041982293
+      },
+      "decode_tokens_s": {
+        "n": 3,
+        "median": 5.487926390443325,
+        "min": 5.478672235223368,
+        "max": 5.631436721173402
+      },
+      "cache_misses_delta": {
+        "n": 3,
+        "median": 33356,
+        "min": 33356,
+        "max": 33356
+      }
+    },
+    "A/prompt2": {
+      "ttft_s": {
+        "n": 3,
+        "median": 4.039917708025314,
+        "min": 4.002391583984718,
+        "max": 4.040591084049083
+      },
+      "wall_s": {
+        "n": 3,
+        "median": 24.45721079199575,
+        "min": 24.427117291954346,
+        "max": 24.679590541054495
+      },
+      "decode_tokens_s": {
+        "n": 3,
+        "median": 6.26695198271183,
+        "min": 6.2016855987654775,
+        "max": 6.269445382820417
+      },
+      "cache_misses_delta": {
+        "n": 3,
+        "median": 30763,
+        "min": 30763,
+        "max": 30763
+      }
+    },
+    "B/prompt1": {
+      "ttft_s": {
+        "n": 3,
+        "median": 10.304510209010914,
+        "min": 10.291098458925262,
+        "max": 10.694356749998406
+      },
+      "wall_s": {
+        "n": 3,
+        "median": 78.14160233410075,
+        "min": 77.8722265419783,
+        "max": 81.01929275004659
+      },
+      "decode_tokens_s": {
+        "n": 3,
+        "median": 1.8868720830597552,
+        "min": 1.8201229379286887,
+        "max": 1.8940149202505043
+      },
+      "cache_misses_delta": {
+        "n": 3,
+        "median": 33356,
+        "min": 33356,
+        "max": 33356
+      }
+    },
+    "B/prompt2": {
+      "ttft_s": {
+        "n": 3,
+        "median": 13.126817791955546,
+        "min": 13.109002124983817,
+        "max": 13.58069379196968
+      },
+      "wall_s": {
+        "n": 3,
+        "median": 73.65840491699055,
+        "min": 73.58128895796835,
+        "max": 76.21821954194456
+      },
+      "decode_tokens_s": {
+        "n": 3,
+        "median": 2.1145911830303397,
+        "min": 2.043497211113234,
+        "max": 2.1166648446261345
+      },
+      "cache_misses_delta": {
+        "n": 3,
+        "median": 30763,
+        "min": 30763,
+        "max": 30763
+      }
+    }
+  },
+  "complete_six_runs": true,
+  "cache_state": "OS cache uncontrolled; copy/hash warmup recorded; no cold claim",
+  "physical_counter_scope": "Whole physical device, not exclusive process/file attribution",
+  "only_pgrn_command_argument_differs": true,
+  "external_pgrn_path_verified": true,
+  "external_cache_misses_verified": true,
+  "external_device_reads_during_requests": true,
+  "external_device_reads_during_decode_subsets": true
+}

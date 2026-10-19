@@ -1,0 +1,86 @@
+{
+  "checked_at": "2026-10-17T19:32:46.027894+00:00",
+  "blind": false,
+  "qwen38_answer_read_before_checks": true,
+  "qwen35_answer_and_prior_reference_known": true,
+  "examples": [
+    {
+      "version": "base",
+      "model": "unsloth/Mistral-Devstral-7B-GGUF",
+      "tag": "mistral"
+    },
+    {
+      "version": "base",
+      "model": "unsloth/Phi-3-Devstral-7B",
+      "tag": "phi"
+    },
+    {
+      "version": "base",
+      "model": "unsloth/Qwen3.6_27B_MTP",
+      "tag": "qwen"
+    },
+    {
+      "version": "base",
+      "model": "model-v1.27b",
+      "tag": "modelv127b"
+    },
+    {
+      "version": "base",
+      "model": "model-v1.30b",
+      "tag": "modelv130b"
+    },
+    {
+      "version": "base",
+      "model": "unsloth/Apertus-8B-Instruct",
+      "tag": "apertus"
+    },
+    {
+      "version": "base",
+      "model": "unsloth/Apertus-8-8B-Instruct",
+      "tag": "apertus"
+    },
+    {
+      "version": "target",
+      "model": "unsloth/Mistral-Devstral-7B-GGUF",
+      "tag": "devstral-7b"
+    },
+    {
+      "version": "target",
+      "model": "unsloth/Phi-3-Devstral-7B",
+      "tag": "devstral-7b"
+    },
+    {
+      "version": "target",
+      "model": "unsloth/Qwen3.6_27B_MTP",
+      "tag": "qwen36-27b"
+    },
+    {
+      "version": "target",
+      "model": "model-v1.27b",
+      "tag": "modelv127b"
+    },
+    {
+      "version": "target",
+      "model": "model-v1.30b",
+      "tag": "modelv130b"
+    },
+    {
+      "version": "target",
+      "model": "unsloth/Apertus-8B-Instruct",
+      "tag": "apertus-8b"
+    },
+    {
+      "version": "target",
+      "model": "unsloth/Apertus-8-8B-Instruct",
+      "tag": "apertus8-8b"
+    }
+  ],
+  "substring_matching_preexists": true,
+  "prior_existing_tests": {
+    "base": 21,
+    "target": 22,
+    "all_passed": true,
+    "source": "runs/20261017T181920893653Z/reference-checks.json; immutable snapshot unchanged; not rerun unnecessarily"
+  },
+  "words_whitespace": 633
+}

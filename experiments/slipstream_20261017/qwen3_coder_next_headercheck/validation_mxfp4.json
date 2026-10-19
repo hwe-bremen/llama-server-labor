@@ -1,0 +1,18 @@
+{
+  "tests_passed": 15,
+  "checker_sha256": "62bbcf31ac80f8cc42f11a088d7f81c83997976635f163a4739b109a9d26e4fb",
+  "offline_reanalysis": true,
+  "additional_gguf_bytes": 0,
+  "new_type": {
+    "id": 39,
+    "name": "MXFP4",
+    "values_per_block": 32,
+    "bytes_per_block": 17,
+    "routed_whitelist_changed": false
+  },
+  "sources": [
+    "https://github.com/ggml-org/llama.cpp/blob/79bba02a6741/ggml/include/ggml.h",
+    "https://github.com/ggml-org/llama.cpp/blob/79bba02a6741/ggml/src/ggml-common.h",
+    "https://github.com/ggml-org/llama.cpp/blob/79bba02a6741/ggml/src/ggml-metal/ggml-metal-ops.cpp"
+  ]
+}

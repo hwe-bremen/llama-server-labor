@@ -1,0 +1,24 @@
+{
+  "model": "qwen-stream-reference",
+  "messages": [
+    {
+      "role": "system",
+      "content": "Prüfe den bereitgestellten Code auf konkrete Fehler und relevante Designrisiken. Nenne pro Befund Datei und Stelle, Auslöser, Auswirkung und Begründung. Trenne nachgewiesene Fehler von Vermutungen. Wenn du keinen belastbaren Befund findest, sage das. Keine Änderungen am Code."
+    },
+    {
+      "role": "user",
+      "content": "Rahmenbedingungen:\nPython 3.11+, ein Prozess und ein Eventloop. Ein Retriever wird für alle HTTP-Anfragen wiederverwendet. Identity stammt aus authentifizierter Middleware. Acht fest konfigurierte Mandanten; Dokumente sind mandantenprivat. Die fachliche Suche ist unabhängig von Groß-/Kleinschreibung und äußerem Leerraum. Der bereitgestellte DocumentIndex ist die vollständige hier verwendete Suchimplementierung.\n\n\nDie folgenden Dateien bilden ein Python-Paket; alle für diesen Ausschnitt benötigten Implementierungen sind enthalten.\n\nDatei: api.py\n```python\n  1: from dataclasses import dataclass\n  2: from .retrieval import Retriever\n  3: \n  4: @dataclass(frozen=True)\n  5: class Identity:\n  6:     tenant_id: str\n  7: \n  8: async def context_for(identity: Identity, question: str, retriever: Retriever):\n  9:     return await retriever.retrieve(identity.tenant_id, question)\n```\n\nDatei: index.py\n```python\n  1: import asyncio\n  2: \n  3: class DocumentIndex:\n  4:     def __init__(self, entries: dict[tuple[str, str], tuple[str, ...]]):\n  5:         self.entries = entries\n  6: \n  7:     async def search(self, tenant_id: str, normalized_question: str):\n  8:         await asyncio.sleep(0)\n  9:         return self.entries.get((tenant_id, normalized_question), ())\n```\n\nDatei: retrieval.py\n```python\n  1: from .index import DocumentIndex\n  2: \n  3: class Retriever:\n  4:     def __init__(self, index: DocumentIndex):\n  5:         self.index = index\n  6:         self._cache: dict[str, tuple[str, ...]] = {}\n  7: \n  8:     async def retrieve(self, tenant_id: str, question: str) -> tuple[str, ...]:\n  9:         key = question.strip().casefold()\n 10:         if key not in self._cache:\n 11:             self._cache[key] = await self.index.search(tenant_id, key)\n 12:         return self._cache[key]\n```"
+    }
+  ],
+  "temperature": 0,
+  "seed": 42,
+  "max_tokens": 1024,
+  "stream": true,
+  "cache_prompt": false,
+  "chat_template_kwargs": {
+    "enable_thinking": false
+  },
+  "stream_options": {
+    "include_usage": true
+  }
+}

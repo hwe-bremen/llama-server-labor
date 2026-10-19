@@ -1,0 +1,541 @@
+{
+  "at": "2026-10-18T08:13:40.825055+00:00",
+  "phase_a_executed": false,
+  "phase_b_model_started": false,
+  "git_before": {
+    "cmd": [
+      "git",
+      "status",
+      "--porcelain=v1"
+    ],
+    "returncode": 0,
+    "stdout": "?? experiments/\n",
+    "stderr": ""
+  },
+  "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "index_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "head": "8ce8a897b0ba1a3c5aca1dd3ba41d4ff1f3ea976",
+  "protected_hashes": {
+    "config/README.md": "610be11936c47faa299eba7561442c6a8edc8c3be9a31bcffefe7c3524151806",
+    "config/models-m2.ini": "d86aee17c798472481c6be517ec2d655567c4800c13cf57276809b51364f5675",
+    "config/models.ini": "3c2874c2e65717992febd2869090e4bd513067bddc6041ed768a44e526fe9afa",
+    "config/tailscale-acl-example.json": "1c4c8cdeae71a11c4d9b572f29c2c0c88df41deb86fcbdb6b316a5164428e486",
+    "config/launchd/llm_scout.plist": "a4b95c42a6416a481f202d64aa764a587ed39a8b399df1041abc4f917ae61669",
+    "role-split/roles/research.md": "6dd85fa85ccbbb7f27e8b5538279051680dfb55f43a42a1c7dd01637715f3939",
+    "role-split/roles/review.md": "ef6e76d8855bb1c0693f4e4a4055b799c7f541712090cec00316a9b6ce389971",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/run_eval.py": "c466b47285cc33e16643da5f4c24a27fa6e2806d04cceac01749a2f3be1613f8",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/PREPARATION.json": "3fb24e1696fe086114e318d3677dbca8188e91aa30b79b4a2a42c8a0b9af3550",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/settings.json": "b18b833463acf4575697686dac884579df83d85f992ee31cfbc79e9a2f586ad8",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/FROZEN.json": "e68dbc7bf5a6392616e83f424a1334f3abf4fb922ae5df75e236013776a47da2",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/instruction.txt": "dd4a4cd92db1269e23b936f9206358e10226d3faef3645ad428fe0095089d313",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/README.md": "651020029cc3bd0e654170b5488c3e58142884567490d8e2d8031cc34dbd1c39",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/build_frozen_suite.py": "51f140f4c514a9c2e2e096f19984855c1bacd0e26ad29fbb7bb4916abf6118b5",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/eval_client.py": "c88e8773793ade4c53954bdf48010c27bd89fc32bd7c8ed5b902ce4b3c6af220",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/private/RUBRIK.md": "36f3de68bc400e4582541345e70dd3e897c45bc87f13405914e7b0a5e0ed05ca",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/private/answer_key.json": "e9cc4be4156481198ec8086951424b35d499a512e5901b1d3fddc44321d9f6e8",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/private/verification.txt": "772d21cdc7be5702295663e0e3844eaa4316f50db08c29203611836e518a9adc",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/private/verify_cases.py": "8fd53e69c5db20d9f2eff668a04c32a9a0df9379f7418042f223ef0f61066692",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/prompts/case01.json": "e20a18bace56df0fcf55c15e96ae74c5a57394d2db8668e2dba4a6a0ac5cd52c",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/prompts/case06.json": "f280062da0469337772da0a17d029e1320c16990d67109d9b41d90519b41a8cc",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/prompts/case05.json": "bcf064b0f192ae8f6fe3342f51f08388600ae5e6236168eaa0b7699df9b21c53",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/prompts/case04.json": "99d2788e4ecb9f0dfd3c95730d3375ebbef1ab6b423f49ef76773d88256912b2",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/prompts/case03.json": "03dc655c57b481929cca3776b05202a660729124bfa0526ee23b6db7a3d244c0",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/prompts/case02.json": "fd84417c985daefe75e351a81cfa467163e46ffe2629007884882189dba202af",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/runs/20261017T172010678718Z/case04-answer.md": "84555c014c186d66f1814f0a61d9970312a1b3b54ae29f983f74bf4dc40304fb",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/runs/20261017T172010678718Z/case06-stream.jsonl": "04a676b2a4c742faf5da3d8913e29d1dfbbca296882ef32d4d5de2f70599ffbc",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/runs/20261017T172010678718Z/case01-stream.jsonl": "7f44e22503a9b1e2671ec5bc459d2cebf6b2c41c6b00a9c62566526a6e46f477",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/runs/20261017T172010678718Z/case06-request.json": "9a531147f260fe2ca810b266576e32546fafc383511fc3d11cd326965c4fd5a3",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/runs/20261017T172010678718Z/case01-request.json": "20f8c335260365db31bd1f184ae638c8ccc58bf23895ef8eb7b7ed4e0e86b636",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/runs/20261017T172010678718Z/case02-answer.md": "7260f4a73586cc92dd5cd46cde3b9b3d37a5cfd24eeaad222abb6a266975b784",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/runs/20261017T172010678718Z/report.json": "1f0c1083bc9190fa8055532812e9e606fb0bf64f2e231efde775bcb9b25f7255",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/runs/20261017T172010678718Z/client.log": "1f0196b80d60e1858179703ab58a97ac9ec33123cab7128a6dbe69113e7a88e8",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/runs/20261017T172010678718Z/BEWERTUNG.md": "c0fda57ef2e2cbe162b1f9c6100612527e974c9afe5fb9536bcb720d3f1a2625",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/runs/20261017T172010678718Z/case05-answer.md": "e7b44e246cefa658ef79c69897e30237e0deddc6c4fd8e343cbe203ca7c17a4e",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/runs/20261017T172010678718Z/BEWERTUNG.json": "7a12f5d09b9fdb39d27563385d2cb707b5d682c689f42c97eca7e608bd3a4704",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/runs/20261017T172010678718Z/case03-answer.md": "4acfeb60ec543c1a5bae132b9119805f1fbb5bf0dcdbf4ef67292e26670540e0",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/runs/20261017T172010678718Z/memory.jsonl": "55346db2fec34e333498d682e694fe4025709eb035af7018d9bad51e2dc19b5b",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/runs/20261017T172010678718Z/case06-answer.md": "1a108433d301b274ae68f9fffa45b0d0c4153d88d848de9ab3d182d35537cdf4",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/runs/20261017T172010678718Z/responses.json": "047d744441e198d918c91de0fd38b1da77e590b0c4a584a119243590311c8d78",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/runs/20261017T172010678718Z/DURCHFUEHRUNG.md": "2a56c203bd2fe2cc1078509940088cdd24feef31dfcffedef037a89001a30b38",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/runs/20261017T172010678718Z/case05-stream.jsonl": "95be85cbc50272cf09046eccd68c0f840c760f37bd435d8a25bb17294632a89a",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/runs/20261017T172010678718Z/case02-stream.jsonl": "981b0dbc5fb207abe18bf348d0cba49abddfdb1b7332e66bce08f19c5f53a4fd",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/runs/20261017T172010678718Z/case03-request.json": "ac8b20e034ea9c439645a4b01c57ee21bab315890e54bce19593f8e28b9c57cd",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/runs/20261017T172010678718Z/case04-request.json": "32ffaa5d807eb4af8a7f105e24df5d7a56dcd34d7044a658a82e7ec88a53726e",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/runs/20261017T172010678718Z/engine.log": "5861a0ee06cb3a1ac3bef6d9c38550271481c8c5bac4f30634abbb950b7a14c5",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/runs/20261017T172010678718Z/case01-answer.md": "36c7179d01e9befb8635b7dfd6ea47d758c399a889de01379bb61e085d4de765",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/runs/20261017T172010678718Z/case03-stream.jsonl": "e0c7d34f0a8fc94fde3dd986fae54ca412097fa7c6d184343f680d768143556a",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/runs/20261017T172010678718Z/case04-stream.jsonl": "0639a914a1d2bd4fa59032a887848c2102166cbc69351ba53d9a6087277ad63e",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/runs/20261017T172010678718Z/case05-request.json": "05055c264ff36d41bb7815c2576024d731ca295b35d31769cd96d3955c641a67",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/runs/20261017T172010678718Z/case02-request.json": "1e0e716ac5aaa226ceb0f1cdce095ff8e7b69d0fb45d2b8a1d57912b81432af6",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/model_cases/case06/cache.py": "4358f747f671ebaaf1c59ceeefadbc6dfbf20efb6550f741b14fb0d78b91532f",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/model_cases/case06/CONTEXT.txt": "513e462fc9864b9bc9c2add4f4eebba04f3214a732c9127052395870f6683b44",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/model_cases/case01/index.py": "318befa0432edbd69e6eb894cc080484afa791a0b4fe3b2f5edfaf1ea464054d",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/model_cases/case01/api.py": "1c9e8646f6ae5fb6393447c46bccc6a573d92756e4b2e7322acd23119d2af1ef",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/model_cases/case01/retrieval.py": "fcf386913ece5465b942945bafa3f514f5955f2a4d342a9e62123010afcdc9ff",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/model_cases/case01/CONTEXT.txt": "9478540a3e03db1d09888c806daa047823403f18900c15ff0c1ef0e0e51d008d",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/model_cases/case02/provider.py": "cd066cb582267db95d086d89cb01fb75486781388d1cbd4a25cd433d114c3192",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/model_cases/case02/CONTEXT.txt": "3375abfed4bc2ee6f8903327c928ac3c3e84eaf1e31de6814189e9ca98a9d967",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/model_cases/case05/provider.py": "d30df3835f0dde57a789c5fabe582bb53a4a1d10b3d929340be2d15441d1b5a9",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/model_cases/case05/CONTEXT.txt": "3375abfed4bc2ee6f8903327c928ac3c3e84eaf1e31de6814189e9ca98a9d967",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/model_cases/case04/chat.py": "a6f3b38bdd0b6de2dfda68e01785b9e20d4320cb7ab3ee17145b5038402abc53",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/model_cases/case04/CONTEXT.txt": "8d439d826a7b45ac91ad7f44dd283073c658f2719e925379f42dafca50f5fc31",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/model_cases/case03/memory.py": "aa82e8c5e7c41ee07f3ba8c40b950d08e08acd31052d22e82fadafe36316ce12",
+    "experiments/slipstream_20261017/reviewer_eval_6cases/model_cases/case03/CONTEXT.txt": "a96c23bc6d8c0c793cf442070887047bc92d9dc6404dce61cbc07ecc9155571f",
+    "experiments/slipstream_20261017/real_review_model_tags/PREPARATION.json": "a2bec87f2a6425eb9effcb43788aa563eb5ec22435074ee7820fd52d8f646ede",
+    "experiments/slipstream_20261017/real_review_model_tags/review_client.py": "36f63a03cee503c0936cf8474679f244ba7773f0401e9de876f1c3ee922120a0",
+    "experiments/slipstream_20261017/real_review_model_tags/change.diff": "1d11fed44124ac6a966614703e20b08990a1c1d6ef4f34853037fa9bd6a2e700",
+    "experiments/slipstream_20261017/real_review_model_tags/settings.json": "72eb8974fd5182606f6cce83bff2676c478bbc8fd968d162a64bfc5fd261045e",
+    "experiments/slipstream_20261017/real_review_model_tags/test_harness.py": "9dcd96bc008af62d823fb24b565bbdf1cd592628332c8b4ad03ce760a313a3c4",
+    "experiments/slipstream_20261017/real_review_model_tags/FROZEN.json": "588d15e7540907d876a1eb39d1eb4226a65fc0974db8f1e752c1e10b9e29a985",
+    "experiments/slipstream_20261017/real_review_model_tags/prompt.json": "6e08d0ed84977d884a169731aa8113581b6d494d188f653039d474f7885a3029",
+    "experiments/slipstream_20261017/real_review_model_tags/compare_loaded_qwen.py": "a878cc274f47a9d05ee3fb5da01a2bcd99406678d22c196b7a9856806b4e7530",
+    "experiments/slipstream_20261017/real_review_model_tags/README.md": "8d40d65df17426c9b8c48276f94ae41044f72667b845f268ef7d0870d6ff0bec",
+    "experiments/slipstream_20261017/real_review_model_tags/run_review.py": "2343969abba55453e2aef5f57dffcb101c2bead817c430ffa0838149f256dda5",
+    "experiments/slipstream_20261017/real_review_model_tags/SELECTION.json": "0b2820820b5ee3a0d44db6c0ef5c563cfa05aee8640c3bb81dee400489920fcc",
+    "experiments/slipstream_20261017/real_review_model_tags/RUNNER_PROVENANCE.json": "ef168f86f3bdf18a49305ad50cda80de1a5ecb54e0d253be915d1cd5e122ce77",
+    "experiments/slipstream_20261017/real_review_model_tags/isolated_runner.py": "7ed4df02b923532de5435639ed71f280a857e08303006c237f4ba7c4b01c3769",
+    "experiments/slipstream_20261017/real_review_model_tags/logs/git-status-before.txt": "79bec1dd71c8bd5c619b7ff3c6ef4d9a0d8235e7c88fcc5a0a62295725317db9",
+    "experiments/slipstream_20261017/real_review_model_tags/logs/tracked-diff-before.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "experiments/slipstream_20261017/real_review_model_tags/logs/engine-help.txt": "6229615baa915a8ba2543aaa1923126714964308cd70389da24d6416e5da0909",
+    "experiments/slipstream_20261017/real_review_model_tags/logs/router-models-current.json": "759290babb527a4f3c562b447849faea94843e6436314e4a322fd9c5dae60951",
+    "experiments/slipstream_20261017/real_review_model_tags/logs/engine-version.txt": "7377611a71ac49bf974416862bc41c22e6ccf12f76ec3f3b4ba23625484e2354",
+    "experiments/slipstream_20261017/real_review_model_tags/runs/20261017T181920893653Z/VALIDIERUNG.json": "633a85957b3a42153c7de7ac63345ed56ec109da433951be26508d662ad08965",
+    "experiments/slipstream_20261017/real_review_model_tags/runs/20261017T181920893653Z/request.json": "7cd13bbf9667e17b210e8cc54e8c0a104a3ff23f88c43bbcf61af516cce05a73",
+    "experiments/slipstream_20261017/real_review_model_tags/runs/20261017T181920893653Z/reference-checks.json": "290790af1302f29a1fc4c9a993676d9daf78bd119f05b414414e31730cfb6413",
+    "experiments/slipstream_20261017/real_review_model_tags/runs/20261017T181920893653Z/stream.jsonl": "e05b86b406d044c782bd09b1329d6704d2261615844de3436fe336765287b8c8",
+    "experiments/slipstream_20261017/real_review_model_tags/runs/20261017T181920893653Z/report.json": "411cf575e1478e265483e9b344ef0701fe9aa933de7f80ec596e348cdbeb6afb",
+    "experiments/slipstream_20261017/real_review_model_tags/runs/20261017T181920893653Z/client.log": "1db33456602c4df4c3af526d35d90f7413ce931a5c5032796ad093717b4f7135",
+    "experiments/slipstream_20261017/real_review_model_tags/runs/20261017T181920893653Z/base-existing-tests.txt": "ce7ea258cad7ffb5a0c2bc452062fd5c78d33e6375f4d2f85de9b6f25d518313",
+    "experiments/slipstream_20261017/real_review_model_tags/runs/20261017T181920893653Z/reasoning.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "experiments/slipstream_20261017/real_review_model_tags/runs/20261017T181920893653Z/VALIDIERUNG.md": "c6a38874904fde00538fcac61b24629a68624f3d8eee9bd1d7f0ba9bf55c42dd",
+    "experiments/slipstream_20261017/real_review_model_tags/runs/20261017T181920893653Z/memory.jsonl": "3bf4dc92b4d25ee10375c2312d5a2b4dc0d92efade5b542961c779737decfa6b",
+    "experiments/slipstream_20261017/real_review_model_tags/runs/20261017T181920893653Z/responses.json": "61cc7e5f087cb450d602a87aa5ddb88a7357b588828d7613f0e4d3e9c975ac71",
+    "experiments/slipstream_20261017/real_review_model_tags/runs/20261017T181920893653Z/answer.txt": "70e630359a3b20ae990924e45f74b845f162d82661fce456e9d71161fb1269c8",
+    "experiments/slipstream_20261017/real_review_model_tags/runs/20261017T181920893653Z/REFERENCE_REVIEW_STARTED.json": "b02a403c1ddbf891ae931cfd59fb425fe265d70ab6f70f2dc0afd57138b39023",
+    "experiments/slipstream_20261017/real_review_model_tags/runs/20261017T181920893653Z/engine.log": "534677ed7d68d061e72ad537b39cf393d66e866556665e4f890c44006e0b02ca",
+    "experiments/slipstream_20261017/real_review_model_tags/runs/20261017T181920893653Z/reference_checks.py": "412e8638e7d80f1072588bc018ddba8a972b2a165100f92a27bc0ef65553aaba",
+    "experiments/slipstream_20261017/real_review_model_tags/runs/20261017T181920893653Z/target-existing-tests.txt": "41df7f9d178ca546883e58211343dcd120d9a42be7acc3fb4265a64500f42fa2",
+    "experiments/slipstream_20261017/real_review_model_tags/router_comparison/20261017T192752477279Z/VALIDIERUNG.json": "47f840d12c4a64bac1340039e15b27edb1dd74bc60c7e1aad27b2bf300713f32",
+    "experiments/slipstream_20261017/real_review_model_tags/router_comparison/20261017T192752477279Z/request.json": "c257c50f5615ccabd33b9d6ca3825842c298ec591894497822a02cb3b013683a",
+    "experiments/slipstream_20261017/real_review_model_tags/router_comparison/20261017T192752477279Z/stream.jsonl": "52a5873bae6046dd2de87c6da32851f51a8c34e1862e730301197b663ab6938e",
+    "experiments/slipstream_20261017/real_review_model_tags/router_comparison/20261017T192752477279Z/finding-checks.json": "d5af8a0a91ff20f4e8f4454f65a98ff47b440c665bf988e7d9a28537e792b848",
+    "experiments/slipstream_20261017/real_review_model_tags/router_comparison/20261017T192752477279Z/reasoning.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "experiments/slipstream_20261017/real_review_model_tags/router_comparison/20261017T192752477279Z/VALIDIERUNG.md": "53d86d0ef0b87c82031fdc659879e939d87fa1c32bdaf165144683aeeb8b0bef",
+    "experiments/slipstream_20261017/real_review_model_tags/router_comparison/20261017T192752477279Z/answer.txt": "07141e0d301c26f68672b2c1e4c1f2f795bbd591936e9f6d1cce521a3761fd5c",
+    "experiments/slipstream_20261017/real_review_model_tags/router_comparison/20261017T192752477279Z/response.json": "50f24a6be617f653e181484dbe1bb4c015bd1d24fa114a6e69cce1957dc765ae",
+    "experiments/slipstream_20261017/real_review_model_tags/snapshots/base/role-split/role_proxy.py": "24f53fa5d4d15f4e146a7ea775b925d00e3470fe89e8dcfe9f7e216a883acba1",
+    "experiments/slipstream_20261017/real_review_model_tags/snapshots/base/role-split/test_role_proxy.py": "3e17364eeb7b31c03f0be65eedfee6d752704a0d52a7fbf27a63d59a7c07c928",
+    "experiments/slipstream_20261017/real_review_model_tags/snapshots/target/role-split/role_proxy.py": "ef97366649178bfc5ae9e023cf5de69b97f048b6bc3e11b819eea4d3f72437cd",
+    "experiments/slipstream_20261017/real_review_model_tags/snapshots/target/role-split/test_role_proxy.py": "c75f65cd097387d224b9b5f19611f361fce7ed06bb05a67f440a31eef337c57e",
+    "experiments/slipstream_20261017/real_review_model_tags_12gib/PREPARATION.json": "d5d65424cb0ccbcdbbaa563b50afe18cc523a89e83fa337fa47a67c0d5c207ef",
+    "experiments/slipstream_20261017/real_review_model_tags_12gib/review_client.py": "60ea51660dc0ef3eeee6f61185182bb3889a9a8892cf44f231af0c57d2a4c7fb",
+    "experiments/slipstream_20261017/real_review_model_tags_12gib/change.diff": "1d11fed44124ac6a966614703e20b08990a1c1d6ef4f34853037fa9bd6a2e700",
+    "experiments/slipstream_20261017/real_review_model_tags_12gib/settings.json": "06669b46bf564e44e3dd06672809e23eb310a8629be97ad32820d61afe1e5fea",
+    "experiments/slipstream_20261017/real_review_model_tags_12gib/test_harness.py": "9dcd96bc008af62d823fb24b565bbdf1cd592628332c8b4ad03ce760a313a3c4",
+    "experiments/slipstream_20261017/real_review_model_tags_12gib/FROZEN.json": "69563898d43adf1dd07734caaaf3a98e811e425a5c75b7998c18ab737a176222",
+    "experiments/slipstream_20261017/real_review_model_tags_12gib/prompt.json": "6e08d0ed84977d884a169731aa8113581b6d494d188f653039d474f7885a3029",
+    "experiments/slipstream_20261017/real_review_model_tags_12gib/README.md": "c9803e35955156a956b1790d6212d622ef41c7c391544e216e25fe77c4b26a1d",
+    "experiments/slipstream_20261017/real_review_model_tags_12gib/run_review.py": "5fdb458fba9488c27fdae565241b9afaff928f20b08c00db7b988b6255283665",
+    "experiments/slipstream_20261017/real_review_model_tags_12gib/REPEAT_MANIFEST.json": "0587d4d34697843f2016e8717face54de4853eddd09d5300535fe2645aa0926a",
+    "experiments/slipstream_20261017/real_review_model_tags_12gib/SELECTION.json": "0b2820820b5ee3a0d44db6c0ef5c563cfa05aee8640c3bb81dee400489920fcc",
+    "experiments/slipstream_20261017/real_review_model_tags_12gib/isolated_runner.py": "1da6a79437288994f7cfde4adb667de1b0ad67dfa85e565983ab0a80b54da0e4",
+    "experiments/slipstream_20261017/real_review_model_tags_12gib/runs/20261017T211054421177Z/VALIDIERUNG.json": "3be81c8c38b837ffa4fafce41680cceb70328a5f687a22055c3f3c4b813ad934",
+    "experiments/slipstream_20261017/real_review_model_tags_12gib/runs/20261017T211054421177Z/request.json": "7cd13bbf9667e17b210e8cc54e8c0a104a3ff23f88c43bbcf61af516cce05a73",
+    "experiments/slipstream_20261017/real_review_model_tags_12gib/runs/20261017T211054421177Z/reference-reuse-checks.json": "25a5f8b96e18e4fbf69d2bac4129265e91ee72e199aeb060aff680291e76ee2c",
+    "experiments/slipstream_20261017/real_review_model_tags_12gib/runs/20261017T211054421177Z/stream.jsonl": "9bd21f6268d5b75a06cf2321f1e02a47bf7cd57525f5a1c8dca3be2d47d6da4f",
+    "experiments/slipstream_20261017/real_review_model_tags_12gib/runs/20261017T211054421177Z/report.json": "0e143717f6371335c4e31eab37665aba055faa1136314cfd973b543af28bfeac",
+    "experiments/slipstream_20261017/real_review_model_tags_12gib/runs/20261017T211054421177Z/client.log": "f2e3d8d5163611ba9161b4b210e832f1d55e2e8ce1f2216c9af385235d80a9e7",
+    "experiments/slipstream_20261017/real_review_model_tags_12gib/runs/20261017T211054421177Z/reasoning.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "experiments/slipstream_20261017/real_review_model_tags_12gib/runs/20261017T211054421177Z/VALIDIERUNG.md": "78b24e0aae7c99cab86e7b9feb4cfe554ac2032866e31543ecf46783ca2d3693",
+    "experiments/slipstream_20261017/real_review_model_tags_12gib/runs/20261017T211054421177Z/memory.jsonl": "af72748fc53d858f7d26ac368ac2e37730ae304a5efc82725b99b8873fa46b12",
+    "experiments/slipstream_20261017/real_review_model_tags_12gib/runs/20261017T211054421177Z/responses.json": "4c6879fde42f7514d7d0d834a0a410d67f752ffb02deb9590a56f9769378ac9a",
+    "experiments/slipstream_20261017/real_review_model_tags_12gib/runs/20261017T211054421177Z/answer.txt": "70e630359a3b20ae990924e45f74b845f162d82661fce456e9d71161fb1269c8",
+    "experiments/slipstream_20261017/real_review_model_tags_12gib/runs/20261017T211054421177Z/engine.log": "3d26aa6df847d962af5d758daf1ef2b71293fa1594a661e7e816ab3ddb7ed122",
+    "experiments/slipstream_20261017/real_review_model_tags_12gib/snapshots/base/role-split/role_proxy.py": "24f53fa5d4d15f4e146a7ea775b925d00e3470fe89e8dcfe9f7e216a883acba1",
+    "experiments/slipstream_20261017/real_review_model_tags_12gib/snapshots/base/role-split/test_role_proxy.py": "3e17364eeb7b31c03f0be65eedfee6d752704a0d52a7fbf27a63d59a7c07c928",
+    "experiments/slipstream_20261017/real_review_model_tags_12gib/snapshots/target/role-split/role_proxy.py": "ef97366649178bfc5ae9e023cf5de69b97f048b6bc3e11b819eea4d3f72437cd",
+    "experiments/slipstream_20261017/real_review_model_tags_12gib/snapshots/target/role-split/test_role_proxy.py": "c75f65cd097387d224b9b5f19611f361fce7ed06bb05a67f440a31eef337c57e"
+  },
+  "bind_8083": {
+    "success": false,
+    "errno": 1,
+    "error": "[Errno 1] Operation not permitted"
+  },
+  "process_check": {
+    "cmd": [
+      "/bin/ps",
+      "-axo",
+      "pid=,comm="
+    ],
+    "errno": 1,
+    "error": "[Errno 1] Operation not permitted: '/bin/ps'"
+  },
+  "llama_processes": {
+    "cmd": [
+      "/usr/sbin/lsof",
+      "-nP",
+      "-c",
+      "llama-server",
+      "-Fpc"
+    ],
+    "returncode": 1,
+    "stdout": "",
+    "stderr": ""
+  },
+  "sysctl": {
+    "cmd": [
+      "/usr/sbin/sysctl",
+      "hw.memsize",
+      "vm.swapusage"
+    ],
+    "returncode": 1,
+    "stdout": "",
+    "stderr": "sysctl: sysctl fmt -1 1024 1: Operation not permitted\n"
+  },
+  "vm_stat": {
+    "cmd": [
+      "/usr/bin/vm_stat"
+    ],
+    "returncode": 0,
+    "stdout": "Mach Virtual Memory Statistics: (page size of 16384 bytes)\nPages free:                                   610212.\nPages active:                                1027303.\nPages inactive:                               973281.\nPages speculative:                             63356.\nPages throttled:                                   0.\nPages wired down:                             241015.\nPages purgeable:                               50928.\n\"Translation faults\":                     1859585232.\nPages copy-on-write:                       108204062.\nPages zero filled:                        1827376032.\nPages reactivated:                         380109379.\nPages purged:                               28401899.\nFile-backed pages:                            690239.\nAnonymous pages:                             1373701.\nPages stored in compressor:                   311837.\nPages occupied by compressor:                 174817.\nDecompressions:                            280505154.\nCompressions:                              337464286.\nPageins:                                   160036396.\nPageouts:                                     214343.\nSwapins:                                     8192130.\nSwapouts:                                   13528351.\n",
+    "stderr": ""
+  },
+  "diskutil": {
+    "cmd": [
+      "/usr/sbin/diskutil",
+      "info",
+      "-plist",
+      "/Volumes/Extern M4 Speicher"
+    ],
+    "returncode": 1,
+    "stdout": "",
+    "stderr": "Unable to run because unable to use the DiskManagement framework.\nCommon reasons include, but are not limited to, the DiskArbitration\nframework being unavailable due to being booted in single-user mode.\n"
+  },
+  "df": {
+    "cmd": [
+      "/bin/df",
+      "-k",
+      "/Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017",
+      "/Volumes/Extern M4 Speicher"
+    ],
+    "returncode": 0,
+    "stdout": "Filesystem   1024-blocks      Used  Available Capacity iused       ifree %iused  Mounted on\n/dev/disk3s5  1948455240 816000000 1096000000    43% 3309401 10985563360    0%   /System/Volumes/Data\n/dev/disk6s2   976557744 113200000  860000000    12%     121  8631140840    0%   /Volumes/Extern M4 Speicher\n",
+    "stderr": ""
+  },
+  "listeners": {
+    "8080": {
+      "cmd": [
+        "/usr/sbin/lsof",
+        "-nP",
+        "-iTCP:8080",
+        "-sTCP:LISTEN"
+      ],
+      "returncode": 1,
+      "stdout": "",
+      "stderr": ""
+    },
+    "8091": {
+      "cmd": [
+        "/usr/sbin/lsof",
+        "-nP",
+        "-iTCP:8091",
+        "-sTCP:LISTEN"
+      ],
+      "returncode": 1,
+      "stdout": "",
+      "stderr": ""
+    },
+    "8092": {
+      "cmd": [
+        "/usr/sbin/lsof",
+        "-nP",
+        "-iTCP:8092",
+        "-sTCP:LISTEN"
+      ],
+      "returncode": 1,
+      "stdout": "",
+      "stderr": ""
+    },
+    "8093": {
+      "cmd": [
+        "/usr/sbin/lsof",
+        "-nP",
+        "-iTCP:8093",
+        "-sTCP:LISTEN"
+      ],
+      "returncode": 1,
+      "stdout": "",
+      "stderr": ""
+    },
+    "8787": {
+      "cmd": [
+        "/usr/sbin/lsof",
+        "-nP",
+        "-iTCP:8787",
+        "-sTCP:LISTEN"
+      ],
+      "returncode": 1,
+      "stdout": "",
+      "stderr": ""
+    },
+    "8083": {
+      "cmd": [
+        "/usr/sbin/lsof",
+        "-nP",
+        "-iTCP:8083",
+        "-sTCP:LISTEN"
+      ],
+      "returncode": 1,
+      "stdout": "",
+      "stderr": ""
+    }
+  },
+  "mount": {
+    "cmd": [
+      "/sbin/mount"
+    ],
+    "returncode": 0,
+    "stdout": "/dev/disk3s1s1 on / (apfs, sealed, local, read-only, journaled)\n/dev/disk6s2 on /Volumes/Extern M4 Speicher (apfs, local, nodev, nosuid, journaled, noowners)",
+    "stderr": ""
+  },
+  "device_protocols_unmapped": {
+    "cmd": [
+      "/usr/sbin/ioreg",
+      "-r",
+      "-c",
+      "IOBlockStorageDevice",
+      "-l",
+      "-w",
+      "0"
+    ],
+    "returncode": 0,
+    "stdout": "  |   \"Protocol Characteristics\" = {\"Physical Interconnect\"=\"Secure Digital\",\"Physical Interconnect Location\"=\"Internal\"}\n  |   \"Device Characteristics\" = {\"Vendor Name\"=\"Apple\",\"Product Name\"=\"Built In SDXC Reader\"}\n  |   \"Protocol Characteristics\" = {\"Physical Interconnect\"=\"Apple Fabric\",\"Physical Interconnect Location\"=\"Internal\"}\n  |   \"Protocol Characteristics\" = {\"Write Time Out Duration\"=30000,\"Read Time Out Duration\"=30000,\"Physical Interconnect\"=\"USB\",\"SCSI Logical Unit Number\"=0,\"Physical Interconnect Location\"=\"External\",\"SCSI Logical Unit Bytes\"=<0000000000000000>,\"Retry Count\"=20}\n  |   \"Device Characteristics\" = {\"Medium Type\"=\"Solid State\",\"Product Name\"=\"PSSD T7\",\"Vendor Name\"=\"Samsung\",\"Product Revision Level\"=\"0\"}\n  |   \"Protocol Characteristics\" = {\"Physical Interconnect\"=\"Virtual Interface\",\"Physical Interconnect Location\"=\"File\"}",
+    "stderr": ""
+  },
+  "resource_binaries": [
+    "pgrn-convert",
+    "runtime-manifest.json",
+    "llama-server"
+  ],
+  "binary_sha256": {
+    "pgrn-convert": "af8e47e59d4dcd9eed556da061220af7bd10c3de8137eea2ddd866ab53ad8476",
+    "llama-server": "7d022ad062d322bb6964b9828f4f529e867c7cea98447f84ffb19a05ff4e7f0e"
+  },
+  "bundle_info": "0.3.4",
+  "glm_summary": {
+    "groups": {
+      "other_resident": {
+        "Q6_K": 24,
+        "F32": 331,
+        "Q4_K": 171,
+        "Q8_0": 1
+      },
+      "down": {
+        "Q8_0": 22,
+        "Q5_0": 24
+      },
+      "shared_expert_resident": {
+        "Q8_0": 46,
+        "Q5_K": 92
+      },
+      "gate": {
+        "Q4_K": 46
+      },
+      "up": {
+        "Q4_K": 46
+      }
+    },
+    "expert_layers_by_group_and_type": {
+      "down:Q8_0": [
+        1,
+        2,
+        3,
+        4,
+        7,
+        10,
+        13,
+        16,
+        19,
+        22,
+        25,
+        28,
+        31,
+        34,
+        37,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46
+      ],
+      "gate:Q4_K": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46
+      ],
+      "up:Q4_K": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46
+      ],
+      "down:Q5_0": [
+        5,
+        6,
+        8,
+        9,
+        11,
+        12,
+        14,
+        15,
+        17,
+        18,
+        20,
+        21,
+        23,
+        24,
+        26,
+        27,
+        29,
+        30,
+        32,
+        33,
+        35,
+        36,
+        38,
+        39
+      ]
+    },
+    "duplicate_tensor_names": [],
+    "total_tensors": 803,
+    "total_streamed_expert_tensors": 138,
+    "all_parts_type_compatible": false
+  },
+  "glm_files": [
+    {
+      "file": "/Volumes/Extern M4 Speicher/LLM-Experimente/slipstream/glm-4.5-air-q4_k_m/GLM-4.5-Air-Q4_K_M-00001-of-00002.gguf",
+      "size": 50000746752,
+      "header_bytes": 9344743,
+      "metadata": {
+        "general.architecture": "glm4moe",
+        "glm4moe.block_count": 47,
+        "glm4moe.expert_used_count": 8,
+        "glm4moe.expert_count": 128,
+        "glm4moe.nextn_predict_layers": 1,
+        "general.file_type": 15,
+        "split.no": 0,
+        "split.tensors.count": 803,
+        "split.count": 2
+      }
+    },
+    {
+      "file": "/Volumes/Extern M4 Speicher/LLM-Experimente/slipstream/glm-4.5-air-q4_k_m/GLM-4.5-Air-Q4_K_M-00002-of-00002.gguf",
+      "size": 22975001632,
+      "header_bytes": 14852,
+      "metadata": {
+        "split.no": 1,
+        "split.tensors.count": 803,
+        "split.count": 2
+      }
+    }
+  ],
+  "qwen_files": [
+    {
+      "path": "/Volumes/Extern M4 Speicher/LLM-Experimente/slipstream/qwen35b-reference/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf",
+      "size": 22853663008,
+      "mtime_ns": 1792248762552516529
+    },
+    {
+      "path": "/Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017/pgrn/Qwen3.6-35B-A3B-UD-Q4_K_XL.pgrn",
+      "size": 20128754176,
+      "mtime_ns": 1792249522944183746
+    }
+  ]
+}

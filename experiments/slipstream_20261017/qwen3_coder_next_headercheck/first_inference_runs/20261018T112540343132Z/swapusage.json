@@ -1,0 +1,9 @@
+{
+  "argv": [
+    "/usr/sbin/sysctl",
+    "vm.swapusage"
+  ],
+  "exit_code": 1,
+  "stdout": "",
+  "stderr": "sysctl: sysctl fmt -1 1024 1: Operation not permitted\n"
+}

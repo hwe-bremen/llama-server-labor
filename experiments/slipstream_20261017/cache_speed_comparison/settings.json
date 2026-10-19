@@ -1,0 +1,27 @@
+{
+  "cache_variants_gib": [
+    2,
+    12
+  ],
+  "order": [
+    "A2GiB",
+    "B12GiB"
+  ],
+  "requests_per_process": 3,
+  "context": 4096,
+  "max_output_tokens": 128,
+  "temperature": 0,
+  "seed": 42,
+  "enable_thinking": false,
+  "headroom_gib": 8,
+  "batch": 32,
+  "ubatch": 32,
+  "io_threads": 1,
+  "load_timeout_s": 420,
+  "per_request_timeout_s": 240,
+  "client_timeout_s": 780,
+  "automatic_retry": false,
+  "source_prompt": "reviewer_eval_6cases/prompts/case04.json",
+  "purpose": "Geschwindigkeit/cache only; no reviewer quality grading",
+  "sequence_note": "First request arena-cold, next two warmer; OS cache uncontrolled; same sequential2-process A/B, no replication of processes."
+}

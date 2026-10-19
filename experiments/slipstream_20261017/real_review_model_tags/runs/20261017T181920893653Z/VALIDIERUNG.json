@@ -1,0 +1,69 @@
+{
+  "evaluated_at": "2026-10-17T19:02:57.477168+00:00",
+  "run": "/Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017/real_review_model_tags/runs/20261017T181920893653Z",
+  "status": "incomplete_output_limit_no_actionable_confirmed_finding",
+  "original_answer_preserved": true,
+  "answer_sha256": "70e630359a3b20ae990924e45f74b845f162d82661fce456e9d71161fb1269c8",
+  "reference_review_blind": false,
+  "qwen_claims": [
+    {
+      "original_heading": "Falsches Modellkürzel bei Modellen mit mehreren Größenangaben (Hoch)",
+      "location": "role-split/role_proxy.py:115",
+      "classification": "Fehlalarm für die konkret genannten Projektmodelle; andere hypothetische Varianten ungeklärt, kein belegter eingeführter Fehler",
+      "validation": "Mellum -> mellum2-12b; Qwen36/38 und Gemma26/31 alle Vertragswerte. Keine falsche Verdiktzuordnung reproduziert.",
+      "uncertainty": "Qwen widerruft wiederholt eigene Behauptungen, hält aber schwere Fehlerüberschrift aufrecht und liefert keinen abgeschlossenen Befund."
+    }
+  ],
+  "confirmed_introduced_bugs": [],
+  "additional_reference_bugs": [],
+  "open_concrete_claims": [],
+  "hypothetical_model_naming_cases": "Nicht spezifizierte/konfigurierte andere Namen ohne Vertragsverletzungsnachweis, keine offenen konkreten Bugs zählen.",
+  "reference_existing_tests": {
+    "base": {
+      "run": 21,
+      "failures": 0,
+      "errors": 0,
+      "success": true,
+      "excluded": "RoleFileTests require roles fixtures absent from pinned snapshot; ProxyIntegrationTests bind sockets. Neither relevant integration nor full suite claimed."
+    },
+    "target": {
+      "run": 22,
+      "failures": 0,
+      "errors": 0,
+      "success": true,
+      "excluded": "RoleFileTests require roles fixtures absent from pinned snapshot; ProxyIntegrationTests bind sockets. Neither relevant integration nor full suite claimed."
+    }
+  },
+  "manual_behavior_checks": 12,
+  "runtime": {
+    "prompt_tokens": 9843,
+    "output_tokens": 4096,
+    "final_words_whitespace": 1384,
+    "separate_reasoning_chars": 0,
+    "reasoning_tokens": null,
+    "reasoning_tokens_status": "not_reported",
+    "context_capacity": 16384,
+    "total_usage_tokens": 13939,
+    "finish_reason": [
+      "length"
+    ],
+    "sse_done": true,
+    "truncated": true,
+    "ttft_s": 722.7824713749578,
+    "wall_s": 1471.145145791932,
+    "native_prompt_tps": 13.618479943289236,
+    "native_decode_tps": 5.47329550527147,
+    "load_to_health_s": 126.66950320906471,
+    "peak_rss_gib": 6.7359619140625,
+    "swapout_delta": 0
+  },
+  "cleanup": {
+    "engine_exit_code": 0,
+    "lab_stayed_stopped": true,
+    "port_8083_after": "frei",
+    "tracked_worktree_unchanged": true,
+    "index_unchanged": true,
+    "head_unchanged": true
+  },
+  "practical_conclusion": "Dieser Lauf liefert keinen praktisch verwendbaren abgeschlossenen Review. Größeres Ausgabelimit löste Wiederholungen nicht. Vor weiterer Einbindung vorhandenes Vergleichsmodell am gleichen Diff prüfen; kein automatischer Folgeversuch."
+}

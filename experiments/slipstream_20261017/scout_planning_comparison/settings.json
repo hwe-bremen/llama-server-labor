@@ -1,0 +1,19 @@
+{
+  "context": 32768,
+  "max_output_tokens": 4096,
+  "enable_thinking": false,
+  "reasoning": "off",
+  "reasoning_format": "deepseek",
+  "reasoning_budget": 0,
+  "cache_prompt": false,
+  "temperature": 0,
+  "seed": 42,
+  "expert_cache_gib": 2,
+  "headroom_gib": 8,
+  "batch": 32,
+  "ubatch": 32,
+  "io_threads": 1,
+  "mtp_draft_max": 4,
+  "timeout_s": 1800,
+  "automatic_retry": false
+}

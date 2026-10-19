@@ -1,0 +1,18 @@
+[
+  {
+    "path": "src/llama-graph.cpp",
+    "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>"
+  },
+  {
+    "path": "src/models/qwen35moe.cpp",
+    "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>"
+  },
+  {
+    "path": "ggml/src/ggml.c",
+    "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>"
+  },
+  {
+    "path": "ggml/src/ggml-backend.cpp",
+    "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>"
+  }
+]

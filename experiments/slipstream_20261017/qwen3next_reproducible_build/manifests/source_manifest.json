@@ -1,0 +1,27 @@
+{
+  "status": "BUILD BLOCKED",
+  "reason": "Both isolated git fetch operations failed: Could not resolve host: github.com",
+  "release_identity_uncertainty_is_not_a_blocker": true,
+  "upstream": {
+    "url": "https://github.com/ggml-org/llama.cpp.git",
+    "expected_commit": "79bba02a6741de194912d370015866414faa83ad",
+    "objects_fetched": false
+  },
+  "slipstream": {
+    "url": "https://github.com/Schero94/slipstream.git",
+    "expected_commit": "0b30cac2a6a40439b74cce6a512f08166f6e3ab3",
+    "expected_tag": "v0.3.4",
+    "objects_fetched": false
+  },
+  "seams_expected_sha256": "3f9ce71145da71f62f0f1fcd9b75a72a804ca553fbf57fd63dcb333ed228794d",
+  "overlay_complete": false,
+  "source_reconstructed": false,
+  "build_options_planned": {
+    "CMAKE_BUILD_TYPE": "Release",
+    "BUILD_SHARED_LIBS": "OFF",
+    "LLAMA_OPENSSL": "OFF",
+    "LLAMA_CURL": "OFF",
+    "GGML_METAL_EMBED_LIBRARY": "ON",
+    "CMAKE_OSX_ARCHITECTURES": "arm64"
+  }
+}

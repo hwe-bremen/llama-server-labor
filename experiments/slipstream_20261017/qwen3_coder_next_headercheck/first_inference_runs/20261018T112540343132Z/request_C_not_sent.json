@@ -1,0 +1,12 @@
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "Prüfe diese Python-Funktion. Spezifikation: Mittelwert ausschließlich strikt positiver Werte; falls keine existieren, None zurückgeben. Benenne die Fehler und schlage eine Korrektur vor.\n```python\ndef mean_positive(values):\n    positives = [x for x in values if x >= 0]\n    return sum(positives) / len(positives)\n```"
+    }
+  ],
+  "max_tokens": 512,
+  "temperature": 0,
+  "seed": 42,
+  "stream": false
+}

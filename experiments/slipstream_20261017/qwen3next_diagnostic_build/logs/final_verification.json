@@ -1,0 +1,21 @@
+{
+  "release_sha256_after": "7d022ad062d322bb6964b9828f4f529e867c7cea98447f84ffb19a05ff4e7f0e",
+  "release_sha256_matches_reference": true,
+  "listener_observation_before": [
+    "Python    67826 hans-wernereberhardt    3u  IPv4 0x44c06574346e7c40      0t0  TCP 127.0.0.1:8092 (LISTEN)",
+    "Python    67834 hans-wernereberhardt    6u  IPv4 0x5d373dd2ffc5c01a      0t0  TCP 127.0.0.1:8787 (LISTEN)",
+    "llama-ser 67863 hans-wernereberhardt    9u  IPv4 0x2618320e4cb4c678      0t0  TCP 127.0.0.1:8080 (LISTEN)",
+    "Python    67889 hans-wernereberhardt    3u  IPv4 0xef590d1cb883ad80      0t0  TCP 127.0.0.1:8091 (LISTEN)"
+  ],
+  "listener_observation_after": [
+    "Python    67826 hans-wernereberhardt    3u  IPv4 0x44c06574346e7c40      0t0  TCP 127.0.0.1:8092 (LISTEN)",
+    "Python    67834 hans-wernereberhardt    6u  IPv4 0x5d373dd2ffc5c01a      0t0  TCP 127.0.0.1:8787 (LISTEN)",
+    "llama-ser 67863 hans-wernereberhardt    9u  IPv4 0x2618320e4cb4c678      0t0  TCP 127.0.0.1:8080 (LISTEN)",
+    "Python    67889 hans-wernereberhardt    3u  IPv4 0xef590d1cb883ad80      0t0  TCP 127.0.0.1:8091 (LISTEN)"
+  ],
+  "observed_lab_listeners_unchanged": true,
+  "lsof_exit_code_after": 0,
+  "build_started": false,
+  "server_started": false,
+  "inference_sent": false
+}

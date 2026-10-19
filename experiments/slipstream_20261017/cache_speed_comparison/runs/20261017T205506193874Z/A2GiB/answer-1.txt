@@ -1,0 +1,9 @@
+Hier ist die Analyse des bereitgestellten Codes basierend auf den Rahmenbedingungen (Python 3.11+, Single-Process, Async, SQLite, Atomicity-Anforderung).
+
+### Zusammenfassung der Befunde
+
+Es wurden **keine syntaktischen Fehler** gefunden, die den Code am Laufen hindern würden. Es wurden jedoch **kritische Designrisiken und potenzielle Fehlerquellen** identifiziert, die unter den gegebenen Bedingungen (insbesondere `timeout=0.05` und `await` innerhalb einer Transaktion) zu Dateninkonsistenz, Deadlocks oder Datenverlust führen können.
+
+---
+
+### Bef

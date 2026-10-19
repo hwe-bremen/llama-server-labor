@@ -1,0 +1,14 @@
+{
+  "argv": [
+    "git",
+    "-C",
+    "experiments/slipstream_20261017/qwen3next_reproducible_build/slipstream",
+    "fetch",
+    "--depth=1",
+    "https://github.com/Schero94/slipstream.git",
+    "0b30cac2a6a40439b74cce6a512f08166f6e3ab3"
+  ],
+  "exit_code": 128,
+  "stdout": "",
+  "stderr": "fatal: unable to access 'https://github.com/Schero94/slipstream.git/': Could not resolve host: github.com\n"
+}

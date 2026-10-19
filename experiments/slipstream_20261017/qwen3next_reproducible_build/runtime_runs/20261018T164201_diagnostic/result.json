@@ -1,0 +1,138 @@
+{
+ "which": "diagnostic",
+ "started_at": "2026-10-18T14:42:01.868200+00:00",
+ "dry_run": false,
+ "server_started": true,
+ "requests_sent": 1,
+ "checks": {
+  "reference_reproduced": true,
+  "binary_sha256_ok": true,
+  "gguf_size_ok": true,
+  "pgrn_size_ok": true,
+  "port_8083_free": true,
+  "lab_ports_before": [],
+  "memory_free_percent": 90,
+  "port_8083_bindable": true
+ },
+ "argv": [
+  "/Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017/qwen3next_reproducible_build/diagnostic/bin/llama-server-pgrn-diagnostic",
+  "--model",
+  "/Volumes/Extern M4 Speicher/LLM-Experimente/slipstream/qwen3-coder-next-q4_k_m/Qwen3-Coder-Next-Q4_K_M.gguf",
+  "--pgrn",
+  "/Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017/pgrn/qwen3-coder-next/Qwen3-Coder-Next-Q4_K_M.pgrn",
+  "--host",
+  "127.0.0.1",
+  "--port",
+  "8083",
+  "--ctx-size",
+  "4096",
+  "--pgrn-cache-gb",
+  "12",
+  "--pgrn-headroom-gb",
+  "8",
+  "--batch-size",
+  "25",
+  "--ubatch-size",
+  "25",
+  "--parallel",
+  "1",
+  "--spec-type",
+  "none",
+  "--reasoning",
+  "off",
+  "--temp",
+  "0",
+  "--seed",
+  "42",
+  "--gpu-layers",
+  "99",
+  "--jinja",
+  "--verbosity",
+  "5",
+  "--log-colors",
+  "off"
+ ],
+ "env_removed": [],
+ "pid": 94769,
+ "load_seconds": 284.6,
+ "http_status": 500,
+ "http_body": "{\"error\":{\"code\":500,\"message\":\"Compute error.\",\"type\":\"server_error\"}}",
+ "request_seconds": 2.1,
+ "own_process_exit_code": 0,
+ "geometry_error_in_log": true,
+ "reproduced": true,
+ "outcome": "GEOMETRIEFEHLER REPRODUZIERT",
+ "diag": {
+  "diag_lines": 144,
+  "error_line": 1741,
+  "failing_candidate": {
+   "line": 1740,
+   "layer": 47,
+   "name": "ffn_moe_topk-47",
+   "type": 26,
+   "type_name": "i32",
+   "ne": [
+    10,
+    0,
+    1,
+    1
+   ],
+   "nb": [
+    4,
+    2048,
+    0,
+    0
+   ],
+   "n_expert_used": 10,
+   "ask": 0,
+   "is_pgrn": 1,
+   "compact": 0
+  },
+  "failing_guard": {
+   "type_is_i32": true,
+   "ne0_eq_n_expert_used": true,
+   "ne1_gt_0": false,
+   "ne2_eq_1": true,
+   "ne3_eq_1": true,
+   "nb0_eq_4": true
+  },
+  "failing_violated": [
+   "ne1_gt_0"
+  ],
+  "earlier_pgrn_callbacks": 143,
+  "earlier_example": {
+   "line": 1739,
+   "layer": 46,
+   "name": "ffn_moe_topk-46",
+   "type": 26,
+   "type_name": "i32",
+   "ne": [
+    10,
+    21,
+    1,
+    1
+   ],
+   "nb": [
+    4,
+    2048,
+    43008,
+    43008
+   ],
+   "n_expert_used": 10,
+   "ask": 0,
+   "is_pgrn": 1,
+   "compact": 0
+  },
+  "earlier_all_pass": true,
+  "distinct_geometries": [
+   "[\"i32\", [10, 0, 1, 1], [4, 2048, 0, 0], 0]",
+   "[\"i32\", [10, 1, 1, 1], [4, 2048, 2048, 2048], 0]",
+   "[\"i32\", [10, 2, 1, 1], [4, 2048, 4096, 4096], 0]",
+   "[\"i32\", [10, 21, 1, 1], [4, 2048, 43008, 43008], 0]"
+  ]
+ },
+ "port_8083_free_after": true,
+ "lab_ports_after": [],
+ "lab_ports_unchanged": true,
+ "finished_at": "2026-10-18T14:46:48.795170+00:00"
+}

@@ -1,0 +1,18 @@
+{
+  "at": "2026-10-17T20:00:20.514344+00:00",
+  "prepared": true,
+  "model_started": false,
+  "live_model_process_preflight": "Will run in normal macOS Terminal; previously ps/localhost restrictions not retried.",
+  "relevant_listeners": [
+    "Python     4785 hans-wernereberhardt    3u  IPv4 0x14af5883dd044101      0t0  TCP 127.0.0.1:8092 (LISTEN)",
+    "Python     4793 hans-wernereberhardt    6u  IPv4 0x20239ca159266287      0t0  TCP 127.0.0.1:8787 (LISTEN)",
+    "llama-ser  4822 hans-wernereberhardt    9u  IPv4 0xed84f9c4094b1b1f      0t0  TCP 127.0.0.1:8080 (LISTEN)",
+    "Python     4851 hans-wernereberhardt    3u  IPv4 0x3c0248e1facbace3      0t0  TCP 127.0.0.1:8091 (LISTEN)"
+  ],
+  "listener_probe_returncode": 0,
+  "input_files": 9,
+  "original_prompt_prefix_verified": true,
+  "source_hashes_match_current_worktree": true,
+  "offline_client_tests_passed": 2,
+  "git_status": "?? experiments/\n"
+}

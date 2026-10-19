@@ -1,0 +1,6 @@
+{
+  "verified_cases": 2541,
+  "argument": "For lower <= upper: max chooses at least lower; min caps at upper. The guard rejects reversed bounds.",
+  "only_temperature_differs": true,
+  "messages_sha256": "1f721f3c97ed3f143be73e5d150bfef3f8660ef85596cd068d135503229b7e10"
+}

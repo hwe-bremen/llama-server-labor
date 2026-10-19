@@ -1,0 +1,14 @@
+{
+  "at": "2026-10-17T19:59:58.439667+00:00",
+  "files": {
+    "original_user_prompt.txt": "4bead6d3f9609c3af9fcabc3460c68b05aad519534c7d19a10f51b3db6e11a52",
+    "role_prompt_snapshot.md": "ef6e76d8855bb1c0693f4e4a4055b799c7f541712090cec00316a9b6ce389971",
+    "prompt.json": "30db5e61c65941d8360ee3f15950e2d0f703b002b919e3c28aff14b2275f28d7",
+    "settings.json": "6c8431be4b63dfe0ec6acd64dd361165c4b82d6f76a6bd906f7933382f88ebf5",
+    "INPUT_MANIFEST.json": "c16f0d146ba5e1ac6e50d47ab14493f702814d824e8fa00bdd1defad07b641e0",
+    "snapshots/scripts/run_scout_pipeline.sh": "75ba0f3a171540d30d43aa5fa122cc0b9c249bdc68fa5587f81f696ec9b722ab",
+    "snapshots/scripts/send_scout_email.py": "e1d8200fd64d933cdd0724c520dc3a5de56c32b6ea20c4e5c63fbe647e4e204f",
+    "snapshots/docs/projekt_management/_vorlage_spec.md": "ec745d84cd7d6e2cd27815774558b384b43ae62eb52715f0fff1c3f424581d1d",
+    "snapshots/agents/llm_scout/llm_scout.py": "b3292fee4b951bfa6bd1bf4cf36dc2566aea12c36ca5adbb6ab120fea4b4e7ed"
+  }
+}

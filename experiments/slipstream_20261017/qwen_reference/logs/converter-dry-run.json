@@ -1,0 +1,14 @@
+{
+  "at": "2026-10-17T15:02:06.274310+00:00",
+  "command": [
+    "/Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017/runtime/Slipstream.app/Contents/Resources/resources/pgrn-convert",
+    "--input",
+    "/Volumes/Extern M4 Speicher/LLM-Experimente/slipstream/qwen35b-reference/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf",
+    "--dry-run"
+  ],
+  "exit_code": 0,
+  "stdout": "{\"source\":\"/Volumes/Extern M4 Speicher/LLM-Experimente/slipstream/qwen35b-reference/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf\",\"source_size\":22853663008,\"source_shards\":1,\"layers_with_experts\":41,\"experts_per_layer\":256,\"expert_count\":10496,\"estimated_output_bytes\":20128754176}\n",
+  "stderr": "",
+  "converted": false,
+  "model_started": false
+}

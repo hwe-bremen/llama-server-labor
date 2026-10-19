@@ -1,0 +1,19 @@
+{
+  "at": "2026-10-17T20:48:41.791315+00:00",
+  "engine_started": false,
+  "metadata_options": "Installed --help: cache is hard upper bound;8GiB headroom unchanged",
+  "memory_pressure_percent_free_reported": 84,
+  "sysctl_swapusage": "Sandbox denied; no repeat; vm_stat monitoring in terminal runner",
+  "memory_interpretation": "memory_pressure percentage is not exact allocatable memory. Engine admission and safety monitoring remain mandatory.",
+  "runner_source": "/Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017/scout_planning_comparison/isolated_runner.py",
+  "runner_source_sha256": "7ed4df02b923532de5435639ed71f280a857e08303006c237f4ba7c4b01c3769",
+  "runner_changes": "Only optionalcache_gib argument; existing runner untouched",
+  "git_status": "?? experiments/\n",
+  "checked_at": "2026-10-17T20:51:10.314155+00:00",
+  "offline_harness_passed": true,
+  "syntax_passed": true,
+  "live_model_started": false,
+  "note": "Normal Terminal execution pending; no measured cache comparison yet.",
+  "relevant_listeners": [],
+  "listener_probe_returncode": 0
+}

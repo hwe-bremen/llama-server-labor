@@ -1,0 +1,24 @@
+Hier sind die konkreten Befunde zur Änderung, sortiert nach Schwere:
+
+**1. Falsche Modellzuordnung durch Substring-Matching (Hoch)**
+*   **Datei/Zeile:** `role-split/role_proxy.py`, Zeile 110 (`idx = name.find(fam)`)
+*   **Auslöser:** Ein Modellname, der eine bekannte Familie als Teilstring enthält, aber zu einer anderen Familie gehört. Beispiel: `"unsloth/Mistral-Devstral-7B-GGUF"` oder hypothetisch `"unsloth/Phi-Devstral-3B"`.
+*   **Auswirkung:** Da `MODEL_FAMILIES` die Reihenfolge `"devstral"` vor `"mistral"` und `"phi"` hat (Zeile 48), wird bei `"Mistral-Devstral"` korrekt `devstral` erkannt. Aber bei einem Modell wie `"unsloth/Devstral-Mistral-7B"` (falls existierend) oder wenn `devstral` in einem anderen Kontext vorkommt, ist die Logik fragil. Kritischer ist der Fall: Ein Modell namens `"unsloth/Phi-3-Devstral-7B"`. `find("phi")` findet `phi` am Anfang. `find("devstral")` findet `devstral` später. Da `devstral` in der Liste *vor* `phi` steht (Index 4 vs. 7), wird `devstral` als Familie erkannt, obwohl das Modell primär ein Phi-Modell ist (oder umgekehrt, je nach Namenskonvention). Die reine Substring-Suche ohne Wortgrenzen führt zu semantisch falschen Tags, wenn Familienbezeichnungen ineinander verschachtelt oder als Suffix/Präfix auftreten.
+*   **Begründung:** Die Funktion `model_tag` soll ein eindeutiges Kürzel erzeugen. Durch das einfache `find` ohne Berücksichtigung von Wortgrenzen oder der tatsächlichen Modellarchitektur kann das falsche Familienkürzel in den Dateinamen wandern, was die Unterscheidbarkeit der Verdikte (das Hauptziel der Änderung) untergräbt.
+
+**2. Fehlende Erkennung der Modellgröße bei bestimmten Namenskonventionen (Mittel)**
+*   **Datei/Zeile:** `role-split/role_proxy.py`, Zeile 115 (`size = _SIZE_RE.search(name)`)
+*   **Auslöser:** Modellnamen, bei denen die Größe nicht direkt an Ziffern mit 'b' angehängt ist, sondern durch andere Zeichen getrennt ist, die vom Regex-Lookbehind ausgeschlossen werden. Das Regex `_SIZE_RE` ist `(?<![a-z0-9.])(\d+(?:\.\d+)?)b(?![a-z0-9])`.
+*   **Auswirkung:** Bei einem Modell wie `"unsloth/Qwen3.6-27B-MTP"` funktioniert es. Aber bei `"unsloth/Qwen3.6_27B_MTP"` (Unterstrich statt Bindestrich) oder wenn die Größe als `"27b"` geschrieben wird, ist es okay. Das Problem tritt auf, wenn die Größe *nicht* das Muster `\d+b` hat, z.B. `"27GB"` (wird nicht erkannt, da `g` folgt) oder wenn die Größe am Ende steht und durch einen Punkt getrennt ist, der vom Lookbehind `(?<![a-z0-9.])` blockiert wird. Wichtiger: Das Regex sucht nach `b` (klein). Wenn der Name `"27B"` (groß) hat, wird er in Zeile 108 zu `name` (lowercase) konvertiert, also ist das okay. Das eigentliche Risiko: Wenn die Größe als `"27b"` vorkommt, aber vorher ein Punkt steht, z.B. `"v1.27b"`. Der Lookbehind `(?<![a-z0-9.])` verhindert die Erkennung, weil `.` vor der Ziffer steht.
+*   **Begründung:** Das Regex ist zu restriktiv im Lookbehind. Es schließt Punkte aus, die häufig in Versionsnummern vorkommen. Wenn ein Modellname wie `"model-v1.27b"` vorliegt, wird die Größe `27b` nicht erkannt, weil der Punkt vor der `2` steht. Das führt zu einem Tag ohne Größenangabe (z.B. `modelv1` statt `modelv1-27b`), was die Unterscheidbarkeit gegenüber `"model-v1.30b"` verringert.
+
+**3. Inkonsistenz bei der Versionserkennung für "8B" (Niedrig/Ungewiss)**
+*   **Datei/Zeile:** `role-split/role_proxy.py`, Zeile 114 (`ver = re.match(...)`)
+*   **Auslöser:** Ein Modellname wie `"unsloth/Apertus-8B-Instruct"`.
+*   **Auswirkung:** Der Kommentar in Zeile 114 sagt: `"8B" ist Größe, keine Version`. Das Regex für `ver` ist `[-_ ]?(\d+(?:\.\d+)?)(?![\d.]|b)`. Bei `"8b-instruct"` (nach lowercase): `rest` ist `"8b-instruct"`. `re.match` versucht, am Anfang zu matchen. `[-_ ]?` matcht nichts. `(\d+...)` matcht `8`. Der Lookahead `(?![\d.]|b)` prüft, ob das nächste Zeichen *kein* `b` ist. Das nächste Zeichen ist `b`. Also schlägt der Lookahead fehl. `ver` ist `None`. Das ist korrekt.
+    *   Aber: Was ist bei `"unsloth/Apertus-8-8B-Instruct"`? `rest` = `"8-8b-instruct"`. `ver` matcht `8`. Lookahead: nächstes Zeichen ist `-`. Kein `b`, keine Ziffer. Also `ver` = `8`. `size` findet `8b`. Tag: `apertus8-8b`. Das ist plausibel.
+    *   Das eigentliche Problem: Die Logik ist komplex und fehleranfällig für unkonventionelle Namen. Da die Tests nur Standardfälle abdecken, ist die Robustheit für Edge-Cases (wie oben in Befund 2) nicht gesichert.
+*   **Begründung:** Die Kombination aus `ver`-Regex und `size`-Regex ist schwer zu testen und hat Lücken bei unkonventionellen Namenskonventionen (Punkte vor Größenangaben). Dies ist ein potenzieller Fehler, der in der Praxis zu unvollständigen Tags führen kann.
+
+**Zusammenfassung:**
+Die schwerwiegendste Änderung ist die Einführung des Substring-Matchings ohne Wortgrenzen (Befund 1), die zu falschen Familienzuordnungen führen kann. Die Regex für die Größenerkennung (Befund 2) hat eine Lücke bei Punkten vor der Größenangabe.

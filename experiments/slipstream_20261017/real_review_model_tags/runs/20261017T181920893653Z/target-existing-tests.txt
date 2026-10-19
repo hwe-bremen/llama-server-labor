@@ -1,0 +1,27 @@
+test_aus_mit_client_system (snapshot_tests_target.TriggerTests.test_aus_mit_client_system) ... ok
+test_aus_schaltet_ab (snapshot_tests_target.TriggerTests.test_aus_schaltet_ab) ... ok
+test_client_system_bleibt_erhalten (snapshot_tests_target.TriggerTests.test_client_system_bleibt_erhalten) ... ok
+test_eingabe_wird_nicht_veraendert (snapshot_tests_target.TriggerTests.test_eingabe_wird_nicht_veraendert) ... ok
+test_letzter_trigger_gewinnt (snapshot_tests_target.TriggerTests.test_letzter_trigger_gewinnt) ... ok
+test_listen_content (snapshot_tests_target.TriggerTests.test_listen_content) ... ok
+test_nur_trigger_ergibt_hinweistext (snapshot_tests_target.TriggerTests.test_nur_trigger_ergibt_hinweistext) ... ok
+test_ohne_trigger_unveraendert (snapshot_tests_target.TriggerTests.test_ohne_trigger_unveraendert) ... ok
+test_rolle_bleibt_ueber_folgerunden (snapshot_tests_target.TriggerTests.test_rolle_bleibt_ueber_folgerunden) ... ok
+test_rolle_nach_aus_wieder_an (snapshot_tests_target.TriggerTests.test_rolle_nach_aus_wieder_an) ... ok
+test_tool_nachrichten_bleiben (snapshot_tests_target.TriggerTests.test_tool_nachrichten_bleiben) ... ok
+test_trigger_als_wortanfang_nicht_als_praefix (snapshot_tests_target.TriggerTests.test_trigger_als_wortanfang_nicht_als_praefix) ... ok
+test_trigger_mitten_im_text_zaehlt_nicht (snapshot_tests_target.TriggerTests.test_trigger_mitten_im_text_zaehlt_nicht) ... ok
+test_trigger_setzt_system_und_entfernt_trigger (snapshot_tests_target.TriggerTests.test_trigger_setzt_system_und_entfernt_trigger) ... ok
+test_unbekannter_trigger_bleibt_stehen (snapshot_tests_target.TriggerTests.test_unbekannter_trigger_bleibt_stehen) ... ok
+test_doppelpunkt_ohne_leerzeichen_kein_trigger (snapshot_tests_target.ModelTests.test_doppelpunkt_ohne_leerzeichen_kein_trigger) ... ok
+test_kuerzel (snapshot_tests_target.ModelTests.test_kuerzel) ... ok
+test_kuerzel_unterscheidet_familienmitglieder (snapshot_tests_target.ModelTests.test_kuerzel_unterscheidet_familienmitglieder) ... ok
+test_modell_im_system_prompt (snapshot_tests_target.ModelTests.test_modell_im_system_prompt) ... ok
+test_modell_nur_bei_aktiver_rolle (snapshot_tests_target.ModelTests.test_modell_nur_bei_aktiver_rolle) ... ok
+test_ohne_modell_keine_zeile (snapshot_tests_target.ModelTests.test_ohne_modell_keine_zeile) ... ok
+test_trigger_mit_doppelpunkt (snapshot_tests_target.ModelTests.test_trigger_mit_doppelpunkt) ... ok
+
+----------------------------------------------------------------------
+Ran 22 tests in 0.000s
+
+OK

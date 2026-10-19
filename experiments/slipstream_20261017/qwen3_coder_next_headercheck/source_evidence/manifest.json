@@ -1,0 +1,32 @@
+[
+  {
+    "filename": "converter_v0.3.4.cpp",
+    "url": "https://github.com/Schero94/slipstream/blob/v0.3.4/engine/tools/pgrn-convert/pgrn-convert.cpp",
+    "sha256": "9615a564012e72fff5a5c68a4c6cd9577b1ccf2dfe1dba148b7f8130ab9a6f5c"
+  },
+  {
+    "filename": "stage_v0.3.4.cpp",
+    "url": "https://github.com/Schero94/slipstream/blob/v0.3.4/engine/src/peregrine_stage.cpp",
+    "sha256": "785db940586f4178acc66a69bfe6956652557288f0e2fdca364d4aaadc8d8367"
+  },
+  {
+    "filename": "scratch_v0.3.4.cpp",
+    "url": "https://github.com/Schero94/slipstream/blob/v0.3.4/engine/src/peregrine_scratch.cpp",
+    "sha256": "a954f29d81cef9bacd6ff2c90fb6a4f850986adf239a9cd0ad3acaf36a32c5a1"
+  },
+  {
+    "filename": "slipstream-seams_v0.3.4.patch",
+    "url": "https://github.com/Schero94/slipstream/blob/v0.3.4/patches/slipstream-seams.patch",
+    "sha256": "3f9ce71145da71f62f0f1fcd9b75a72a804ca553fbf57fd63dcb333ed228794d"
+  },
+  {
+    "filename": "qwen3next_79bba02a6741.cpp",
+    "url": "https://github.com/ggml-org/llama.cpp/blob/79bba02a6741/src/models/qwen3next.cpp",
+    "sha256": "ba965f03500039b065ad53c2d1dfb472d6ae3b3ee3cbbf184cb71a97dc1828d9"
+  },
+  {
+    "filename": "ggml-common_79bba02a6741.h",
+    "url": "https://github.com/ggml-org/llama.cpp/blob/79bba02a6741/ggml/src/ggml-common.h",
+    "sha256": "af255601767325f087313fa84b9435cb77aeec37df6b61b98d9ecc65f29fb4a0"
+  }
+]

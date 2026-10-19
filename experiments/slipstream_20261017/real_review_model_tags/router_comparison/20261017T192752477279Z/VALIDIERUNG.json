@@ -1,0 +1,59 @@
+{
+  "evaluated_at": "2026-10-17T19:33:36.996507+00:00",
+  "model": "unsloth/Qwen3.8-27B-GGUF:Q4_K_XL",
+  "answer_preserved_sha256": "07141e0d301c26f68672b2c1e4c1f2f795bbd591936e9f6d1cce521a3761fd5c",
+  "complete": true,
+  "same_prompt_verified": true,
+  "reference_review_blind": false,
+  "confirmed_introduced_bugs": [],
+  "additional_reference_bugs": [],
+  "findings": [
+    {
+      "number": 1,
+      "original_title": "Falsche Modellzuordnung durch Substring-Matching (Hoch)",
+      "classification": "unbestätigt; Einführungsbehauptung falsch",
+      "validation": "Basis verwendet bereits if fam in low. Neuer devstral-Eintrag ändert Priorität für mehrdeutige Kunstnamen; kein reales betroffenes Modell samt abweichendem Familienvertrag und Schaden belegt."
+    },
+    {
+      "number": 2,
+      "original_title": "Fehlende Erkennung der Modellgröße bei bestimmten Namenskonventionen (Mittel)",
+      "classification": "Fehlalarm für konkret angeführtes Beispiel; allgemeine Namensformen offen",
+      "validation": "model-v1.27b -> modelv127b; model-v1.30b -> modelv130b. Unknown-family fallback preserves distinct names in base and target. No shown introduced collision; underscore Qwen example works."
+    },
+    {
+      "number": 3,
+      "original_title": "Inkonsistenz bei der Versionserkennung für \"8B\" (Niedrig/Ungewiss)",
+      "classification": "kein konkreter Fehlerbefund",
+      "validation": "Apertus-8B -> apertus-8b; Apertus-8-8B -> apertus8-8b. Model itself calls these correct/plausible; complexity/test-gap critique is outside requested concrete introduced bugs."
+    }
+  ],
+  "runtime": {
+    "prompt_tokens": 9843,
+    "output_tokens": 1526,
+    "wall_s": 218.90168504207395,
+    "ttft_s": 86.47702650004067,
+    "native_prompt_tps": 113.84264448309212,
+    "native_decode_tps": 11.516083131379622,
+    "reasoning_chars": 0,
+    "reasoning_tokens_separate": "not reported",
+    "finish": "stop",
+    "swapout_delta": 0,
+    "words_whitespace": 633
+  },
+  "comparison": {
+    "slipstream_model": "Qwen3.6-35B-A3B-UD-Q4_K_XL",
+    "router_model": "unsloth/Qwen3.8-27B-GGUF:Q4_K_XL",
+    "wall_ratio_slipstream_over_router": 6.72057478913043,
+    "decode_ratio_router_over_slipstream": 2.1040492186632695,
+    "not_isolated_backend_benchmark": true,
+    "differences": [
+      "model/version/architecture",
+      "engine build",
+      "resident vs PGRN streaming",
+      "context 65536 vs16384",
+      "runtime defaults such as batch/samplers/MTP",
+      "different output length1526vs4096"
+    ]
+  },
+  "services": "Already loaded router Qwen remained loaded; no services stopped or started; no repeat inference during validation."
+}

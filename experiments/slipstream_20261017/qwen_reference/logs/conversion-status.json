@@ -1,0 +1,30 @@
+{
+  "started_at": "2026-10-17T15:03:23.341492+00:00",
+  "command": [
+    "/Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017/runtime/Slipstream.app/Contents/Resources/resources/pgrn-convert",
+    "--input",
+    "/Volumes/Extern M4 Speicher/LLM-Experimente/slipstream/qwen35b-reference/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf",
+    "--output",
+    "/Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017/pgrn/Qwen3.6-35B-A3B-UD-Q4_K_XL.pgrn",
+    "--expect-sha256",
+    "55983c5a75a1ab969824077b3bb3de4146e82a9234072b48ad4e8f92ad3fe9f1",
+    "--io-threads",
+    "4",
+    "--min-free-gb",
+    "16",
+    "--progress",
+    "jsonl"
+  ],
+  "free_internal_bytes_before": 1138688000000,
+  "expected_output_bytes": 20128754176,
+  "model_started": false,
+  "exit_code": 0,
+  "converter_completed_at": "2026-10-17T15:05:35.700925+00:00",
+  "completed_at": "2026-10-17T15:05:44.019017+00:00",
+  "output": "/Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017/pgrn/Qwen3.6-35B-A3B-UD-Q4_K_XL.pgrn",
+  "output_bytes": 20128754176,
+  "sha256": "732a314b95cb3a63e31c3c9cd44e284757721d13a29d7aecd10360d13e193269",
+  "matches_reference_sha256": true,
+  "converter_crc_verification_enabled": true,
+  "converted": true
+}

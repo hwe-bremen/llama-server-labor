@@ -1,0 +1,26 @@
+{
+  "run": "experiments/slipstream_20261017/qwen_reference/runs/internal-20261017T161514971893Z",
+  "passed": true,
+  "load_s": 150.77172133303247,
+  "requests": [
+    {
+      "output_tokens": 64,
+      "ttft_s": 3.6735724579775706,
+      "wall_s": 14.66465754096862,
+      "decode_tokens_s": 5.823065782264289
+    },
+    {
+      "output_tokens": 128,
+      "ttft_s": 4.579304833896458,
+      "wall_s": 28.13830620900262,
+      "decode_tokens_s": 5.433201000931454
+    }
+  ],
+  "peak_rss_kib": 6795632,
+  "swapout_delta": 0,
+  "final_cumulative_cache_hits": 14534,
+  "final_cumulative_cache_misses": 47702,
+  "external_pgrn_tested": false,
+  "physical_device_read_attribution_verified": false,
+  "engine_exit_code": 0
+}

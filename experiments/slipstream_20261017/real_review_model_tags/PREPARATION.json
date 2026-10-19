@@ -1,0 +1,15 @@
+{
+  "at": "2026-10-17T18:04:49.584481+00:00",
+  "model_started": false,
+  "inference_pending": true,
+  "process_preflight": "/bin/ps invocation rejected with PermissionError [Errno 1] Operation not permitted; no repeat",
+  "known_localhost_restriction": "Previously established; not re-tested",
+  "relevant_listeners": [],
+  "listener_probe_returncode": 0,
+  "no_other_large_model_verified": false,
+  "frozen_input_verified": true,
+  "offline_harness_tests": "2 passed: raw answer preservation, separate reasoning, stop/length, no automatic retry",
+  "reference_review_performed": false,
+  "tracked_diff_unchanged": true,
+  "git_status_now": "?? experiments/\n"
+}

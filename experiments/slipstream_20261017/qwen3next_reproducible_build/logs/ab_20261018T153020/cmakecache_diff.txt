@@ -1,0 +1,4 @@
+247c247
+< CMAKE_HOME_DIRECTORY:INTERNAL=/Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017/qwen3next_reproducible_build/reference/source_patched
+---
+> CMAKE_HOME_DIRECTORY:INTERNAL=/Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017/qwen3next_reproducible_build/diagnostic/source

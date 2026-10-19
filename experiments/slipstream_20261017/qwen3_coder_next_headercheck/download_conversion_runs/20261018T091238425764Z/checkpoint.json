@@ -1,0 +1,34 @@
+{
+  "checked_at": "2026-10-18T09:12:38.425598+00:00",
+  "status": "BLOCKED",
+  "model_started": false,
+  "full_model_download_started": true,
+  "conversion_started": false,
+  "preflight": {
+    "external_mounted": true,
+    "external_free_bytes": 883828822016,
+    "internal_free_bytes": 1121691774976,
+    "existing_gguf_bytes": 0,
+    "existing_pgrn_or_partial_bytes": 0,
+    "binaries": {
+      "llama-server": {
+        "sha256": "7d022ad062d322bb6964b9828f4f529e867c7cea98447f84ffb19a05ff4e7f0e",
+        "matches_inspected_v034": true
+      },
+      "pgrn-convert": {
+        "sha256": "af8e47e59d4dcd9eed556da061220af7bd10c3de8137eea2ddd866ab53ad8476",
+        "matches_inspected_v034": true
+      }
+    },
+    "native_converter_help": "usage: /Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017/runtime/Slipstream.app/Contents/Resources/resources/pgrn-convert --input model.gguf --output model.pgrn [--expect-sha256 HEX]\n          [--min-free-gb N=16] [--io-threads N] [--progress jsonl]\n          [--dry-run] [--no-verify] [--resume] [--no-journal]\n\n  --resume      continue an interrupted conversion from its .partial +\n                .partial.journal, re-checking the CRC of everything\n                already written before appending\n  --no-journal  do not keep a resume journal; a cancelled run then\n                deletes its .partial as before\n\nexit codes: 0 done, 1 error, 2 cancelled (resumable)\n",
+    "external_target_files": [],
+    "internal_target_files": []
+  },
+  "gguf": {
+    "file": "/Volumes/Extern M4 Speicher/LLM-Experimente/slipstream/qwen3-coder-next-q4_k_m/Qwen3-Coder-Next-Q4_K_M.gguf",
+    "size_bytes": 48528320544,
+    "sha256": "9e6032d2f3b50a60f17ce8bf5a1d85c71af9b53b89c7978020ae7c660f29b090",
+    "sha256_verified": true,
+    "allocated_bytes": 48536788992
+  }
+}

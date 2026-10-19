@@ -1,0 +1,165 @@
+# Qwen3-Coder-Next: isolierter Inferenztest
+
+## Status: FAIL
+
+[BELEGT] HTTPError: HTTP Error 500: Internal Server Error
+
+## Vorprüfung und Modellidentität
+
+Dateigrößen, Prüfprotokoll, Enginehash und Speichermessungen stehen im folgenden Ergebnis. Historische SHA-/CRC-Nachweise sind [DOKUMENTIERT]; aktuelle Größen und Änderungszeiten [BELEGT].
+
+## Start und effektive Parameter
+
+```sh
+/Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017/runtime/Slipstream.app/Contents/Resources/resources/llama-server --model '/Volumes/Extern M4 Speicher/LLM-Experimente/slipstream/qwen3-coder-next-q4_k_m/Qwen3-Coder-Next-Q4_K_M.gguf' --pgrn /Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017/pgrn/qwen3-coder-next/Qwen3-Coder-Next-Q4_K_M.pgrn --host 127.0.0.1 --port 8083 --ctx-size 4096 --pgrn-cache-gb 12 --pgrn-headroom-gb 8 --batch-size 25 --ubatch-size 25 --parallel 1 --spec-type none --reasoning off --temp 0 --seed 42 --gpu-layers 99 --jinja --verbosity 5 --log-colors off
+```
+
+Effektive Werte gelten ausschließlich bei vorhandenem effective_parameters-Nachweis. Kein erfolgreicher Start wird aus vorbereiteten Argumenten abgeleitet.
+
+## Speicherbeobachtung
+
+Rohmessungen: memory.jsonl. Prozentwerte sind keine exakte Allokationsgarantie; RSS erfasst nicht den gesamten Unified-Memory-Bedarf. Swapouts sind kumulativ; nur Differenzen beschreiben Änderungen. Laufzeitgrenzen: Laden 20 Minuten, Anfrage 10 Minuten, insgesamt 60 Minuten.
+
+## Funktionstests
+
+A: 42; B: Kennwort und mindestens 200 tatsächliche Prompttokens; C: Null ausgeschlossen und leere Auswahl behandelt. Request-/Response-Dateien nur für tatsächlich vorbereitete bzw. gesendete Anfragen. Kein umfassender Nachweis der Reviewqualität.
+
+## Offene Fragen und Abschluss
+
+[HYPOTHESE] Nicht getestete Metal-/PGRN-Pfade bleiben offen. Ausschließlich die eigene Prozessreferenz wird beendet. Kein Download, keine Konvertierung, keine Modellentladung und keine Änderung bestehender Dienste. Listenervergleich ist keine umfassende Funktionsprüfung. Ein BLOCKED erfordert einen erneuten bewussten Aufruf im normalen Terminal.
+
+## Vollständiges Ergebnis
+
+```json
+{
+  "status": "FAIL",
+  "started_at": "2026-10-18T12:09:21.573115+00:00",
+  "run_directory": "/Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017/qwen3_coder_next_headercheck/first_inference_runs/20261018T120921572911Z",
+  "server_started": true,
+  "requests_sent": 1,
+  "existing_processes_changed": false,
+  "memory_before": {
+    "at": "2026-10-18T12:09:21.600354+00:00",
+    "vm_stat": {
+      "argv": [
+        "/usr/bin/vm_stat"
+      ],
+      "exit_code": 0,
+      "stdout": "Mach Virtual Memory Statistics: (page size of 16384 bytes)\nPages free:                                   947813.\nPages active:                                 936593.\nPages inactive:                               937699.\nPages speculative:                              4841.\nPages throttled:                                   0.\nPages wired down:                             197726.\nPages purgeable:                               35260.\n\"Translation faults\":                     1953106838.\nPages copy-on-write:                       112541103.\nPages zero filled:                        1950516818.\nPages reactivated:                         395525132.\nPages purged:                               32354604.\nFile-backed pages:                            999009.\nAnonymous pages:                              880124.\nPages stored in compressor:                   127757.\nPages occupied by compressor:                  65312.\nDecompressions:                            297000154.\nCompressions:                              358429687.\nPageins:                                   174212983.\nPageouts:                                     237555.\nSwapins:                                     8619020.\nSwapouts:                                   14275454.\n",
+      "stderr": ""
+    },
+    "pressure": {
+      "argv": [
+        "/usr/bin/memory_pressure",
+        "-Q"
+      ],
+      "exit_code": 0,
+      "stdout": "The system has 51539607552 (3145728 pages with a page size of 16384).\nSystem-wide memory free percentage: 91%\n",
+      "stderr": ""
+    },
+    "free_percentage": 91,
+    "page_size": 16384,
+    "counts": {
+      "Pages free": 947813,
+      "Pages active": 936593,
+      "Pages inactive": 937699,
+      "Pages speculative": 4841,
+      "Pages throttled": 0,
+      "Pages wired down": 197726,
+      "Pages purgeable": 35260,
+      "Pages copy-on-write": 112541103,
+      "Pages zero filled": 1950516818,
+      "Pages reactivated": 395525132,
+      "Pages purged": 32354604,
+      "File-backed pages": 999009,
+      "Anonymous pages": 880124,
+      "Pages stored in compressor": 127757,
+      "Pages occupied by compressor": 65312,
+      "Decompressions": 297000154,
+      "Compressions": 358429687,
+      "Pageins": 174212983,
+      "Pageouts": 237555,
+      "Swapins": 8619020,
+      "Swapouts": 14275454
+    }
+  },
+  "verification_record": "/Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017/qwen3_coder_next_headercheck/download_conversion_runs/20261018T091238425764Z/result.json",
+  "files": {
+    "gguf": {
+      "path": "/Volumes/Extern M4 Speicher/LLM-Experimente/slipstream/qwen3-coder-next-q4_k_m/Qwen3-Coder-Next-Q4_K_M.gguf",
+      "size": 48528320544,
+      "verified_sha256": "9e6032d2f3b50a60f17ce8bf5a1d85c71af9b53b89c7978020ae7c660f29b090"
+    },
+    "pgrn": {
+      "path": "/Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017/pgrn/qwen3-coder-next/Qwen3-Coder-Next-Q4_K_M.pgrn",
+      "size": 46909751296,
+      "verified_sha256": "7c2638876bf7ecca53fc84f55a5803bf14405f817c1198698e8b2802417ab10e"
+    }
+  },
+  "engine_sha256": "7d022ad062d322bb6964b9828f4f529e867c7cea98447f84ffb19a05ff4e7f0e",
+  "argv": [
+    "/Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017/runtime/Slipstream.app/Contents/Resources/resources/llama-server",
+    "--model",
+    "/Volumes/Extern M4 Speicher/LLM-Experimente/slipstream/qwen3-coder-next-q4_k_m/Qwen3-Coder-Next-Q4_K_M.gguf",
+    "--pgrn",
+    "/Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017/pgrn/qwen3-coder-next/Qwen3-Coder-Next-Q4_K_M.pgrn",
+    "--host",
+    "127.0.0.1",
+    "--port",
+    "8083",
+    "--ctx-size",
+    "4096",
+    "--pgrn-cache-gb",
+    "12",
+    "--pgrn-headroom-gb",
+    "8",
+    "--batch-size",
+    "25",
+    "--ubatch-size",
+    "25",
+    "--parallel",
+    "1",
+    "--spec-type",
+    "none",
+    "--reasoning",
+    "off",
+    "--temp",
+    "0",
+    "--seed",
+    "42",
+    "--gpu-layers",
+    "99",
+    "--jinja",
+    "--verbosity",
+    "5",
+    "--log-colors",
+    "off"
+  ],
+  "phase": "inference",
+  "environment_note": "Inherited LLAMA_ARG_* defaults excluded for this subprocess only",
+  "pid": 65833,
+  "server_started_at": "2026-10-18T12:09:21.642142+00:00",
+  "load_seconds": 276.8081581250299,
+  "effective_parameters": {
+    "context": {
+      "n_ctx": 4096,
+      "n_batch": 25,
+      "n_ubatch": 25,
+      "n_seq_max": 1
+    },
+    "cache_MiB": 12286.59,
+    "expected_cache_bytes": 12883427328,
+    "slot_bytes": 2039808,
+    "scratch_MiB": 996.0,
+    "headroom_MiB": 8192.0,
+    "source_identity": "Successful native load implies mandatory GGUF SHA check in unchanged inspected loader"
+  },
+  "tests": {},
+  "reason": "HTTPError: HTTP Error 500: Internal Server Error",
+  "own_process_ended": true,
+  "own_process_exit_code": 0,
+  "finished_at": "2026-10-18T12:14:02.689949+00:00",
+  "same_observed_lab_listeners": true,
+  "port_8083_free_after": true
+}
+```

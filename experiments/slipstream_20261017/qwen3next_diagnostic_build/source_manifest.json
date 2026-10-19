@@ -1,0 +1,53 @@
+{
+  "decision": "BUILD BLOCKED",
+  "slipstream_tag": "v0.3.4",
+  "tag_object": "c67119f1773b13cc4f5c80858dd3fa0fe5f9754e",
+  "slipstream_commit": "0b30cac2a6a40439b74cce6a512f08166f6e3ab3",
+  "llama_cpp_commit": "79bba02a6741de194912d370015866414faa83ad",
+  "release_build_number": 10116,
+  "release_build_commit": "852e7daa1",
+  "release_binary_sha256": "7d022ad062d322bb6964b9828f4f529e867c7cea98447f84ffb19a05ff4e7f0e",
+  "release_binary_source_mapping_verified": false,
+  "build_attempted": false,
+  "instrumentation_applied": false,
+  "source_snapshots": [
+    {
+      "path": "source/RELEASE_0.3.1.md",
+      "sha256": "03caecd8819b2361aa14e5658a83ef613d9f3665a865d38d824c7171c160e386"
+    },
+    {
+      "path": "source/RELEASE_0.3.2.md",
+      "sha256": "28ab0fef26f958046f4a756291222f87273ae90cc3859ad2dd6d4aeb9b655704"
+    },
+    {
+      "path": "source/RELEASE_0.3.4.md",
+      "sha256": "47d0a0758b502bdbf79448135586c29152c59f513f86bee63780c4f2cecdc708"
+    },
+    {
+      "path": "source/Slipstream-README.md",
+      "sha256": "b4dd350aa0a1e552c39c062228da9350acd325b643e09c8a39777e6c6026e79a"
+    },
+    {
+      "path": "source/apply.sh",
+      "sha256": "0ca23691e7b1a5156c7524f94d7a374cbd435b5e20779f89278536f9526e22a1"
+    },
+    {
+      "path": "source/release-plan-0.2.34.md",
+      "sha256": "d00fda42fcdea256f189d4bd8b572413fbd2fb7f8a16c23265b2740097c9d6b6"
+    },
+    {
+      "path": "source/upstream-build-info.cmake",
+      "sha256": "c35c2be4dc3661ef456da89c99ec188f37e3a2c2b0d01a5c8fadf885847b3e30"
+    },
+    {
+      "path": "source/upstream-metal-CMakeLists.txt",
+      "sha256": "1e7a11ca55752b919415214e99089b40d88f492542dbb121b7375ee07389459c"
+    }
+  ],
+  "official_patch": {
+    "path": "experiments/slipstream_20261017/qwen3_coder_next_headercheck/source_evidence/slipstream-seams_v0.3.4.patch",
+    "git_blob": "dd9cb1adec7b06907bfd99fd749d57b58800f02d",
+    "sha256": "3f9ce71145da71f62f0f1fcd9b75a72a804ca553fbf57fd63dcb333ed228794d",
+    "matches_release_tree": true
+  }
+}

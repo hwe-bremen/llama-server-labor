@@ -1,0 +1,78 @@
+{
+  "status": "BLOCKED",
+  "checked_at": "2026-10-18T11:25:40.467189+00:00",
+  "own_server_started": false,
+  "requests_sent": 0,
+  "existing_services_changed": false,
+  "artifact_source": "/Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017/qwen3_coder_next_headercheck/download_conversion_runs/20261018T091238425764Z/result.json",
+  "files": {
+    "gguf": {
+      "path": "/Volumes/Extern M4 Speicher/LLM-Experimente/slipstream/qwen3-coder-next-q4_k_m/Qwen3-Coder-Next-Q4_K_M.gguf",
+      "size_bytes": 48528320544,
+      "matches_verified_size": true,
+      "mtime_ns": 1792318938491510319,
+      "ctime_ns": 1792318994519614000,
+      "changed_since_verification": false,
+      "symlink": false,
+      "verified_sha256": "9e6032d2f3b50a60f17ce8bf5a1d85c71af9b53b89c7978020ae7c660f29b090"
+    },
+    "pgrn": {
+      "path": "/Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017/pgrn/qwen3-coder-next/Qwen3-Coder-Next-Q4_K_M.pgrn",
+      "size_bytes": 46909751296,
+      "matches_verified_size": true,
+      "mtime_ns": 1792319297112319495,
+      "ctime_ns": 1792319411126523494,
+      "changed_since_verification": false,
+      "symlink": false,
+      "verified_sha256": "7c2638876bf7ecca53fc84f55a5803bf14405f817c1198698e8b2802417ab10e"
+    }
+  },
+  "ssd_mounted": true,
+  "engine_sha256": "7d022ad062d322bb6964b9828f4f529e867c7cea98447f84ffb19a05ff4e7f0e",
+  "engine_hash_matches": true,
+  "unsupported_prepared_flags": [],
+  "port_8083_free": true,
+  "memory_free_percentage": 27,
+  "memory_percentage_based_estimate_GiB": 12.96,
+  "calculated_4k_lower_bound_GiB": 14.662598609924316,
+  "planned_headroom_GiB": 8,
+  "vm_stat_page_bytes": 16384,
+  "vm_stat_counts": {
+    "Pages free": 27402,
+    "Pages wired down": 1709841,
+    "Pages occupied by compressor": 542140,
+    "File-backed pages": 200997,
+    "Swapins": 8575251,
+    "Swapouts": 14275378
+  },
+  "reason": "Current free-memory estimate is below static model/cache/scratch/KV lower bound, before runtime buffers and 8 GiB headroom.",
+  "scope_limitations": [
+    "Process list and current swapusage denied by environment; no escalation attempted",
+    "Memory percentage is not a precise allocation guarantee",
+    "No startup, loading time, effective settings, tokens or inference performance measured"
+  ],
+  "prepared_limits_not_applied": {
+    "loading_timeout_seconds": 1200,
+    "request_timeout_seconds": 600,
+    "total_test_timeout_seconds": 3600
+  },
+  "lab_listeners_before": [
+    "Python    47765 hans-wernereberhardt    3u  IPv4 0x4c6443366a306825      0t0  TCP 127.0.0.1:8092 (LISTEN)",
+    "Python    47773 hans-wernereberhardt    6u  IPv4   0x586ed81dc9e2a5      0t0  TCP 127.0.0.1:8787 (LISTEN)",
+    "Python    50146 hans-wernereberhardt    3u  IPv4 0xef590d1cb883ad80      0t0  TCP 127.0.0.1:8091 (LISTEN)",
+    "llama-ser 47802 hans-wernereberhardt    9u  IPv4 0x4d66631b31d32197      0t0  TCP 127.0.0.1:8080 (LISTEN)",
+    "llama-ser 50719 hans-wernereberhardt    3u  IPv4 0x829eacfa29148a96      0t0  TCP 127.0.0.1:64908 (LISTEN)",
+    "llama-ser 57185 hans-wernereberhardt   20u  IPv4 0xe6e3612d9b775b33      0t0  TCP 127.0.0.1:54073 (LISTEN)",
+    "ollama    48392 hans-wernereberhardt    3u  IPv6  0x780f6d47e1e8ac5      0t0  TCP *:11434 (LISTEN)"
+  ],
+  "lab_listeners_after": [
+    "Python    47765 hans-wernereberhardt    3u  IPv4 0x4c6443366a306825      0t0  TCP 127.0.0.1:8092 (LISTEN)",
+    "Python    47773 hans-wernereberhardt    6u  IPv4   0x586ed81dc9e2a5      0t0  TCP 127.0.0.1:8787 (LISTEN)",
+    "Python    50146 hans-wernereberhardt    3u  IPv4 0xef590d1cb883ad80      0t0  TCP 127.0.0.1:8091 (LISTEN)",
+    "llama-ser 47802 hans-wernereberhardt    9u  IPv4 0x4d66631b31d32197      0t0  TCP 127.0.0.1:8080 (LISTEN)",
+    "llama-ser 50719 hans-wernereberhardt    3u  IPv4 0x829eacfa29148a96      0t0  TCP 127.0.0.1:64908 (LISTEN)",
+    "llama-ser 57185 hans-wernereberhardt   20u  IPv4 0xe6e3612d9b775b33      0t0  TCP 127.0.0.1:54073 (LISTEN)",
+    "ollama    48392 hans-wernereberhardt    3u  IPv6  0x780f6d47e1e8ac5      0t0  TCP *:11434 (LISTEN)"
+  ],
+  "same_observed_lab_listeners": true
+}

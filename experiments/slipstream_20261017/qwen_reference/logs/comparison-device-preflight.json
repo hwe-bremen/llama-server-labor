@@ -1,0 +1,24 @@
+{
+  "start_epoch": 1792254832.450861,
+  "devices": {
+    "internal": {
+      "volume_bsd": "disk3s5",
+      "physical_bsd": "disk0",
+      "media": "APPLE SSD AP2048Z Media",
+      "registry_id": "0x100000bad",
+      "read_bytes": 2602860912640,
+      "read_ops": 38184722,
+      "write_bytes": 730711400448
+    },
+    "external": {
+      "volume_bsd": "disk6s2",
+      "physical_bsd": "disk5",
+      "media": "Samsung PSSD T7 Media",
+      "registry_id": "0x100166a19",
+      "read_bytes": 166175361024,
+      "read_ops": 756612,
+      "write_bytes": 96239611904
+    }
+  },
+  "end_epoch": 1792254832.472929
+}

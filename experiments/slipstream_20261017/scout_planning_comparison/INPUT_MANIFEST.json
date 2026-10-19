@@ -1,0 +1,23 @@
+{
+  "at": "2026-10-17T19:59:58.439667+00:00",
+  "head": "8ce8a897b0ba1a3c5aca1dd3ba41d4ff1f3ea976",
+  "scope": [
+    "agents/llm_scout/llm_scout.py",
+    "scripts/send_scout_email.py",
+    "scripts/run_scout_pipeline.sh",
+    "docs/projekt_management/_vorlage_spec.md"
+  ],
+  "source_hashes": {
+    "agents/llm_scout/llm_scout.py": "b3292fee4b951bfa6bd1bf4cf36dc2566aea12c36ca5adbb6ab120fea4b4e7ed",
+    "scripts/send_scout_email.py": "e1d8200fd64d933cdd0724c520dc3a5de56c32b6ea20c4e5c63fbe647e4e204f",
+    "scripts/run_scout_pipeline.sh": "75ba0f3a171540d30d43aa5fa122cc0b9c249bdc68fa5587f81f696ec9b722ab",
+    "docs/projekt_management/_vorlage_spec.md": "ec745d84cd7d6e2cd27815774558b384b43ae62eb52715f0fff1c3f424581d1d"
+  },
+  "role_prompt_hash": "ef6e76d8855bb1c0693f4e4a4055b799c7f541712090cec00316a9b6ce389971",
+  "task": "Diskussionsrunde scout_kw_doppelversand; nicht scout_20261014",
+  "original_prompt_source": "Nutzertext in dieser Unterhaltung, keine inhaltlichen Korrekturen oder Lösungshinweise ergänzt",
+  "solutions_or_prior_answers_in_context": false,
+  "tools_available": false,
+  "preserve_production": true,
+  "comparison_limits": "Qwen3.8-UI-Runde hatte anderen Zugriffsweg; exakte UI-System-/Samplingparameter und Tooltranskripte liegen nicht vor. Keine kontrollierte reine Engine-/Modellrangliste."
+}

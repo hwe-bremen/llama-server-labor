@@ -1,0 +1,18 @@
+{
+  "bundle": "runtime/Slipstream.app",
+  "engine_port": 8083,
+  "role_port": 8093,
+  "external_mount": "/Volumes/Extern M4 Speicher",
+  "gguf_directory": "/Volumes/Extern M4 Speicher/LLM-Experimente/slipstream/glm-4.5-air-q4_k_m",
+  "pgrn": "pgrn/GLM-4.5-Air-Q4_K_M.pgrn",
+  "model_alias": "GLM-4.5-Air-106B-Q4_K_M",
+  "provisional_glm_settings": {
+    "context": 8192,
+    "expert_cache_gib": 12,
+    "headroom_gib": 8,
+    "io_threads": 4,
+    "parallel": 1,
+    "kv_type": "f16"
+  },
+  "note": "Only a plan: no GLM launch or conversion command is executed by this controller. Installed Slipstream engine not found during preparation."
+}

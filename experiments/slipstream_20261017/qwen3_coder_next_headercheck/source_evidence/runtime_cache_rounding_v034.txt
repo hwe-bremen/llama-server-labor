@@ -1,0 +1,16 @@
+Source: https://github.com/Schero94/slipstream/blob/v0.3.4/engine/src/peregrine_runtime.cpp
+Git blob: 4c0fa1c8d34324919be2a271a587d6571f7eb165
+    uint64_t capacity64 = admitted_plan->expert_cache_bytes / slot_bytes;
+    if (capacity64 < layer_count || capacity64 > INT_MAX || capacity64 > SIZE_MAX / slot_bytes) {
+        /* Almost always the first condition, and almost always a cache the user set too
+         * small: every layer needs at least one slot to hold the expert it is computing.
+         * Say the number that would work instead of calling the value invalid. */
+        char detail[352];
+        const uint64_t MiB = 1024ULL * 1024ULL;
+        if (capacity64 < layer_count) {
+            const uint64_t need = (uint64_t) layer_count * slot_bytes;
+    runtime->capacity = static_cast<size_t>(capacity64);
+    runtime->cache_bytes = runtime->capacity * slot_bytes;
+    admitted_plan->expert_cache_bytes = runtime->cache_bytes;
+    admitted_plan->resident_bytes = admitted_plan->mandatory_resident_bytes + runtime->cache_bytes;
+    const uint64_t future_resident = admitted_plan->resident_bytes - input.already_allocated_bytes;

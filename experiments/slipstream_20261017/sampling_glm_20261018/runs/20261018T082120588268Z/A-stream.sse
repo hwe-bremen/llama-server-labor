@@ -1,0 +1,17 @@
+data: {"choices":[{"finish_reason":null,"index":0,"delta":{"role":"assistant","content":null}}],"created":1792311834,"id":"chatcmpl-nAdFpBZgqg3YiAHS8tD0HNcRGkT2kh8q","model":"qwen-stream-reference","system_fingerprint":"b10116-852e7daa1","object":"chat.completion.chunk"}
+
+data: {"choices":[{"finish_reason":null,"index":0,"delta":{"content":"Ke"}}],"created":1792311834,"id":"chatcmpl-nAdFpBZgqg3YiAHS8tD0HNcRGkT2kh8q","model":"qwen-stream-reference","system_fingerprint":"b10116-852e7daa1","object":"chat.completion.chunk"}
+
+data: {"choices":[{"finish_reason":null,"index":0,"delta":{"content":"ine"}}],"created":1792311835,"id":"chatcmpl-nAdFpBZgqg3YiAHS8tD0HNcRGkT2kh8q","model":"qwen-stream-reference","system_fingerprint":"b10116-852e7daa1","object":"chat.completion.chunk"}
+
+data: {"choices":[{"finish_reason":null,"index":0,"delta":{"content":" Bean"}}],"created":1792311835,"id":"chatcmpl-nAdFpBZgqg3YiAHS8tD0HNcRGkT2kh8q","model":"qwen-stream-reference","system_fingerprint":"b10116-852e7daa1","object":"chat.completion.chunk"}
+
+data: {"choices":[{"finish_reason":null,"index":0,"delta":{"content":"stand"}}],"created":1792311835,"id":"chatcmpl-nAdFpBZgqg3YiAHS8tD0HNcRGkT2kh8q","model":"qwen-stream-reference","system_fingerprint":"b10116-852e7daa1","object":"chat.completion.chunk"}
+
+data: {"choices":[{"finish_reason":null,"index":0,"delta":{"content":"ung"}}],"created":1792311835,"id":"chatcmpl-nAdFpBZgqg3YiAHS8tD0HNcRGkT2kh8q","model":"qwen-stream-reference","system_fingerprint":"b10116-852e7daa1","object":"chat.completion.chunk"}
+
+data: {"choices":[{"finish_reason":"stop","index":0,"delta":{}}],"created":1792311835,"id":"chatcmpl-nAdFpBZgqg3YiAHS8tD0HNcRGkT2kh8q","model":"qwen-stream-reference","system_fingerprint":"b10116-852e7daa1","object":"chat.completion.chunk"}
+
+data: {"choices":[],"created":1792311835,"id":"chatcmpl-nAdFpBZgqg3YiAHS8tD0HNcRGkT2kh8q","model":"qwen-stream-reference","system_fingerprint":"b10116-852e7daa1","object":"chat.completion.chunk","usage":{"completion_tokens":6,"prompt_tokens":215,"total_tokens":221,"prompt_tokens_details":{"cached_tokens":0}},"timings":{"cache_n":0,"prompt_n":215,"prompt_ms":7260.875,"prompt_per_token_ms":33.771511627906975,"prompt_per_second":29.610756279374044,"predicted_n":6,"predicted_ms":433.763,"predicted_per_token_ms":72.29383333333332,"predicted_per_second":13.832438451412408,"draft_n":4,"draft_n_accepted":4}}
+
+data: [DONE]

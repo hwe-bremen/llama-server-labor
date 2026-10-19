@@ -1,0 +1,9 @@
+{
+  "general.name": "Glm-4.5-Air",
+  "tokenizer.ggml.eos_token_id": 151329,
+  "tokenizer.ggml.bos_token_id": 151331,
+  "template_sha256": "15a206ef798293a877c992af1ea4c5aac10dbbda1074ee8acda12f894ca55fb4",
+  "external_device_ancestry": [
+    "  |   \"Protocol Characteristics\" = {\"Write Time Out Duration\"=30000,\"Read Time Out Duration\"=30000,\"Physical Interconnect\"=\"USB\",\"SCSI Logical Unit Number\"=0,\"Physical Interconnect Location\"=\"External\",\"SCSI Logical Unit Bytes\"=<0000000000000000>,\"Retry Count\"=20}\n  |   \"Device Characteristics\" = {\"Medium Type\"=\"Solid State\",\"Product Name\"=\"PSSD T7\",\"Vendor Name\"=\"Samsung\",\"Product Revision Level\"=\"0\"}\n      |   \"BSD Name\" = \"disk5\"\n      |   \"Size\" = 1000204886016\n        | |   \"Size\" = 209715200\n        | |   \"BSD Name\" = \"disk5s1\"\n          |   \"Size\" = 999995129856\n          |   \"BSD Name\" = \"disk5s2\"\n              |   \"Size\" = 999995129856\n              |   \"BSD Name\" = \"disk6\"\n                  |   \"Size\" = 999995129856\n                  |   \"BSD Name\" = \"disk6s2\""
+  ]
+}

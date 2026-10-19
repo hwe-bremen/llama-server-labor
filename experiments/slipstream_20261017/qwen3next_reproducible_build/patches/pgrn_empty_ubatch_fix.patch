@@ -1,0 +1,19 @@
+--- a/src/llama-context.cpp	2026-10-18 13:24:17.049000620 +0000
++++ b/src/llama-context.cpp	2026-10-18 14:51:42.020000294 +0000
+@@ -2505,7 +2505,15 @@
+     pgrn_pending_tensor = nullptr;
+     pgrn_pending_user_callback = false;
+ 
+-    if (is_pgrn) {
++    if (is_pgrn && tensor->ne[1] == 0 && tensor->type == GGML_TYPE_I32 &&
++            tensor->ne[0] == model.hparams.n_expert_used && tensor->ne[2] == 1 && tensor->ne[3] == 1 &&
++            tensor->nb[0] == sizeof(int32_t)) {
++        // Lab fix: a ubatch without output rows reaches the last MoE layer with zero rows
++        // (inp_out_ids filter before the FFN). No expert is selected, so there is nothing to
++        // stage; pgr_stage_selected treats an empty selection as success as well. Only join a
++        // prefetch aimed at this layer, exactly as the staging path does first.
++        model.pgrn_prefetch_settle(layer);
++    } else if (is_pgrn) {
+         if (tensor->type != GGML_TYPE_I32 || tensor->ne[0] != model.hparams.n_expert_used ||
+                 tensor->ne[1] <= 0 || tensor->ne[2] != 1 || tensor->ne[3] != 1 ||
+                 tensor->nb[0] != sizeof(int32_t)) {

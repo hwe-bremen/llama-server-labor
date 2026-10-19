@@ -1,0 +1,14 @@
+{
+  "at": "2026-10-17T17:15:09.602499+00:00",
+  "stage": "prepared_not_executed",
+  "case_tests": "6 passed",
+  "offline_sse_tests": "six fresh requests; complete stop; length incomplete; raw files verified",
+  "frozen_sha256": "e68dbc7bf5a6392616e83f424a1334f3abf4fb922ae5df75e236013776a47da2",
+  "listener_probe_returncode": 0,
+  "relevant_listeners": [],
+  "llama_probe_returncode": 1,
+  "llama_processes": "",
+  "llama_probe_stderr": "",
+  "model_inference_executed": false,
+  "execution_block": "Previously established localhost restriction; no repeated blocked attempt. Normal macOS Terminal required."
+}

@@ -1,0 +1,16 @@
+--- /Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017/qwen3next_reproducible_build/reference/source_patched/src/llama-context.cpp	2026-10-18 15:30:21
++++ /Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017/qwen3next_reproducible_build/diagnostic/source/src/llama-context.cpp	2026-10-18 15:30:23
+@@ -2505,6 +2505,13 @@
+     pgrn_pending_tensor = nullptr;
+     pgrn_pending_user_callback = false;
+ 
++    // [PGRN-DIAG] observational only: reads tensor metadata, no data access, no ggml ops.
++    fprintf(stderr, "[PGRN-DIAG] layer=%u name=%s type=%d(%s) ne=[%lld,%lld,%lld,%lld] nb=[%zu,%zu,%zu,%zu] n_expert_used=%u ask=%d is_pgrn=%d compact=%d\n",
++            (unsigned) layer, tensor->name, (int) tensor->type, ggml_type_name(tensor->type),
++            (long long) tensor->ne[0], (long long) tensor->ne[1], (long long) tensor->ne[2], (long long) tensor->ne[3],
++            tensor->nb[0], tensor->nb[1], tensor->nb[2], tensor->nb[3],
++            (unsigned) model.hparams.n_expert_used, (int) ask, (int) is_pgrn, (int) compact);
++
+     if (is_pgrn) {
+         if (tensor->type != GGML_TYPE_I32 || tensor->ne[0] != model.hparams.n_expert_used ||
+                 tensor->ne[1] <= 0 || tensor->ne[2] != 1 || tensor->ne[3] != 1 ||

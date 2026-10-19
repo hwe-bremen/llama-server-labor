@@ -1,0 +1,13 @@
+{
+  "at": "2026-10-17T18:02:38.168025+00:00",
+  "files": {
+    "prompt.json": "6e08d0ed84977d884a169731aa8113581b6d494d188f653039d474f7885a3029",
+    "settings.json": "72eb8974fd5182606f6cce83bff2676c478bbc8fd968d162a64bfc5fd261045e",
+    "change.diff": "1d11fed44124ac6a966614703e20b08990a1c1d6ef4f34853037fa9bd6a2e700",
+    "SELECTION.json": "0b2820820b5ee3a0d44db6c0ef5c563cfa05aee8640c3bb81dee400489920fcc",
+    "snapshots/base/role-split/role_proxy.py": "24f53fa5d4d15f4e146a7ea775b925d00e3470fe89e8dcfe9f7e216a883acba1",
+    "snapshots/base/role-split/test_role_proxy.py": "3e17364eeb7b31c03f0be65eedfee6d752704a0d52a7fbf27a63d59a7c07c928",
+    "snapshots/target/role-split/role_proxy.py": "ef97366649178bfc5ae9e023cf5de69b97f048b6bc3e11b819eea4d3f72437cd",
+    "snapshots/target/role-split/test_role_proxy.py": "c75f65cd097387d224b9b5f19611f361fce7ed06bb05a67f440a31eef337c57e"
+  }
+}

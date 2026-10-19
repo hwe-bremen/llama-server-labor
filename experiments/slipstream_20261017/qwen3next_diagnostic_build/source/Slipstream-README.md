@@ -1,0 +1,287 @@
+<p align="center">
+  <img src="docs/icon.png" alt="" width="128" height="128" />
+</p>
+
+# Slipstream
+
+![Slipstream: the expert cache streaming live from SSD](docs/hero.gif)
+
+**Run coding models that are bigger than your Mac's RAM, locally and at usable speed.**
+
+Slipstream is a fork of [llama.cpp](https://github.com/ggml-org/llama.cpp) that streams Mixture-of-Experts (MoE) expert weights off your SSD instead of loading the whole model into memory. A 16-36 GB Apple-Silicon Mac can run 35B-480B MoE coding models and stay usable while it does it. Local inference stays on the machine; remote mesh inference is separate, explicit, and off by default.
+
+It ships as a Mac app with the engine bundled inside. Download the `.dmg`, drag it to Applications, open it. Nothing to compile, no dependencies to install. Point your AI coding assistant (Kilo Code, Cline, Cursor, OpenCode, anything OpenAI-compatible) at `http://127.0.0.1:8080/v1` and go.
+
+**New in v0.3.4:** the app shell is properly clickable and properly announced.
+The four first-run path fields had labels that were never associated with them,
+so they had no accessible name and clicking the visible label text did not focus
+the field. The tab strip had no tablist semantics, so eight tabs read as plain
+buttons with no current item. Every toast — including the first-run "choose a
+model folder" error — was silent for screen readers. All fixed. This is a
+usability and accessibility release; no engine or performance behaviour changed.
+
+Since v0.3.3, the macOS app carries a complete ad-hoc bundle seal. This adds
+verifiable resource integrity while keeping the honest boundary: it is not an
+Apple Developer ID signature and is not notarized.
+
+Since v0.3.2, llama.cpp/PGRN bounds its prompt cache to 512 MiB and,
+when Tools are enabled, warms Slipstream's fixed tool schema after startup. On
+the qualified external-SSD Qwen run, first visible tool TTFT fell from 23.36 s
+to 4.73 s with no swap growth. The UI shows the warm-up state and never applies
+the optimization to oMLX, where the same cache reuse was not measured.
+
+Since v0.3.1, both bundled native engines share one verified OpenAI streaming
+contract. llama.cpp/PGRN and oMLX/PGRN pass deterministic plain, strict-JSON and
+forced-tool requests; runtime preflight identifies every bundled component,
+and storage admission protects the internal SSD and RAM reserve.
+
+Since v0.3.0, the same sealed node also runs headlessly on Linux and macOS,
+or as a direct authenticated QUIC peer. Community donation and remote Chat are
+separate opt-ins. Traffic is encrypted, but the selected worker sees plaintext
+during inference; sensitive and secret work stays local by default.
+
+> Not affiliated with Ollama. Slipstream is a llama.cpp/Metal fork with its own SSD expert-streaming layer (PGRN) and a self-contained control app.
+
+---
+
+## Why this exists
+
+A MoE model is enormous on disk but only fires a few experts per token. In a 118B model with 8B active parameters, the overwhelming majority of the weights are idle at any given moment. So Slipstream keeps the always-needed weights resident and streams the routed experts off the SSD as they come up, into a bounded cache sized against your RAM (a per-layer CLOCK-LRU-K arena).
+
+If a requested cache size would starve the system, admission refuses it outright. That check exists because I mmapped a 73 GB file on 36 GB of RAM early on and kernel-panicked the machine. The OS does not save you here.
+
+Models that won't fit in your RAM become runnable. That's the entire pitch.
+
+---
+
+## Get started
+
+1. Download the latest `Slipstream_x.y.z_aarch64.dmg` from [Releases](https://github.com/Schero94/slipstream/releases/latest).
+2. Drag `Slipstream.app` into Applications. The first launch needs right-click → Open, once, because the app isn't notarized yet.
+3. Open it. Slipstream detects your Mac and proposes settings for it: cache size, context and I/O threads derived from your RAM and core count. Click "Apply best".
+4. Pick a model from the dropdown and download it (with progress), then generate its PGRN sidecar. See *Compatible models* below.
+5. Click Start. Once the pill turns green you're serving an OpenAI-compatible API on `127.0.0.1:8080`.
+6. In your coding assistant, add an OpenAI Compatible provider. For Kilo and OpenCode there's a one-click patch instead; restart VS Code afterwards.
+
+Everything runs on-device. While you work, the app shows live SSD throughput, cache hit-rate, tokens/sec, token usage and RAM headroom. Two engine features have switches in the settings panel: Compact, which is on by default and is the fastest setting I've measured, and Predictive Prefetch, which is off by default and experimental. The UI is available in English and German.
+
+### Codebase indexing (optional)
+
+Streamed models are slow at prefill, so the less your assistant sends per request, the better it feels. The app can run the retrieval half of that for you, on-device: it starts a local embedding server, and it can download and start Qdrant as the vector store. Neither ships inside the `.dmg`. The app fetches the Qdrant release binary when you ask it to, and you pick an embedding model the same way you pick a chat model. Once both are up, point your assistant's codebase indexing at them and it will send small, relevant prompts instead of half the repository.
+
+---
+
+## Measured results
+
+Numbers from a 36 GB Apple-Silicon Mac, raw logs in [`bench/RESULTS.md`](bench/RESULTS.md). The experiments that failed are recorded in the same place as the ones that worked. Full write-up: [`BENCHMARKS.md`](BENCHMARKS.md).
+
+### Qwen3.6-35B-A3B (Q4), streamed from the internal NVMe
+
+| Cache | Decode | Cache hit-rate |
+|------:|-------:|---------------:|
+| 2 GiB | ~5.5 tok/s | ~21% |
+| 10 GiB | ~13 tok/s | ~78% |
+| 14 GiB | ~19 tok/s | ~86% |
+
+Prefill of a large (~30k-token) coding-agent prompt goes from 75 to 208 tok/s, a 2.7x gain, with `ubatch 2048` and parallel I/O threads.
+
+### Laguna S 2.1 (118B-A8B, Q4), a model that does not fit in 36 GB
+
+| Configuration | Decode | vs. baseline |
+|---|---:|---:|
+| PGRN on external USB SSD, no draft | 0.72 tok/s | 1.0x |
+| PGRN on internal NVMe (storage split) | 1.95 tok/s | 2.7x |
+| + DFlash speculative draft | 2.36 tok/s | 3.3x |
+| + larger cache | 2.83 tok/s | 3.9x |
+
+The streamed file (PGRN) belongs on your fastest disk. The GGUF gets read once at load and can live anywhere. That storage split was the biggest single lever in the whole project, worth 2.7x on its own, and it involved no code at all.
+
+---
+
+## Compatible models
+
+Slipstream streams experts, so it needs a MoE architecture with Q4_K, Q5_K or Q6_K expert tensors that mainline llama.cpp can read. Dense models have no experts to stream. IQ, Q2, Q3, Q8_0 and MXFP4 expert quants don't work.
+
+Interactive tier, small active parameter counts, the daily drivers:
+
+| Model | Total / Active | Note |
+|---|---|---|
+| Qwen3.6-35B-A3B | 35B / 3B | recommended, MTP speed |
+| Qwen3-30B-A3B | 30B / 3B | no MTP, lighter |
+| DeepSeek-V2-Lite | 16B / 2.4B | smallest, lowest RAM |
+| GLM-4.5-Air | 106B / 12B | strong quality |
+| Laguna S 2.1 | 118B / 8B | DFlash speculative decoding |
+
+XL streaming tier, verified against mainline llama.cpp. These are 240-466 GB at Q4 and need a big fast SSD:
+
+| Model | Total / Active | Note |
+|---|---|---|
+| Qwen3-Coder-480B | 480B / 35B | coding-focused |
+| Llama 4 Maverick | 400B / 17B | fastest decode of the giants |
+| DeepSeek V3 | 671B / 37B | general |
+| DeepSeek R1 | 671B / 37B | reasoning; thinking tokens slow agent use |
+| GLM-5.2 | 744B / 40B | top-tier, and large enough to need a big SSD or a lower quant |
+
+Waiting on mainline llama.cpp support: MiniMax M3 (23B active) and DeepSeek V4-Flash (13B active).
+
+The app's dropdown is seeded with these, but you can point it at any compatible GGUF. Model weights aren't included; you download those from Hugging Face. Slipstream is the engine and the tooling around it.
+
+---
+
+## How it works
+
+A converter pulls the stacked expert tensors out of the GGUF into a streamable binary that sits next to it, the PGRN sidecar. Reads go through `pread` with `F_NOCACHE`, which keeps the OS page cache from ballooning and fighting the RAM budget.
+
+The converter is native (`llama-pgrn-convert`) and ships inside the app, so converting a model is a button rather than a Python setup. It reports progress as JSONL and takes about 2¼ minutes for a 22.8 GB source on this Mac. Because that is long enough for a laptop lid or a Ctrl-C to interfere, it is resumable: a cancelled run keeps its `.partial` next to a journal recording the directory entry of every chunk it finished, and `--resume` re-reads that prefix against the journalled CRCs before continuing. The payload is `fsync`ed *before* its records are journalled, so the journal can only ever lag the data — which is what makes the boundary trustworthy. Two runs of the 22.8 GB model, each interrupted twice and resumed, came out byte-identical to an uninterrupted one.
+
+The cache is partitioned by layer, one bounded CLOCK-LRU-K tier each. Cross-layer eviction is impossible by construction, so streaming behaviour stays predictable. Above that sits the memory-health gate, which rejects any cache size that would push the Mac into swap. "The Mac stays usable" is a hard invariant here, not an aspiration.
+
+Compact slots let single-token MoE layers execute straight out of the pinned arena, with no copy between cache and compute buffer. I measured this at a 2 GiB cache, saw nothing and shelved it. Re-measured at the cache sizes the app actually recommends it's worth +13-24%, peaking around +24% at 6 GiB, and the output stays bit-exact. The app enables it by default; on the command line it's `--pgrn-compact-slots`.
+
+Speculative decoding uses MTP on Qwen models and DFlash on Laguna, drafting several tokens per target pass.
+
+Async prefetch is opt-in and still experimental. A background thread warms the next layer's experts while the current layer computes, driven either by a predictor table (`PGCT1`) or an expert-coupling table (`PGCC1`). The machinery works end to end. Getting the *prediction* accurate enough to beat the SSD-fetch wall is unsolved, and `bench/` documents how badly it currently loses.
+
+A parity test asserts that streamed output is bit-identical to fully-resident output, NMSE = 0. Optimizations that only reorder eviction are parity-neutral by construction, which is what makes them safe to ship.
+
+Architecture notes live in [`docs/ARCH.md`](docs/ARCH.md).
+
+---
+
+## Limitations
+
+Speed scales with your SSD and your RAM. More resident cache means a higher hit-rate means faster decode. External USB SSDs are a genuine bottleneck, so keep the streamed PGRN on internal NVMe. Decode is roughly 78-92% bound on SSD fetch.
+
+Big agentic prompts are prefill-heavy. A 30k-token first request against a streamed model takes minutes. Raise `--pgrn-io-threads` and turn on codebase indexing (see above) so your assistant sends small, relevant prompts; later turns reuse the KV cache and come back quickly.
+
+118B on 36 GB runs at about 2.8 tok/s. That's batch work. It is not chat, and I'd rather say so here than have you find out after the download. The 35B at ~13-19 tok/s, depending on cache size, is the interactive one.
+
+Converting an XL model is minutes of work, and the app has to be open for it. It survives interruption without losing that work (see below), but it does not run in the background after you quit.
+
+The app isn't notarized, so the first launch needs right-click → Open, or `xattr -dr com.apple.quarantine Slipstream.app`.
+
+The app is macOS-only. The *engine* now also builds on Linux and streams correctly there: a 32-expert reference MoE produces identical output whether its experts come from the GGUF or are streamed from a PGRN, in 487 MiB instead of 853 MiB, and the same text as both macOS/Metal arms ([`bench/m2/`](bench/m2/)). Since there is no app on Linux to compute a memory plan, `--pgrn model.pgrn` on its own is enough — the cache budget and RAM reserve are derived from the host, including from the cgroup limit inside a container. That is a correctness result, not a performance one: no tuned Linux numbers exist, and CUDA is untested. Expect it to work and don't expect it to be fast yet.
+
+---
+
+## Repository layout
+
+```
+engine/    new source files (PGRN streaming, prefetch, admission, arena, …), path-preserving and browsable
+patches/   slipstream-seams.patch, the changes to upstream llama.cpp files
+apply.sh   clones ggml-org/llama.cpp @ pinned commit, drops in engine/, applies the patch
+app/       the Tauri 2 control app (dist/ frontend + src-tauri/ Rust backend)
+bench/     benchmark methodology and recorded results (RESULTS.md); bench/m2/ are the Linux gates
+docs/      architecture notes
+```
+
+## Building from source
+
+Requires Xcode command-line tools, CMake, and Rust with the Tauri CLI.
+
+```bash
+# 1. Reconstruct the engine (upstream llama.cpp @ pin + the Slipstream changes)
+./apply.sh                    # -> ./llama.cpp-slipstream
+
+# 2. Build a self-contained, Metal-embedded server binary (no external deps)
+cd llama.cpp-slipstream
+cmake -B build-static -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF \
+      -DLLAMA_OPENSSL=OFF -DLLAMA_CURL=OFF -DGGML_METAL_EMBED_LIBRARY=ON \
+      -DCMAKE_OSX_ARCHITECTURES=arm64
+cmake --build build-static --target llama-server llama-pgrn-convert -j
+cd ..
+
+# 3. Bundle both into the app and build the .dmg
+cp llama.cpp-slipstream/build-static/bin/llama-server     app/src-tauri/resources/llama-server
+cp llama.cpp-slipstream/build-static/bin/llama-pgrn-convert app/src-tauri/resources/pgrn-convert
+cd app/src-tauri && cargo tauri build   # -> the self-contained .dmg
+```
+
+`otool -L build-static/bin/llama-server` should list only system frameworks. No `@rpath`, no Homebrew, no OpenSSL. That's what makes the app copy-and-run on any Apple-Silicon Mac.
+
+## Running the engine directly
+
+One flag is enough. Everything else is tuning:
+
+```bash
+./llama-server -m model.gguf --pgrn model.pgrn
+```
+
+The cache budget and the RAM reserve are derived from the machine: the reserve from its size and platform (on Linux, from the cgroup limit where one is set), the cache from whatever is left once the dense weights, KV and overhead fit. If a plan can't be made, the refusal names what it measured and a value that works:
+
+```
+an expert cache of 1 MiB is too small: each of the 24 layers needs one slot of
+996 KiB, so use at least 24 MiB (--pgrn-cache-gb 0.03) or omit the flag
+```
+
+Those two flags were required until 2026-07-28, which the macOS app hid by computing them and a Linux user could not. If you want to set them yourself:
+
+```bash
+./llama-server -m model.gguf \
+  --pgrn model.pgrn \
+  --pgrn-cache-gb 10 \
+  --pgrn-headroom-gb 6 \
+  --pgrn-io-threads 8 \
+  --pgrn-compact-slots
+```
+
+| Flag | What it does |
+|---|---|
+| `--pgrn FILE` | Stream experts from this PGRN sidecar. Disables mmap of the model. |
+| `--pgrn-cache-gb N` | Hard upper bound in GiB on the resident expert cache. Omit it to take the largest that fits. A bound above the total expert size caches all of them. |
+| `--pgrn-headroom-gb N` | RAM in GiB kept out of reach so the rest of the system stays usable. Omit it for a default derived from this machine. |
+| `--pgrn-io-threads N` | Parallel cold-read threads per layer stream, 1 to 64. This is the flag that moves prefill: 8 to 16 took a 30k-token prompt from 75 to 208 tok/s. |
+| `--pgrn-compact-slots` | Run single-token MoE layers straight from pinned arena slots. Worth +13-24%. |
+| `--pgrn-predict FILE` | PGCT1 hot-set table for speculative next-layer prefetch. Warms the cache only, never changes output. |
+| `--pgrn-coupling FILE` | PGCC1 table, conditioned on the experts the current layer fired. Takes precedence over `--pgrn-predict`. |
+| `--pgrn-hot-percent N` | Share of the cache reserved for HOT experts. 0 keeps pure CLOCK-LRU-K, which measured best. |
+| `--pgrn-ane-draft MANIFEST` | Fail-closed Core ML one-shot draft. Every candidate is verified against the target model. |
+| `--pgrn-ane-budget-mib N` | Memory ceiling in MiB for that Core ML draft. |
+
+There are further HOT/WARM tuning flags (`--pgrn-promote-hits`, `--pgrn-demote-idle`, `--pgrn-hot-cooldown`). The tier reservation measured between -1% and -6%, so the default of 0 is also the best setting I found. `llama-server --help` lists them all.
+
+One default worth knowing about: `--pgrn` turns CPU weight repacking off. A streamed expert can't live in a repacked buffer — repacking rewrites a whole tensor at load, streaming writes one expert at an offset — so leaving it on would run repacked dense weights against plain experts. That's a third numeric regime, matching neither the resident baseline nor the streamed one, which is a poor thing to get by default from a project whose claim is that the two agree. It's worth +2.8% (7.35 vs 7.15 tok/s on the reference MoE), so `--repack` still wins if you ask for it by name and don't need to match the published output.
+
+Two environment variables cover the multi-disk case:
+
+| Variable | What it does |
+|---|---|
+| `PGRN_MIRROR=/path/to/copy.pgrn` | A byte-identical PGRN copy on a second SSD. Reads get striped across both, split in proportion to each disk's probed cold-read bandwidth. |
+| `PGRN_MIRROR_WEIGHT=N` | Override that split, as a percentage sent to the primary disk. |
+| `PGRN_BUFFERED=1` | Skip `F_NOCACHE` and let the OS page cache back the reads. Faster per read, but the cache is then unbounded. See BENCHMARKS.md before using it. |
+
+Striping is a capacity feature first. On an internal NVMe paired with a slow USB drive it comes out slower, because they share a bus.
+
+## Converting a model by hand
+
+The app does this for you. On the command line:
+
+```bash
+./llama-pgrn-convert --input model.gguf --output model.pgrn --io-threads 4
+
+# if it was interrupted (exit code 2 means "resumable"):
+./llama-pgrn-convert --input model.gguf --output model.pgrn --io-threads 4 --resume
+```
+
+Multi-part GGUFs are converted in one pass — point `--input` at the first shard. `--progress jsonl` emits one line per percent for the phases `resume`, `sha256`, `write` and `verify`; `--dry-run` reports the space and time it would need without writing. `--no-verify` skips the closing CRC sweep, and `--no-journal` opts out of resumability, in which case a cancelled run deletes its own `.partial` again.
+
+`--io-threads` is worth setting: it drives the parallel reads in the write phase *and* the CRC sweep. On this Mac, going from 1 to 4 took a 22.8 GB conversion from 191 s to 133 s, and the sweep itself from 318 to 1188 MB/s. Output is identical either way.
+
+---
+
+## Acknowledgements
+
+Slipstream was inspired by [Colibrì](https://github.com/JustVugg/colibri) by JustVugg, the project that showed a 700B-scale MoE model streaming from disk on consumer hardware. Colibrì is pure C on CPU and CUDA; Slipstream takes the idea to Apple Silicon (Metal, unified memory) with a native app and its own PGRN engine. The disk-benchmarking methodology, the route-trace and expert-coupling analysis, and the RAM admission idea all came from reading it. Thank you. 🐦
+
+---
+
+## License & attribution
+
+The Slipstream additions, meaning the PGRN expert-streaming layer (`engine/`), the seams patch and the control app (`app/`), are released under the MIT License. See [`LICENSE`](LICENSE).
+
+Slipstream is built on llama.cpp (MIT, © the ggml authors). The upstream sources are not vendored here: `apply.sh` fetches them from the pinned commit and retains their original license. Model weights belong to their respective creators and are not distributed here.
+
+---
+
+*Performance figures are hypotheses until they're recorded in `bench/RESULTS.md`.*
+

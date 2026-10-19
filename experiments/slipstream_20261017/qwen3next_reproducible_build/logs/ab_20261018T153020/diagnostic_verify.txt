@@ -1,0 +1,53 @@
+binary=/Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017/qwen3next_reproducible_build/diagnostic/bin/llama-server-pgrn-diagnostic
+sha256=975ba7c66a85bd650df4f9025f9c90e14d067dc1f43374a85c2ca2667737b73e
+arm64
+/Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017/qwen3next_reproducible_build/diagnostic/bin/llama-server-pgrn-diagnostic: Mach-O 64-bit executable arm64
+--- otool -L
+/Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017/qwen3next_reproducible_build/diagnostic/bin/llama-server-pgrn-diagnostic:
+	/System/Library/Frameworks/CoreML.framework/Versions/A/CoreML (compatibility version 1.0.0, current version 1.0.0)
+	/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation (compatibility version 300.0.0, current version 5027.0.69)
+	/usr/lib/libz.1.dylib (compatibility version 1.0.0, current version 1.2.12)
+	/System/Library/Frameworks/Accelerate.framework/Versions/A/Accelerate (compatibility version 1.0.0, current version 4.0.0)
+	/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1359.0.0)
+	/System/Library/Frameworks/Metal.framework/Versions/A/Metal (compatibility version 1.0.0, current version 382.5.3)
+	/System/Library/Frameworks/MetalKit.framework/Versions/A/MetalKit (compatibility version 1.0.0, current version 174.4.0)
+	/usr/lib/libc++.1.dylib (compatibility version 1.0.0, current version 2200.27.0)
+	/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation (compatibility version 150.0.0, current version 5027.0.69)
+	/usr/lib/libobjc.A.dylib (compatibility version 1.0.0, current version 228.0.0)
+--- nm pgrn (Anzahl)
+59
+--- nm qwen3next (Anzahl)
+21
+--- Metal-Strings
+316
+--- PGRN-DIAG-Strings
+1
+--- Build-Kennung aus Strings (Binary wird nicht gestartet)
+  -DLLAMA_BUILD_BORINGSSL=ON
+  -DLLAMA_BUILD_LIBRESSL=ON
+--- CMakeCache
+BUILD_SHARED_LIBS:BOOL=OFF
+CMAKE_BUILD_TYPE:STRING=Release
+CMAKE_CXX_COMPILER:FILEPATH=/usr/bin/c++
+CMAKE_OSX_ARCHITECTURES:STRING=arm64
+CMAKE_OSX_SYSROOT:STRING=
+GGML_BLAS:BOOL=ON
+GGML_BLAS_VENDOR:STRING=Apple
+GGML_CPU:BOOL=ON
+GGML_CPU_ALL_VARIANTS:BOOL=OFF
+GGML_CPU_ARM_ARCH:STRING=
+GGML_CPU_HBM:BOOL=OFF
+GGML_CPU_KLEIDIAI:BOOL=OFF
+GGML_CPU_POWERPC_CPUTYPE:STRING=
+GGML_CPU_REPACK:BOOL=ON
+GGML_METAL:BOOL=ON
+GGML_METAL_EMBED_LIBRARY:BOOL=ON
+GGML_METAL_MACOSX_VERSION_MIN:STRING=
+GGML_METAL_NDEBUG:BOOL=OFF
+GGML_METAL_SHADER_DEBUG:BOOL=OFF
+GGML_METAL_STD:STRING=
+GGML_NATIVE:BOOL=ON
+LLAMA_CURL:UNINITIALIZED=OFF
+LLAMA_OPENSSL:BOOL=OFF
+cmake version 4.1.1
+Apple clang version 21.0.0 (clang-2100.3.34.2)

@@ -1,0 +1,2 @@
+Exit: 0
+{"source":"/Volumes/Extern M4 Speicher/LLM-Experimente/slipstream/qwen35b-reference/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf","source_size":22853663008,"source_shards":1,"layers_with_experts":41,"experts_per_layer":256,"expert_count":10496,"estimated_output_bytes":20128754176}

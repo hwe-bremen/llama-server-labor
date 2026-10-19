@@ -1,0 +1,165 @@
+{
+  "reference": {
+    "url": "https://raw.githubusercontent.com/Schero94/slipstream/v0.3.4/bench/RESULTS.md",
+    "repository": "unsloth/Qwen3.6-35B-A3B-MTP-GGUF",
+    "revision": "5bc3e238d916f48a861bac2f8a1990a0e9b7e98d",
+    "filename": "Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf",
+    "size": 22853663008,
+    "sha256": "55983c5a75a1ab969824077b3bb3de4146e82a9234072b48ad4e8f92ad3fe9f1",
+    "pgrn_documented_size": 20128754176,
+    "pgrn_documented_sha256": "732a314b95cb3a63e31c3c9cd44e284757721d13a29d7aecd10360d13e193269"
+  },
+  "installed_engine": {
+    "build": 10116,
+    "commit": "852e7daa1",
+    "sha256": "7d022ad062d322bb6964b9828f4f529e867c7cea98447f84ffb19a05ff4e7f0e"
+  },
+  "metadata_probe": {
+    "executed": true,
+    "reason": "Executed in normal user Terminal; stored metadata and budget inspected locally.",
+    "header_cap_bytes": 16777216,
+    "lifetime_body_reservation_cap": 70000000,
+    "verified_206_requests": 43,
+    "read_bytes": 11010208,
+    "result": "metadata/results.json",
+    "metadata_prerequisites_pass": true,
+    "all_expert_tensor_types": {
+      "Q4_K": 80,
+      "Q5_K": 40,
+      "Q6_K": 3
+    },
+    "inference_tested": false,
+    "full_model_sha256_verified": false
+  },
+  "reference_qualification": "# Native PGRN 35B qualification — 2026-07-22\n\n## Identity and artifact\n\n- Model: `Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf`\n- GGUF bytes: 22,853,663,008\n- GGUF SHA-256: `55983c5a75a1ab969824077b3bb3de4146e82a9234072b48ad4e8f92ad3fe9f1`\n- PGRN bytes: 20,128,754,176\n- PGRN: 41 routed layers including embedded MTP, 256 experts per layer,\n  10,496 CRC-protected records, 16 KiB alignment\n- Final llama.cpp commit: `24b6efd77`\n\n## Correctness and safety\n\n- Exact small-model resident/PGRN parity passed for Qwen3-MoE decoder,\n  Qwen3.5-MoE decoder, and embedded Qwen3.5 MTP: NMSE 0 and max absolute error 0.\n- Real 35B manifest geometry, quantized tensor types and per-expert byte sizes matched\n  the GGUF; model identity was recomputed and checked before PGRN activation.\n- Every cold expert read used `pread` + `F_NOCACHE` and verified its stored CRC before\n  cache publication.\n- Cache memory is fixed at construction and partitioned across routed layers. The\n  high-water includes one failure-safe staging record per layer.\n- Admission is fail-closed before cache/scratch allocation and re-checks the requested\n  live reserve after target and MTP context allocation.\n- The final product profile used a 2 GiB cache and 8 GiB live reserve. Two\n  consecutive full qualification processes, each with two coding turns, passed the\n  fail-closed policy and shut down cleanly. Peak RSS was 6,575.66 and 6,575.61 MiB.\n- The unused 72,975,748,384-byte GLM model was deleted with user authorization. The\n  admitted 35B GGUF and PGRN were retained.\n\n## Product measurements\n\nStable profile: cache 2 GiB, headroom 8 GiB, context 512, batch/ubatch 32/32,\nMetal offload, no warmup, embedded MTP maximum 4, thinking enabled.\n\n| Run / turn | Prompt | Decode | Thinking chars | MTP accepted | Result |\n|---|---:|---:|---:|---:|---|\n| A / 64 tokens | 9.75 tok/s | 5.81 tok/s | 270 | 48/55 | pass |\n| A / 128 tokens | 11.67 tok/s | 5.55 tok/s | 418 | 96/123 | pass |\n| B / 64 tokens | 9.90 tok/s | 5.77 tok/s | 270 | 48/55 | pass |\n| B / 128 tokens | 11.61 tok/s | 5.61 tok/s | 418 | 96/123 | pass |\n\nThe model-specific PGRN tensor directory derived an exact 2,145,419,264-byte cache,\n94,380,032 bytes of per-layer failure-safe staging, and a 2,239,799,296-byte hard\nhigh-water. Native telemetry reported 2,046.03/2,136.04 MiB after decimal rounding.\nBoth runs had zero swapouts; total cold-run reclaim was 1,867,776 and 2,736,128 bytes\nagainst a 4 MiB limit. System-wide free memory changed 60% -> 60% and 61% -> 60%.\nThe server exited with code zero after each controlled termination.\n\nMachine-readable final-build evidence:\n\n- `bench/artifacts/m0d/native-pgrn-35b-20260722T034036Z.json`\n- `bench/artifacts/m0d/native-pgrn-35b-20260722T034327Z.json`\n\nThe resident comparison baseline remains about 32-33 tok/s. Native bounded streaming\ntherefore meets the safety and functional target but does **not** match resident speed.\nThe earlier 10 GB observer result (95.58% warm hit rate) is not claimed for this safe\n2 GiB profile; its observed cumulative hit rate reached 23.18% over two turns.\n\n## Rejected configurations\n\n- 8 GiB cache + 6 GiB reserve: admission refused; no allocation or fallback occurred.\n- 6 GiB cache + 4 GiB reserve: initially reached 10.93 tok/s with MTP, then suffered a\n  170-second subsequent prefill residency stall.\n- 4 GiB cache + 6 GiB reserve with ubatch 8: 100-200 second Metal residency stalls.\n- Increasing physical ubatch to 32 removed prefill stalls, but 4 GiB still produced a\n  long second-decode residency stall.\n- 1.75 GiB cache + 10 GiB reserve was refused by admission under the then-current live\n  desktop state; no fallback or listener was started.\n- Several 1-2.25 GiB trials appeared to stall in their second turn. Their server clock\n  advanced by 25-275 seconds while client monotonic time and PGRN stage time did not;\n  these were macOS idle-sleep artifacts and are invalid performance evidence.\n- The runner now starts `caffeinate -im`, verifies it remains active, and fails closed if\n  the assertion ends. With that control, 2 GiB + 8 GiB passed twice consecutively and is\n  the qualified default for the current 36 GB Mac.\n\n## Automated tests\n\n`ctest --test-dir vendor/llama.cpp/build -R 'test-(arg-parser|peregrine-)'`\npassed 11/11 tests: argument parsing, bounded stream, PGRN parser, admission, runtime,\nloader, stage, scratch, system memory, SHA-256, and model E2E parity.\n\n`python3 -m unittest tests.m0d.test_native_streaming_ab -v` passed 10/10 tests,\nincluding malformed lifecycle, missing telemetry, forced-kill, swapout, pressure,\nthroughput, Thinking, MTP, model-derived high-water, and resident-memory refusal gates.\nThe model E2E CTest additionally proved exact resident/PGRN logits on explicitly\noffloaded Metal for Qwen3-MoE, Qwen3.5-MoE, and embedded MTP (`NMSE=0`, max error 0).\n\n## Remaining evidence boundary\n\nA new full resident-vs-PGRN 35B logits run was deliberately not performed: loading the\nresident model under the current desktop load would violate the very foreground-memory\ncontract being qualified. The accepted evidence is the exact small decoder/MTP parity,\nthe full 35B model-identity/tensor/CRC checks, the existing resident baseline, and the\nreal 35B native product runs above. This limitation must remain visible in any claim.\n",
+  "upstream_architecture_excerpt": "#include \"models.h\"\n#include \"llama-memory-recurrent.h\"\n\nvoid llama_model_qwen35moe::load_arch_hparams(llama_model_loader & ml) {\n    ml.get_key(LLM_KV_EXPERT_FEED_FORWARD_LENGTH,        hparams.n_ff_exp, false);\n    ml.get_key(LLM_KV_EXPERT_SHARED_FEED_FORWARD_LENGTH, hparams.n_ff_shexp, false);\n    ml.get_key(LLM_KV_ATTENTION_LAYERNORM_RMS_EPS,       hparams.f_norm_rms_eps);\n\n    ml.get_key_or_arr(LLM_KV_ROPE_DIMENSION_SECTIONS,    hparams.rope_sections, 4, true);\n\n    // Load linear attention (gated delta net) parameters\n    ml.get_key(LLM_KV_SSM_CONV_KERNEL,    hparams.ssm_d_conv);\n    ml.get_key(LLM_KV_SSM_INNER_SIZE,     hparams.ssm_d_inner);\n    ml.get_key(LLM_KV_SSM_STATE_SIZE,     hparams.ssm_d_state);\n    ml.get_key(LLM_KV_SSM_TIME_STEP_RANK, hparams.ssm_dt_rank);\n    ml.get_key(LLM_KV_SSM_GROUP_COUNT,    hparams.ssm_n_group);\n\n    // NextN/MTP (Qwen3.5/3.6): extra decoder block appended beyond the main stack\n    ml.get_key(LLM_KV_NEXTN_PREDICT_LAYERS, hparams.n_layer_nextn, false);\n    GGML_ASSERT(hparams.n_layer_nextn < hparams.n_layer_all && \"n_layer_nextn must be < n_layer_impl\");\n\n    // Mark recurrent layers (linear attention layers). MTP layers are dense\n    // attention-only and must be flagged non-recurrent.\n    if (!ml.get_key_or_arr(LLM_KV_ATTENTION_RECURRENT_LAYERS, hparams.is_recr_impl, hparams.n_layer_all, false)) {\n        uint32_t full_attn_interval = 4;\n        ml.get_key(LLM_KV_FULL_ATTENTION_INTERVAL, full_attn_interval, false);\n        for (uint32_t i = 0; i < hparams.n_layer_all; ++i) {\n            hparams.is_recr_impl[i] = (i < hparams.n_layer()) && ((i + 1) % full_attn_interval != 0);\n        }\n    }\n\n    switch (hparams.n_layer()) {\n        case 40: type = LLM_TYPE_35B_A3B; break;\n        case 48: type = LLM_TYPE_122B_A10B; break;\n        case 60: type = LLM_TYPE_397B_A17B; break;\n        default: type = LLM_TYPE_UNKNOWN;\n    }\n}\n\nvoid llama_model_qwen35moe::load_arch_tensors(llama_model_loader & ml) {\n    LLAMA_LOAD_LOCALS;\n\n    const bool mtp_only = (hparams.n_layer_nextn > 0) && (ml.get_weight(\"blk.0.attn_norm.weight\") == nullptr);\n    const int trunk_flags = mtp_only ? TENSOR_NOT_REQUIRED : 0;\n\n    tok_embd = create_tensor(tn(LLM_TENSOR_TOKEN_EMBD, \"weight\"), { n_embd, n_vocab }, 0);\n\n    // output\n    output_norm = create_tensor(tn(LLM_TENSOR_OUTPUT_NORM, \"weight\"), { n_embd }, 0);\n    output = create_tensor(tn(LLM_TENSOR_OUTPUT, \"weight\"), { n_embd, n_vocab }, TENSOR_NOT_REQUIRED);\n\n    // if output is NULL, init from the input tok embed\n    if (output == NULL) {\n        output = create_tensor(tn(LLM_TENSOR_TOKEN_EMBD, \"weight\"), { n_embd, n_vocab }, TENSOR_DUPLICATED);\n    }\n\n    auto load_block_trunk = [&](int il, int flags) {\n        auto & layer = layers[il];\n\n        const int64_t n_ff_exp   = hparams.n_ff_exp ? hparams.n_ff_exp : n_ff / n_expert_used;\n        const int64_t n_ff_shexp = hparams.n_ff_shexp ? hparams.n_ff_shexp : n_ff;\n\n        // Calculate dimensions from hyperparameters\n        const int64_t head_k_dim = hparams.ssm_d_state;\n        const int64_t head_v_dim = hparams.ssm_d_state;\n        const int64_t n_k_heads  = hparams.ssm_n_group;\n        const int64_t n_v_heads  = hparams.ssm_dt_rank;\n        const int64_t key_dim    = head_k_dim * n_k_heads;\n        const int64_t value_dim  = head_v_dim * n_v_heads;\n        const int64_t conv_dim   = key_dim * 2 + value_dim;\n\n        layer.attn_norm      = create_tensor(tn(LLM_TENSOR_ATTN_NORM,      \"weight\", il), { n_embd }, flags);\n        layer.attn_post_norm = create_tensor(tn(LLM_TENSOR_ATTN_POST_NORM, \"weight\", il), { n_embd }, flags);\n\n        if (!hparams.is_recr(il)) {\n            // Attention layers\n            create_tensor_qkv(layer, il, n_embd, n_embd_head_k * n_head * 2, n_embd_k_gqa, n_embd_v_gqa, flags);\n            layer.wo = create_tensor(tn(LLM_TENSOR_ATTN_OUT, \"weight\", il), { n_embd_head_k * n_head, n_embd }, flags);\n\n            // Q/K normalization for attention layers\n            layer.attn_q_norm = create_tensor(tn(LLM_TENSOR_ATTN_Q_NORM, \"weight\", il), { n_embd_head_k }, flags);\n            layer.attn_k_norm = create_tensor(tn(LLM_TENSOR_ATTN_K_NORM, \"weight\", il), { n_embd_head_k }, flags);\n        } else {\n            // Linear attention (gated delta net) specific tensors\n            // Create tensors with calculated dimensions\n            layer.wqkv           = create_tensor(tn(LLM_TENSOR_ATTN_QKV,       \"weight\", il), { n_embd, key_dim * 2 + value_dim }, TENSOR_NOT_REQUIRED);\n            layer.wqkv_gate      = create_tensor(tn(LLM_TENSOR_ATTN_GATE,      \"weight\", il), { n_embd, value_dim }, TENSOR_NOT_REQUIRED);\n            layer.ssm_conv1d     = create_tensor(tn(LLM_TENSOR_SSM_CONV1D,     \"weight\", il), { hparams.ssm_d_conv, conv_dim }, flags);\n            layer.ssm_dt         = create_tensor(tn(LLM_TENSOR_SSM_DT,         \"bias\",   il), { hparams.ssm_dt_rank }, flags);\n            layer.ssm_a          = create_tensor(tn(LLM_TENSOR_SSM_A_NOSCAN,             il), { hparams.ssm_dt_rank }, flags);\n            layer.ssm_beta       = create_tensor(tn(LLM_TENSOR_SSM_BETA,       \"weight\", il), { n_embd, n_v_heads }, flags);\n            layer.ssm_alpha      = create_tensor(tn(LLM_TENSOR_SSM_ALPHA,      \"weight\", il), { n_embd, n_v_heads }, flags);\n            layer.ssm_norm       = create_tensor(tn(LLM_TENSOR_SSM_NORM,       \"weight\", il), { head_v_dim }, flags);\n            layer.ssm_out        = create_tensor(tn(LLM_TENSOR_SSM_OUT,        \"weight\", il), { value_dim, n_embd }, flags);\n        }\n\n        // Routed experts\n        layer.ffn_gate_inp  = create_tensor(tn(LLM_TENSOR_FFN_GATE_INP,  \"weight\", il), { n_embd, n_expert }, flags);\n        layer.ffn_down_exps = create_tensor(tn(LLM_TENSOR_FFN_DOWN_EXPS, \"weight\", il), { n_ff_exp, n_embd, n_expert }, flags);\n        create_tensor_gate_up_exps(layer, il, n_embd, n_ff_exp, n_expert, flags);\n\n        // Shared experts\n        layer.ffn_gate_inp_shexp = create_tensor(tn(LLM_TENSOR_FFN_GATE_INP_SHEXP, \"weight\", il), { n_embd }, flags);\n        layer.ffn_gate_shexp     = create_tensor(tn(LLM_TENSOR_FFN_GATE_SHEXP,     \"weight\", il), { n_embd, n_ff_shexp }, flags);\n        layer.ffn_up_shexp       = create_tensor(tn(LLM_TENSOR_FFN_UP_SHEXP,       \"weight\", il), { n_embd, n_ff_shexp }, flags);\n        layer.ffn_down_shexp     = create_tensor(tn(LLM_TENSOR_FFN_DOWN_SHEXP,     \"weight\", il), { n_ff_shexp, n_embd }, flags);\n    };\n\n    auto load_block_mtp = [&](int il) {\n        auto & layer = layers[il];\n\n        const int64_t n_ff_exp   = hparams.n_ff_exp ? hparams.n_ff_exp : n_ff / n_expert_used;\n        const int64_t n_ff_shexp = hparams.n_ff_shexp ? hparams.n_ff_shexp : n_ff;\n\n        // MTP block looks like a full-attention Qwen3.5 decoder block with MoE FFN.\n        layer.attn_norm      = create_tensor(tn(LLM_TENSOR_ATTN_NORM,      \"weight\", il), { n_embd }, 0);\n        layer.attn_post_norm = create_tensor(tn(LLM_TENSOR_ATTN_POST_NORM, \"weight\", il), { n_embd }, 0);\n\n        create_tensor_qkv(layer, il, n_embd, n_embd_head_k * n_head * 2, n_embd_k_gqa, n_embd_v_gqa, 0);\n        layer.wo          = create_tensor(tn(LLM_TENSOR_ATTN_OUT,    \"weight\", il), { n_embd_head_k * n_head, n_embd }, 0);\n        layer.attn_q_norm = create_tensor(tn(LLM_TENSOR_ATTN_Q_NORM, \"weight\", il), { n_embd_head_k }, 0);\n        layer.attn_k_norm = create_tensor(tn(LLM_TENSOR_ATTN_K_NORM, \"weight\", il), { n_embd_head_k }, 0);\n\n        // Routed experts\n        layer.ffn_gate_inp  = create_tensor(tn(LLM_TENSOR_FFN_GATE_INP,  \"weight\", il), { n_embd, n_expert }, 0);\n        layer.ffn_down_exps = create_tensor(tn(LLM_TENSOR_FFN_DOWN_EXPS, \"weight\", il), { n_ff_exp, n_embd, n_expert }, 0);\n        create_tensor_gate_up_exps(layer, il, n_embd, n_ff_exp, n_expert, 0);\n\n        // Shared experts\n        layer.ffn_gate_inp_shexp = create_tensor(tn(LLM_TENSOR_FFN_GATE_INP_SHEXP, \"weight\", il), { n_embd }, 0);\n        layer.ffn_gate_shexp     = create_tensor(tn(LLM_TENSOR_FFN_GATE_SHEXP,     \"weight\", il), { n",
+  "pgrn_io_source": "/* peregrine_io.h — one place to say how a file will be read, per platform.\n *\n * PGRN manages its expert cache in user space against an explicit RAM budget, so\n * the kernel keeping a second copy is not a bonus: it is a competitor for the very\n * memory the budget is protecting. On macOS one fcntl says all of that at once.\n * Linux needs the same intent spelled out differently, and — this is the part that\n * bit us — `fcntl(fd, F_NOCACHE, 1)` is not portable in the silent way it looks:\n * F_NOCACHE is undefined there, so the previous `#define F_NOCACHE 48` fallback\n * issued an unknown fcntl command that failed with EINVAL and was discarded. The\n * reads then ran fully buffered with readahead — the opposite of what every call\n * site asked for.\n *\n * The functions below therefore name the access pattern rather than the syscall:\n *\n *   pgr_io_hint_random      scattered record reads (expert streaming)\n *   pgr_io_hint_sequential  one pass front to back (hashing, converting)\n *   pgr_io_forget           this range is consumed; no need to keep it\n *\n * PGRN_BUFFERED disables all of it, for drives that genuinely run smoother through\n * the page cache (DRAM-less externals). It used to be honoured at one call site\n * only; now it holds everywhere.\n *\n * The macOS path is deliberately unchanged — plain F_NOCACHE, no added F_RDAHEAD —\n * because every published measurement was taken with exactly that.\n */\n#ifndef PEREGRINE_IO_H\n#define PEREGRINE_IO_H\n\n#include <stdlib.h>\n\n#if defined(__APPLE__)\n#include <fcntl.h>\n#elif defined(__linux__)\n#include <fcntl.h>\n#endif\n\n#ifdef __cplusplus\nextern \"C\" {\n#endif\n\nstatic inline int pgr_io_buffered_requested(void) {\n    return getenv(\"PGRN_BUFFERED\") != NULL;\n}\n\nstatic inline void pgr_io_hint_random(int fd) {\n    if (fd < 0 || pgr_io_buffered_requested()) return;\n#if defined(__APPLE__)\n    (void) fcntl(fd, F_NOCACHE, 1);\n#elif defined(__linux__)\n    /* POSIX_FADV_RANDOM switches readahead off: an expert record is one bounded\n     * read at an offset nobody can predict from the last one, so reading ahead\n     * only spends bandwidth on data that will be dropped. */\n    (void) posix_fadvise(fd, 0, 0, POSIX_FADV_RANDOM);\n#else\n    (void) fd;\n#endif\n}\n\nstatic inline void pgr_io_hint_sequential(int fd) {\n    if (fd < 0 || pgr_io_buffered_requested()) return;\n#if defined(__APPLE__)\n    (void) fcntl(fd, F_NOCACHE, 1);\n#elif defined(__linux__)\n    (void) posix_fadvise(fd, 0, 0, POSIX_FADV_SEQUENTIAL);\n#else\n    (void) fd;\n#endif\n}\n\n/* Best effort by construction: Linux only drops clean pages, and macOS has\n * already been told not to keep any. Length 0 means \"to end of file\". */\nstatic inline void pgr_io_forget(int fd, long long offset, long long length) {\n    if (fd < 0 || pgr_io_buffered_requested()) return;\n#if defined(__linux__)\n    (void) posix_fadvise(fd, (off_t) offset, (off_t) length, POSIX_FADV_DONTNEED);\n#else\n    (void) fd; (void) offset; (void) length;\n#endif\n}\n\n#ifdef __cplusplus\n}\n#endif\n#endif\n",
+  "model_download": {
+    "authorized_at": "2026-10-17T14:22:05.097413+00:00",
+    "status": "complete_sha256_verified",
+    "script": "qwen_reference/download_qwen.py",
+    "destination": "/Volumes/Extern M4 Speicher/LLM-Experimente/slipstream/qwen35b-reference",
+    "size_bytes": 22853663008,
+    "converted": false,
+    "model_started": false,
+    "completed_at": "2026-10-17T14:53:08.095803+00:00",
+    "manifest": "qwen_reference/logs/download-complete.json",
+    "local_size_rechecked": true
+  },
+  "converter_dry_run": {
+    "passed": true,
+    "at": "2026-10-17T15:02:06.274310+00:00",
+    "details": {
+      "source": "/Volumes/Extern M4 Speicher/LLM-Experimente/slipstream/qwen35b-reference/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf",
+      "source_size": 22853663008,
+      "source_shards": 1,
+      "layers_with_experts": 41,
+      "experts_per_layer": 256,
+      "expert_count": 10496,
+      "estimated_output_bytes": 20128754176
+    },
+    "converted": false,
+    "model_started": false
+  },
+  "pgrn_conversion": {
+    "started_at": "2026-10-17T15:03:23.341492+00:00",
+    "command": [
+      "/Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017/runtime/Slipstream.app/Contents/Resources/resources/pgrn-convert",
+      "--input",
+      "/Volumes/Extern M4 Speicher/LLM-Experimente/slipstream/qwen35b-reference/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf",
+      "--output",
+      "/Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017/pgrn/Qwen3.6-35B-A3B-UD-Q4_K_XL.pgrn",
+      "--expect-sha256",
+      "55983c5a75a1ab969824077b3bb3de4146e82a9234072b48ad4e8f92ad3fe9f1",
+      "--io-threads",
+      "4",
+      "--min-free-gb",
+      "16",
+      "--progress",
+      "jsonl"
+    ],
+    "free_internal_bytes_before": 1138688000000,
+    "expected_output_bytes": 20128754176,
+    "model_started": false,
+    "exit_code": 0,
+    "converter_completed_at": "2026-10-17T15:05:35.700925+00:00",
+    "completed_at": "2026-10-17T15:05:44.019017+00:00",
+    "output": "/Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017/pgrn/Qwen3.6-35B-A3B-UD-Q4_K_XL.pgrn",
+    "output_bytes": 20128754176,
+    "sha256": "732a314b95cb3a63e31c3c9cd44e284757721d13a29d7aecd10360d13e193269",
+    "matches_reference_sha256": true,
+    "converter_crc_verification_enabled": true,
+    "converted": true
+  },
+  "internal_inference_test": {
+    "run": "experiments/slipstream_20261017/qwen_reference/runs/internal-20261017T161514971893Z",
+    "passed": true,
+    "load_s": 150.77172133303247,
+    "requests": [
+      {
+        "output_tokens": 64,
+        "ttft_s": 3.6735724579775706,
+        "wall_s": 14.66465754096862,
+        "decode_tokens_s": 5.823065782264289
+      },
+      {
+        "output_tokens": 128,
+        "ttft_s": 4.579304833896458,
+        "wall_s": 28.13830620900262,
+        "decode_tokens_s": 5.433201000931454
+      }
+    ],
+    "peak_rss_kib": 6795632,
+    "swapout_delta": 0,
+    "final_cumulative_cache_hits": 14534,
+    "final_cumulative_cache_misses": 47702,
+    "external_pgrn_tested": false,
+    "physical_device_read_attribution_verified": false,
+    "engine_exit_code": 0
+  },
+  "storage_comparison": {
+    "directory": "experiments/slipstream_20261017/qwen_reference/comparisons/20261017T163646986349Z",
+    "review": {
+      "reviewed_at": "2026-10-17T17:04:30.877053+00:00",
+      "six_runs_passed": true,
+      "all_twelve_requests_128_tokens": true,
+      "engine_only_pgrn_argument_changed": true,
+      "copy_size": 20128754176,
+      "copy_sha256": "732a314b95cb3a63e31c3c9cd44e284757721d13a29d7aecd10360d13e193269",
+      "external_path_verified": true,
+      "external_cache_misses_verified": true,
+      "physical_external_reads_verified_during_inference": true,
+      "external_device_read_gb_per_request_min_max": [
+        36.883103744,
+        38.730645504
+      ],
+      "external_decode_subset_read_gb_min_max": [
+        29.016973312,
+        33.002569728
+      ],
+      "external_idle_reads_all_six_windows_bytes": 0,
+      "attribution_limit": "Physical block-device counters, not exclusive per-process/file tracing; six quiet idle controls and zero T7 reads in A support attribution to external PGRN inference.",
+      "swapout_deltas_A_B": {
+        "A": [
+          0,
+          0,
+          0
+        ],
+        "B": [
+          0,
+          0,
+          0
+        ]
+      },
+      "recommendation": "Keep active PGRN internal for speed; T7 expert streaming operationally verified at approximately one third decode rate in this exact 2 GiB-cache profile.",
+      "not_proven": [
+        "models larger than 48 GB",
+        "GLM inference",
+        "reviewer quality",
+        "Haiku equivalence",
+        "cold OS-cache performance"
+      ]
+    },
+    "summary": "summary.json"
+  }
+}

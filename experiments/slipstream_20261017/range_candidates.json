@@ -1,0 +1,23 @@
+{
+  "note": "Candidate metadata probes only, NOT download recommendations. Both candidates are split; current engine refuses split GGUF in PGRN mode even if types passed.",
+  "candidates": [
+    {
+      "name": "ggml-org-q4km",
+      "repository": "ggml-org/GLM-4.5-Air-GGUF",
+      "revision": "23a7a815a57a697e59f36fd8a897c632730a1fe9",
+      "files": [
+        {"path": "GLM-4.5-Air-Q4_K_M-00001-of-00002.gguf", "size": 9308768},
+        {"path": "GLM-4.5-Air-Q4_K_M-00002-of-00002.gguf", "size": 63624271808}
+      ]
+    },
+    {
+      "name": "bartowski-q4ks",
+      "repository": "bartowski/zai-org_GLM-4.5-Air-GGUF",
+      "revision": "9c432824104581c615dcf71b955c7d2527f88cf9",
+      "files": [
+        {"path": "zai-org_GLM-4.5-Air-Q4_K_S/zai-org_GLM-4.5-Air-Q4_K_S-00001-of-00002.gguf", "size": 39629894432},
+        {"path": "zai-org_GLM-4.5-Air-Q4_K_S/zai-org_GLM-4.5-Air-Q4_K_S-00002-of-00002.gguf", "size": 28680132512}
+      ]
+    }
+  ]
+}

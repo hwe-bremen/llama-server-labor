@@ -1,0 +1,24 @@
+{
+  "model": "qwen-stream-reference",
+  "messages": [
+    {
+      "role": "system",
+      "content": "Prüfe den bereitgestellten Code auf konkrete Fehler und relevante Designrisiken. Nenne pro Befund Datei und Stelle, Auslöser, Auswirkung und Begründung. Trenne nachgewiesene Fehler von Vermutungen. Wenn du keinen belastbaren Befund findest, sage das. Keine Änderungen am Code."
+    },
+    {
+      "role": "user",
+      "content": "Rahmenbedingungen:\nPython 3.11+, ein Prozess und Eventloop. Mehrere unabhängige Sessions rufen chat gleichzeitig auf. Die lokale SQLite-Datei wird ausschließlich durch diese Klasse genutzt. Model.generate kann einige Sekunden warten. User- und Assistant-Turn sollen pro erfolgreichem Aufruf gemeinsam gespeichert werden; bei Fehler oder Abbruch darf kein halbes Paar bleiben. Die API verwendet unterschiedliche Sessions, dieselbe Datenbank und dieselbe ChatJournal-Instanz.\n\n\nDie folgenden Dateien bilden ein Python-Paket; alle für diesen Ausschnitt benötigten Implementierungen sind enthalten.\n\nDatei: chat.py\n```python\n  1: import sqlite3\n  2: from contextlib import closing\n  3: from typing import Protocol\n  4: \n  5: class Model(Protocol):\n  6:     async def generate(self, prompt: str) -> str: ...\n  7: \n  8: class ChatJournal:\n  9:     def __init__(self, database: str, model: Model):\n 10:         self.database = database\n 11:         self.model = model\n 12:         with closing(sqlite3.connect(database)) as conn:\n 13:             conn.execute(\"CREATE TABLE IF NOT EXISTS turns (session TEXT, role TEXT, body TEXT)\")\n 14:             conn.commit()\n 15: \n 16:     async def chat(self, session: str, prompt: str) -> str:\n 17:         with closing(sqlite3.connect(self.database, timeout=0.05)) as conn:\n 18:             conn.execute(\"BEGIN IMMEDIATE\")\n 19:             try:\n 20:                 conn.execute(\"INSERT INTO turns VALUES (?, ?, ?)\", (session, \"user\", prompt))\n 21:                 answer = await self.model.generate(prompt)\n 22:                 conn.execute(\"INSERT INTO turns VALUES (?, ?, ?)\", (session, \"assistant\", answer))\n 23:                 conn.commit()\n 24:                 return answer\n 25:             except BaseException:\n 26:                 conn.rollback()\n 27:                 raise\n```"
+    }
+  ],
+  "max_tokens": 128,
+  "temperature": 0,
+  "seed": 42,
+  "cache_prompt": false,
+  "chat_template_kwargs": {
+    "enable_thinking": false
+  },
+  "stream": true,
+  "stream_options": {
+    "include_usage": true
+  }
+}

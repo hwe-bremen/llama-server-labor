@@ -1,0 +1,30 @@
+{
+  "checked_at": "2026-10-18T09:11:53.064695+00:00",
+  "status": "BLOCKED",
+  "model_started": false,
+  "full_model_download_started": false,
+  "conversion_started": false,
+  "preflight": {
+    "external_mounted": true,
+    "external_free_bytes": 880640000000,
+    "internal_free_bytes": 1118208000000,
+    "existing_gguf_bytes": 0,
+    "existing_pgrn_or_partial_bytes": 0,
+    "binaries": {
+      "llama-server": {
+        "sha256": "7d022ad062d322bb6964b9828f4f529e867c7cea98447f84ffb19a05ff4e7f0e",
+        "matches_inspected_v034": true
+      },
+      "pgrn-convert": {
+        "sha256": "af8e47e59d4dcd9eed556da061220af7bd10c3de8137eea2ddd866ab53ad8476",
+        "matches_inspected_v034": true
+      }
+    },
+    "native_converter_help": "usage: /Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017/runtime/Slipstream.app/Contents/Resources/resources/pgrn-convert --input model.gguf --output model.pgrn [--expect-sha256 HEX]\n          [--min-free-gb N=16] [--io-threads N] [--progress jsonl]\n          [--dry-run] [--no-verify] [--resume] [--no-journal]\n\n  --resume      continue an interrupted conversion from its .partial +\n                .partial.journal, re-checking the CRC of everything\n                already written before appending\n  --no-journal  do not keep a resume journal; a cancelled run then\n                deletes its .partial as before\n\nexit codes: 0 done, 1 error, 2 cancelled (resumable)\n",
+    "external_target_files": [],
+    "internal_target_files": []
+  },
+  "error": "Nur Vorbereitung ausgeführt. Der vorherige HEAD-Zugriff in dieser Sitzung scheiterte an DNS: [Errno 8] nodename nor servname provided, or not known. Kein Download und keine Konvertierung ausgeführt.",
+  "finished_at": "2026-10-18T09:11:53.095205+00:00",
+  "log_directory": "/Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017/qwen3_coder_next_headercheck/download_conversion_runs/20261018T091153064792Z"
+}

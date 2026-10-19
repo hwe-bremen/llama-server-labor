@@ -1,0 +1,10 @@
+{
+  "release_hash_after": "7d022ad062d322bb6964b9828f4f529e867c7cea98447f84ffb19a05ff4e7f0e",
+  "release_unchanged": true,
+  "observed_lab_listeners_unchanged": true,
+  "build_started": false,
+  "reference_binary_exists": false,
+  "diagnostic_binary_exists": false,
+  "instrumentation_applied": false,
+  "inference_started": false
+}

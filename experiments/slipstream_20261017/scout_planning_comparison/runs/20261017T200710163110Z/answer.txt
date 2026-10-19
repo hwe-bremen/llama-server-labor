@@ -1,0 +1,18 @@
+Die stärkste Schwäche der aktuellen Aufgabe ist, dass sie das Symptom (Doppelversand) behandelt, aber die Ursache (falsche Wochenzuordnung) nur implizit lässt.
+
+Der aktuelle Code in `llm_scout.py` (Zeile 333) und `send_scout_email.py` (Zeile 74–77) nutzt `datetime.now().isocalendar()`. Das ist der Kernfehler:
+1.  **Jahreswechsel:** `isocalendar()` kann am 31.12. bereits KW 1 des nächsten Jahres melden, während der Bericht vielleicht noch unter dem alten Jahr gespeichert wurde (oder umgekehrt, je nach Implementierung des Berichtsnamens). Der Code in `llm_scout.py` speichert den Bericht mit `datetime.now().strftime('%Y')` (aktuelles Kalenderjahr), aber der Dateiname enthält `kw{week}_{kw}` (ISO-Jahr). `send_scout_email.py` sucht exakt nach diesem Muster.
+    *   *Korrektur:* In `llm_scout.py` Zeile 334 wird `datetime.now().strftime('%Y')` verwendet. Das ist das **Kalenderjahr**. In `send_scout_email.py` Zeite 75 wird `iso_cal[0]` verwendet. Das ist das **ISO-Jahr**.
+    *   *Beispiel:* 29.12.2026 ist KW 52 des Jahres 2026. ISO-Jahr ist 2026. Passt.
+    *   *Beispiel:* 01.01.2027 ist KW 53 (oder KW 1, je nach Jahr). 01.01.2027 ist ein Donnerstag. ISO-KW 1 beginnt am Montag vor dem 4. Januar. Also ist 01.01.2027 noch in ISO-KW 53 des Jahres 2026.
+    *   *Fehler:* `llm_scout.py` speichert am 01.01.2027 den Bericht als `llm_scout_kw53_2027.md` (weil `strftime('%Y')` 2027 liefert). `send_scout_email.py` sucht am 01.01.2027 nach `llm_scout_kw53_2026.md` (weil `iso_cal[0]` 2026 liefert). **Der Bericht wird nicht gefunden.** Das ist Schwäche 1.
+2.  **Doppelversand:** Wenn die Pipeline zweimal läuft, wird der Bericht *überschrieben* (Zeile 337 `open(filepath, 'w')`). `send_scout_email.py` findet die Datei immer noch. Da es keine Sperre im *Versand*-Skript gibt, die prüft, ob *heute* schon versendet wurde, wird bei jedem Aufruf von `send_scout_email.py` eine Mail verschickt. Das ist Schwäche 2.
+
+Die Aufgabe sagt: "Die Versand-Sperre SCOUT_ALLOW_SEND gibt es schon; sie bleibt." Diese Sperre verhindert nur den *tatsächlichen SMTP-Versand* an echte Server, nicht den *Aufruf* des Versand-Skripts oder das *Finden* der Datei. Sie verhindert also nicht den "Doppelversand" im Sinne von "zweimalige Verarbeitung/Logik", sondern nur den externen Effekt. Aber Hawe meint wohl den externen Effekt.
+
+Dennoch: Das Problem "Bericht wird nicht gefunden" (Schwäche 1) wird durch die bloße Beibehaltung der aktuellen Namensgebung *nicht* behoben, es sei denn, die Spec zwingt dazu, ISO-Jahr und Kalenderjahr konsistent zu verwenden. Die aktuelle Aufgabe nennt das nicht explizit als Anforderung, sondern nur als "Bestandsschwäche".
+
+**Meine Kritik:** Die Aufgabe ist zu vage für die Spezifikation. Sie sagt "beheben", aber nicht *wie*. Ich muss in der Spec definieren, dass das Namensschema konsistent wird (ISO-Jahr überall oder Kalenderjahr überall, aber konsistent). Und ich muss eine Versand-Sperre pro Tag implementieren, die *vor* dem SMTP-Call prüft, ob heute schon versendet wurde (z.B. via Flag-Datei oder DB-Eintrag), um den Doppelversand auch bei manuellem Neustart zu verhindern.
+
+**Rückfrage:**
+Soll das Namensschema für Berichte und die Suche im Versand-Skript auf das **ISO-Jahr** (`isocalendar()[0]`) vereinheitlicht werden, oder auf das **Kalenderjahr** (`strftime('%Y')`)? (ISO-Jahr ist semantisch korrekter für "KW", aber Kalenderjahr ist für Menschen oft intuitiver. Ich empfehle ISO-Jahr, um die KW-Logik konsistent zu halten.)

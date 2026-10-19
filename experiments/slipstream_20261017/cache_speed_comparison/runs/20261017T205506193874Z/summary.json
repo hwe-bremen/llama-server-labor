@@ -1,0 +1,393 @@
+{
+  "order": [
+    "A2GiB",
+    "B12GiB"
+  ],
+  "full_pair": true,
+  "os_cache": "Uncontrolled; A then B; no purge, no cold-cache claim",
+  "replication": "One fresh process per cache;3repeated identical requests. Request1arena-cold,2/3warmer, no process-replication/statistical claim.",
+  "variants": {
+    "A2GiB": {
+      "report": "/Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017/cache_speed_comparison/runs/20261017T205506193874Z/A2GiB/report.json",
+      "inference_passed": true,
+      "load_s": 126.62615320901386,
+      "rows": [
+        {
+          "request": 1,
+          "arena_state": "cold",
+          "prompt_tokens": 558,
+          "output_tokens": 128,
+          "native_prompt_tokens": 558,
+          "native_prompt_cache_tokens": 0,
+          "prompt_s": 38.075216,
+          "prompt_tps": 14.655202481320131,
+          "ttft_s": 38.083368208957836,
+          "decode_tps": 3.6483399340733578,
+          "wall_s": 73.16797112498898,
+          "bounded_pass": true,
+          "finish": [
+            "length"
+          ],
+          "physical_io_delta": {
+            "internal": {
+              "read_bytes": 153542852608,
+              "read_ops": 162531,
+              "write_bytes": 47255552
+            },
+            "external": {
+              "read_bytes": 0,
+              "read_ops": 0,
+              "write_bytes": 0
+            }
+          },
+          "cache_mib": 2046.03,
+          "highwater_mib": 2136.04,
+          "hits_delta": 24129,
+          "misses_delta": 80808
+        },
+        {
+          "request": 2,
+          "arena_state": "warmer",
+          "prompt_tokens": 558,
+          "output_tokens": 128,
+          "native_prompt_tokens": 558,
+          "native_prompt_cache_tokens": 0,
+          "prompt_s": 41.595369,
+          "prompt_tps": 13.41495491962098,
+          "ttft_s": 41.60368250007741,
+          "decode_tps": 3.9526454546507273,
+          "wall_s": 73.98721208306961,
+          "bounded_pass": true,
+          "finish": [
+            "length"
+          ],
+          "physical_io_delta": {
+            "internal": {
+              "read_bytes": 154059956224,
+              "read_ops": 162649,
+              "write_bytes": 54226944
+            },
+            "external": {
+              "read_bytes": 0,
+              "read_ops": 0,
+              "write_bytes": 0
+            }
+          },
+          "cache_mib": 2046.03,
+          "highwater_mib": 2136.04,
+          "hits_delta": 23852,
+          "misses_delta": 80508
+        },
+        {
+          "request": 3,
+          "arena_state": "warmer",
+          "prompt_tokens": 558,
+          "output_tokens": 128,
+          "native_prompt_tokens": 558,
+          "native_prompt_cache_tokens": 0,
+          "prompt_s": 38.318603,
+          "prompt_tps": 14.562117517697605,
+          "ttft_s": 38.3274229579838,
+          "decode_tps": 4.013675596175068,
+          "wall_s": 70.21830754203256,
+          "bounded_pass": true,
+          "finish": [
+            "length"
+          ],
+          "physical_io_delta": {
+            "internal": {
+              "read_bytes": 154062344192,
+              "read_ops": 163217,
+              "write_bytes": 53317632
+            },
+            "external": {
+              "read_bytes": 0,
+              "read_ops": 0,
+              "write_bytes": 0
+            }
+          },
+          "cache_mib": 2046.03,
+          "highwater_mib": 2136.04,
+          "hits_delta": 23854,
+          "misses_delta": 80506
+        }
+      ],
+      "native_counter_rows": 3,
+      "peak_rss_gib": 6.4371185302734375,
+      "swapout_delta": 0,
+      "swapout_sample_range": [
+        13528351,
+        13528351
+      ],
+      "port_after": "frei",
+      "engine_exit": 0,
+      "lab_stayed_stopped": true,
+      "prompt_s": {
+        "median": 38.318603,
+        "min": 38.075216,
+        "max": 41.595369,
+        "n": 3
+      },
+      "prompt_tps": {
+        "median": 14.562117517697605,
+        "min": 13.41495491962098,
+        "max": 14.655202481320131,
+        "n": 3
+      },
+      "ttft_s": {
+        "median": 38.3274229579838,
+        "min": 38.083368208957836,
+        "max": 41.60368250007741,
+        "n": 3
+      },
+      "decode_tps": {
+        "median": 3.9526454546507273,
+        "min": 3.6483399340733578,
+        "max": 4.013675596175068,
+        "n": 3
+      },
+      "wall_s": {
+        "median": 73.16797112498898,
+        "min": 70.21830754203256,
+        "max": 73.98721208306961,
+        "n": 3
+      },
+      "misses_delta": {
+        "median": 80508,
+        "min": 80506,
+        "max": 80808,
+        "n": 3
+      },
+      "cache_mib": {
+        "median": 2046.03,
+        "min": 2046.03,
+        "max": 2046.03,
+        "n": 3
+      },
+      "warmer_requests": {
+        "prompt_s": {
+          "median": 39.956986,
+          "min": 38.318603,
+          "max": 41.595369,
+          "n": 2
+        },
+        "ttft_s": {
+          "median": 39.965552729030605,
+          "min": 38.3274229579838,
+          "max": 41.60368250007741,
+          "n": 2
+        },
+        "decode_tps": {
+          "median": 3.9831605254128974,
+          "min": 3.9526454546507273,
+          "max": 4.013675596175068,
+          "n": 2
+        },
+        "misses_delta": {
+          "median": 80507.0,
+          "min": 80506,
+          "max": 80508,
+          "n": 2
+        }
+      }
+    },
+    "B12GiB": {
+      "report": "/Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017/cache_speed_comparison/runs/20261017T205506193874Z/B12GiB/report.json",
+      "inference_passed": true,
+      "load_s": 126.91716112499125,
+      "rows": [
+        {
+          "request": 1,
+          "arena_state": "cold",
+          "prompt_tokens": 558,
+          "output_tokens": 128,
+          "native_prompt_tokens": 558,
+          "native_prompt_cache_tokens": 0,
+          "prompt_s": 14.896153,
+          "prompt_tps": 37.45933597755071,
+          "ttft_s": 14.904420332983136,
+          "decode_tps": 11.80130728981503,
+          "wall_s": 25.75096429104451,
+          "bounded_pass": true,
+          "finish": [
+            "length"
+          ],
+          "physical_io_delta": {
+            "internal": {
+              "read_bytes": 29948698624,
+              "read_ops": 31951,
+              "write_bytes": 11608064
+            },
+            "external": {
+              "read_bytes": 0,
+              "read_ops": 0,
+              "write_bytes": 0
+            }
+          },
+          "cache_mib": 12287.16,
+          "highwater_mib": 12377.17,
+          "hits_delta": 88696,
+          "misses_delta": 16241
+        },
+        {
+          "request": 2,
+          "arena_state": "warmer",
+          "prompt_tokens": 558,
+          "output_tokens": 128,
+          "native_prompt_tokens": 558,
+          "native_prompt_cache_tokens": 0,
+          "prompt_s": 12.913770000000001,
+          "prompt_tps": 43.209690121474985,
+          "ttft_s": 12.92219691700302,
+          "decode_tps": 12.500563990289406,
+          "wall_s": 23.16177158302162,
+          "bounded_pass": true,
+          "finish": [
+            "length"
+          ],
+          "physical_io_delta": {
+            "internal": {
+              "read_bytes": 23997816832,
+              "read_ops": 31787,
+              "write_bytes": 37855232
+            },
+            "external": {
+              "read_bytes": 0,
+              "read_ops": 0,
+              "write_bytes": 0
+            }
+          },
+          "cache_mib": 12287.16,
+          "highwater_mib": 12377.17,
+          "hits_delta": 91905,
+          "misses_delta": 12455
+        },
+        {
+          "request": 3,
+          "arena_state": "warmer",
+          "prompt_tokens": 558,
+          "output_tokens": 128,
+          "native_prompt_tokens": 558,
+          "native_prompt_cache_tokens": 0,
+          "prompt_s": 12.941876,
+          "prompt_tps": 43.11585121044275,
+          "ttft_s": 12.950354333035648,
+          "decode_tps": 12.676892164809107,
+          "wall_s": 23.047258000005968,
+          "bounded_pass": true,
+          "finish": [
+            "length"
+          ],
+          "physical_io_delta": {
+            "internal": {
+              "read_bytes": 24008454144,
+              "read_ops": 35898,
+              "write_bytes": 105463808
+            },
+            "external": {
+              "read_bytes": 16384,
+              "read_ops": 4,
+              "write_bytes": 0
+            }
+          },
+          "cache_mib": 12287.16,
+          "highwater_mib": 12377.17,
+          "hits_delta": 91860,
+          "misses_delta": 12500
+        }
+      ],
+      "native_counter_rows": 3,
+      "peak_rss_gib": 16.437698364257812,
+      "swapout_delta": 0,
+      "swapout_sample_range": [
+        13528351,
+        13528351
+      ],
+      "port_after": "frei",
+      "engine_exit": 0,
+      "lab_stayed_stopped": true,
+      "prompt_s": {
+        "median": 12.941876,
+        "min": 12.913770000000001,
+        "max": 14.896153,
+        "n": 3
+      },
+      "prompt_tps": {
+        "median": 43.11585121044275,
+        "min": 37.45933597755071,
+        "max": 43.209690121474985,
+        "n": 3
+      },
+      "ttft_s": {
+        "median": 12.950354333035648,
+        "min": 12.92219691700302,
+        "max": 14.904420332983136,
+        "n": 3
+      },
+      "decode_tps": {
+        "median": 12.500563990289406,
+        "min": 11.80130728981503,
+        "max": 12.676892164809107,
+        "n": 3
+      },
+      "wall_s": {
+        "median": 23.16177158302162,
+        "min": 23.047258000005968,
+        "max": 25.75096429104451,
+        "n": 3
+      },
+      "misses_delta": {
+        "median": 12500,
+        "min": 12455,
+        "max": 16241,
+        "n": 3
+      },
+      "cache_mib": {
+        "median": 12287.16,
+        "min": 12287.16,
+        "max": 12287.16,
+        "n": 3
+      },
+      "warmer_requests": {
+        "prompt_s": {
+          "median": 12.927823,
+          "min": 12.913770000000001,
+          "max": 12.941876,
+          "n": 2
+        },
+        "ttft_s": {
+          "median": 12.936275625019334,
+          "min": 12.92219691700302,
+          "max": 12.950354333035648,
+          "n": 2
+        },
+        "decode_tps": {
+          "median": 12.588728077549256,
+          "min": 12.500563990289406,
+          "max": 12.676892164809107,
+          "n": 2
+        },
+        "misses_delta": {
+          "median": 12477.5,
+          "min": 12455,
+          "max": 12500,
+          "n": 2
+        }
+      }
+    }
+  },
+  "review_quality_evaluated": false,
+  "only_cache_cli_arg_differs": true,
+  "all_six_outputs_identical": true,
+  "all_prompt_cache_n_zero": true,
+  "matching_token_workloads": true,
+  "actual_cache_larger_in_B": true,
+  "technical_comparison_valid": true,
+  "ratios_B_over_A": {
+    "prompt_s": 0.33774394123919393,
+    "prompt_tps": 2.9608229131541672,
+    "ttft_s": 0.33788742716233217,
+    "decode_tps": 3.162581651633111,
+    "wall_s": 0.3165561546520893
+  }
+}

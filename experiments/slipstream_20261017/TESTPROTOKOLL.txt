@@ -1,0 +1,208 @@
+$ python3 -B experiment.py check
+Exit: 1
+{
+  "lab": {
+    "8080": {
+      "listeners": "p30272\ncllama-server\nf9\nn127.0.0.1:8080",
+      "http_error": "<urlopen error [Errno 1] Operation not permitted>"
+    },
+    "8091": {
+      "listeners": "p30322\ncPython\nf3\nn127.0.0.1:8091",
+      "http_error": "<urlopen error [Errno 1] Operation not permitted>"
+    },
+    "8092": {
+      "listeners": "p30217\ncPython\nf3\nn127.0.0.1:8092",
+      "http_error": "<urlopen error [Errno 1] Operation not permitted>"
+    },
+    "8787": {
+      "listeners": "p30225\ncPython\nf6\nn127.0.0.1:8787",
+      "http_error": "<urlopen error [Errno 1] Operation not permitted>"
+    }
+  },
+  "experiment_ports": {
+    "8083": "frei",
+    "8093": "frei"
+  }
+}
+Frei: /Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017: 1071.93 GiB
+Frei: /Volumes/Extern M4 Speicher: 930.79 GiB
+ABBRUCH: Slipstream-Bundle fehlt: /Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017/runtime/Slipstream.app; kein Homebrew-Fallback.
+
+
+$ python3 -B experiment.py capabilities
+Exit: 1
+ABBRUCH: Slipstream-Bundle fehlt: /Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017/runtime/Slipstream.app; kein Homebrew-Fallback.
+
+
+$ python3 -B experiment.py smoke
+Exit: 1
+ABBRUCH: Slipstream-Bundle fehlt: /Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017/runtime/Slipstream.app; kein Homebrew-Fallback.
+
+
+Nachkontrolle 2026-10-17T08:56:03.068188+00:00
+Python-AST/JSON/Modellgrößensumme: OK
+Exit: 1
+{
+  "lab": {
+    "8080": {
+      "listeners": "p30272\ncllama-server\nf9\nn127.0.0.1:8080",
+      "http_error": "<urlopen error [Errno 1] Operation not permitted>"
+    },
+    "8091": {
+      "listeners": "p30322\ncPython\nf3\nn127.0.0.1:8091",
+      "http_error": "<urlopen error [Errno 1] Operation not permitted>"
+    },
+    "8092": {
+      "listeners": "p30217\ncPython\nf3\nn127.0.0.1:8092",
+      "http_error": "<urlopen error [Errno 1] Operation not permitted>"
+    },
+    "8787": {
+      "listeners": "p30225\ncPython\nf6\nn127.0.0.1:8787",
+      "http_error": "<urlopen error [Errno 1] Operation not permitted>"
+    }
+  },
+  "experiment_ports": {
+    "8083": "frei",
+    "8093": "frei"
+  }
+}
+Frei: /Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017: 1071.93 GiB
+Frei: /Volumes/Extern M4 Speicher: 930.79 GiB
+ABBRUCH: Slipstream-Bundle fehlt: /Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017/runtime/Slipstream.app; kein Homebrew-Fallback.
+
+
+Fortsetzung 2026-10-17T09:01:50.271406+00:00
+README/config/experiment/TESTPROTOKOLL/sources gelesen; Starter und Rollen-Proxy geprüft.
+Modellloser Pfad: eigener leerer --models-dir, --no-models-autoload; keine POST-Completion, keine Gewichte.
+Cleanup: nur eigene Popen-Objekte terminate/wait/kill; keine fremden PID-Signale.
+Offizielle Release-Metadaten erneut per GitHub-Connector geprüft: ZIP 65780310 Bytes; SHA-256 8f2106b66ac1f809f0d1d82d1f1b17ad404974f158ce3d5e361ce0eb11fb9ce7; Digest stimmt mit Release-Text überein.
+Runtime weiterhin nicht vorhanden. Bekannte DNS-/localhost-Sandboxfehler nicht wiederholt.
+Berechtigungsprofil: sandbox_approval deaktiviert; keine verfügbare Freigabe zur Erweiterung des Shell-Netzwerkzugriffs. Kein neuer abgelehnter Freigabeversuch.
+Kein Bundle heruntergeladen/entpackt; capabilities und Engine-smoke mangels Runtime NICHT erneut ausgeführt.
+Geändert: getrennte eigene PID/Listener-Prüfung; EPERM/EACCES stoppt sofort; explizite no-model-Meldung wird von loading/start failure unterschieden. Keine Startoptionen als installiert verifiziert, config unverändert.
+Offline-Validierung: Python-AST OK; bash -n OK; no-model/loading/500-Unterscheidung OK; eigene localhost-PID akzeptiert, fremde PID und wildcard abgewiesen (Mocks, keine Prozesse gestartet).
+Bereitgestellt: bundle_smoke.command für macOS-Terminal, offizielles ZIP + veröffentlichter Hash + codesign + capabilities + modellloser smoke. Noch NICHT praktisch ausgeführt.
+Nachkontrolle Listener:
+{
+  "8080": "p30272\ncllama-server\nf9\nn127.0.0.1:8080",
+  "8091": "p30322\ncPython\nf3\nn127.0.0.1:8091",
+  "8092": "p30217\ncPython\nf3\nn127.0.0.1:8092",
+  "8787": "p30225\ncPython\nf6\nn127.0.0.1:8787",
+  "8083": "frei",
+  "8093": "frei"
+}
+Alle vier Labor-PIDs unverändert gegenüber Beginn der Fortsetzung; 8083/8093 frei. HTTP-Erreichbarkeit weiterhin nicht verifiziert.
+
+
+Auswertung Terminal-Test 2026-10-17T09:08:19.677609+00:00
+Echte Nutzerausführung, Logs lokal gelesen: offizielles ZIP vorhanden, Größe 65780310 und veröffentlichte SHA-256 lokal erneut bestätigt. Engine Build 10116 / 852e7daa1.
+Bestätigt: Engine-PID 40965, 127.0.0.1:8083, HTTP /health 200; Proxy-PID 40970, 127.0.0.1:8093, /health 200. Engine /v1/models 200.
+Abbruchursache im Tester: 7 cached model presets trotz 0 lokaler Presets. --models-dir isoliert gemeinsamen Cache nicht. Preset-Liste ist kein Nachweis geladener Gewichte.
+Laut gespeichertem before/after identische Labor-PIDs und HTTP-Statuswerte: 8080/8091/8092=200, MCP 8787/mcp=406. Kein vollständiger MCP-Handshake. Testports nach Cleanup frei.
+Erste Logs geschützt in logs/first-smoke-20261017/. Nur Experiment geändert: eigener LLAMA_CACHE, leer geprüft; API-Modelllisten-Erwartung nicht abgeschwächt; Antwortbodies für Nachtest gespeichert.
+LLAMA_CACHE ist als String im installierten Binary nachgewiesen; Funktion im referenzierten Upstream common/common.cpp und additive Presets in tools/server/server-models.cpp geprüft. Runtime-Wirkung des Overrides noch ungeprüft.
+Syntaxprüfung des korrigierten Starters bestanden. Kein neuer Serverstart/localhost-Versuch aus der weiterhin beschränkten Umgebung. Nachtest durch normalen Terminal-Aufruf erforderlich.
+
+
+Zweiter Terminal-Test, ausgewertet 2026-10-17T09:10:47.689591+00:00
+Reale Nutzerausführung: Engine-PID 41402, Proxy-PID 41407; beide localhost-Listener und /health HTTP 200.
+Isolierter Cache bestätigt: Log meldet 0 gecachte und 0 lokale Presets. /v1/models={"data":[],"object":"list"}; /props enthält model_path=none, models_autoload=false, cors_proxy_enabled=true.
+GET / an Engine HTTP 415. Binary enthält Meldung "Error: gzip is not supported by this browser"; bisheriger urllib-Client sendete kein Accept-Encoding:gzip. Kein Engine-Startfehler.
+Korrektur im Testclient: nur UI-GET sendet Accept-Encoding:gzip + Accept:text/html; gzip-Antwort wird dekomprimiert und HTML geprüft. Fehlerbody und UI-Antwort werden künftig ebenfalls gesichert.
+Offlineprüfung mit gzip-Response-Mock und Header-Assertions bestanden; kein echter HTTP-Nachtest aus dieser Sandbox. Originale zweite Logs unter logs/second-smoke-20261017 gesichert.
+Gespeicherte Laborprüfung vorher/nachher identisch, beide Testports laut Nutzerausgabe frei; kein neuer eigener Serverstart.
+
+
+ABSCHLUSS: MODELLLOSER SMOKE BESTANDEN; ausgewertet 2026-10-17T09:15:37.529180+00:00
+Echte Terminal-Ausführung: Engine-PID 41843, Proxy-PID 41848; eigene Listener auf 127.0.0.1:8083/8093.
+Beide Ports: /health, /v1/models, /props und / jeweils HTTP 200 laut Terminalausgabe. Gespeicherte Antworten nachgelesen: data=[], model_path=none, models_autoload=false, HTML 12637 Bytes pro Port.
+Gespeicherte Labor-Vorher/Nachher-Kontrolle identisch: PIDs 30272/30322/30217/30225, Status 200/200/200/406 auf 8080/8091/8092/8787. 406 ist Antwort auf nackten MCP-GET, kein vollständiger MCP-Test.
+Beide Testports nach Cleanup frei, durch nachträgliches lsof bestätigt. Keine eigenen Prozesse weiter aktiv.
+Ergebnis: unabhängiger Bundle-Engine-Start und modelllose HTTP/UI-Auslieferung über separaten Proxy bestätigt. Keine GLM-/PGRN-/Inferenz-/SSE-/Tool-/Browser-Rendering-Bestätigung.
+Abschlusslogs gesichert: logs/passed-smoke-20261017/. README auf Abschlussstand gebracht.
+
+
+GLM-Download freigegeben und vorbereitet 2026-10-17T11:20:57.596355+00:00
+SSD-Mount /Volumes/Extern M4 Speicher als APFS bestätigt, ca. 931 GiB frei. Keine Modellteile vorhanden in den geprüften Pfaden.
+Revision über öffentlichen HF-Commit-Link auf b0f8153e9e7cf57cd3b0aad146667abf9de56f0e festgelegt. Erwartet 72975748384 Bytes, publizierte SHA-256 aus sources.json.
+download_glm.py vorbereitet: erneute Prüfung beider LFS-Zeiger vor Gewichten; Mount-/Platzprüfung, sichere externe mkdir per dir_fd, direkter curl-Download in externe .download-Dateien, Wiederaufnahme, Größen-/GGUF-/SHA-256-Prüfung, keine internen Gewichtskopien.
+Syntax und Offline-Checks bestanden: fehlender Mount erzeugt keinen Ordner, SHA korrekt akzeptiert/falsch abgewiesen, Symlink abgewiesen.
+Aus dieser Umgebung nicht gestartet: Netzwerk und externe Schreibpfade weiterhin beschränkt, Sandbox-Erweiterung nicht verfügbar; bekannte Fehlversuche nicht wiederholt. Terminal-Aufruf notwendig. Keine Konvertierung/Modellstarts.
+
+
+Download abgeschlossen; Metadatenprüfung 2026-10-17T13:34:35.053053+00:00
+Abschlussmanifest und Terminal-Log gelesen; beide externen Dateien vorhanden, Größen 50000746752/22975001632 bestätigt; vollständige SHA-Prüfung durch Downloader dokumentiert, nicht unnötig wiederholt.
+Installierter Konverter ausschließlich mit --input <erster Teil> --dry-run gestartet, kein --output. Exit 1: unsupported expert GGML type 8 in blk.1.ffn_down_exps.weight.
+Beide GGUF-Metadaten direkt lesend geprüft: insgesamt 138 Expertentensoren, davon 92 Q4_K (Typ 12), 24 Q5_0 (Typ 6), 22 Q8_0 (Typ 8). Typ-IDs gegen lokales ggml.h geprüft.
+Vorherige allgemeine Empfehlung Q4_K_M reicht nicht aus: diese konkrete Ausgabe besitzt für Slipstream v0.3.4 nicht unterstützte Expertentypen. Download integer, aber aktueller Konverter inkompatibel. Keine PGRN-Größenschätzung als gemessen ausgeben.
+Keine Konvertierung, kein Modellstart, keine Löschung und kein zusätzlicher Modelldownload. Quellenstatus aktualisiert; zukünftiger glm-plan für diese bekannte inkompatible Ausgabe blockiert.
+
+
+Vollständige GLM-Kompatibilitätsuntersuchung 2026-10-17T13:47:05.385477+00:00
+Installiertes Bundle 0.3.4, Engine b10116/852e7daa1, Binary-SHA im Beleg-JSON; Konverter ohne separat dokumentierte Build-Version, exakt durch SHA/UUID identifiziert.
+Konverter-Disassembly zeigt type<=14 + Maske 0x7003; erlaubt exakt 0,1,12,13,14. Öffentliche Source-Bedingung unabhängig bestätigt, kein Patch.
+Alle Metadaten beider GGUF-Teile vollständig gelesen: split.count=2, split.no=0/1, 803 eindeutige Tensoren, 138 gestapelte geroutete Expertentensoren. Gate/Up je 46 Q4_K; Down 24 Q5_0 + 22 Q8_0. Shared/sonstige Gewichte separat inventarisiert. Kein Gewichte-Payload gelesen.
+Formursache: Down=[1408,4096,128], 1408%256=128. Offizieller Quantisierer erklärt Q4_K->Q5_0 und Q6_K->Q8_0 bei inkompatibler Zeilenbreite. Dateinamen Q4_K_M/S liefern keinen Kompatibilitätsbeleg.
+Zweite Grenze: PGRN-Inferenz mit Split-GGUF wird im Source-Patch und im installierten Binary verweigert. Tatsächlicher Branch size>=2 und runtime_error dokumentiert. Kein Modellstart.
+Neuester offizieller Release v0.3.5: keine Assets, Konverter/Engine-Seams/PGRN-Leser identische Source-Blobs zu v0.3.4, keine belegte Lösung für vorhandene Dateien.
+Alternativen: ggml-org Q4_K_M 63.633580576 GB, Erzeugungslog erzwingt Down=Q4_0 (unzulässig); Bartowski Q4_K_S 68.310026944 GB mit zwei Teilen, Expertentypen unbestätigt. Keine große Datei erneut geladen.
+Remote-GGUF-Nutzdaten in dieser Untersuchung: 0 Byte. Nur kleine öffentliche Quelltext-/Release-/LFS-/Logquellen abgerufen. Range-Zugriff hier nicht durchführbar, keine 206-Antwort behauptet.
+Diagnosewerkzeug für Terminal vorbereitet, nicht ausgeführt: probe_remote_metadata.py mit 24-Byte-206-Vorprüfung, exakten Headerkontrollen, Ablehnung von 200 vor Bodyread, 16 MiB/Datei, persistent 70 MB Payloadbudget + 30 MB Reserve im autorisierten Gesamtlimit100MB. Offline-Schutzprüfungen bestanden.
+Ergebnisbericht GLM_KOMPATIBILITAET.md; Empfehlung vorerst zurückstellen. Keine Installation, Engine-Änderung, Konvertierung, Requantisierung, Löschung oder Modellstarts. Bestehende Labordienste nicht verändert.
+
+Nachkontrolle 2026-10-17T13:47:42.129278+00:00: Auf 8080/8091/8092/8787 aktuell keine Listener sichtbar, anders als zu Untersuchungsbeginn (PIDs 47375/47408/47338/47346). Auch 8083/8093 frei.
+Diese Untersuchung hat keine Labordienste gestartet/gestoppt/umkonfiguriert. Ursache der zwischenzeitlichen externen Statusänderung nicht untersucht; kein automatischer Neustart. Ein unveränderter laufender Laborzustand wird NICHT behauptet.
+
+
+Remote-Metadatenprüfung abgeschlossen 2026-10-17T13:52:19.488991+00:00
+Beide Teile beider Kandidaten vollständig geprüft (all_parts_examined=true). 78 verifizierte HTTP-206-Abrufe, 19.270.312 Payload-Bytes; keine großen Modelldownloads.
+ggml-org Q4_K_M: 780 Tensoren, 135 gestapelte Experten; Gate/Up je 45 Q4_K, Down 45 Q4_0 (ID 2), inkompatibel.
+Bartowski Q4_K_S: 803 Tensoren, 138 gestapelte Experten; Gate/Up je 46 Q4_K, Down 22 Q5_1 (ID 7) + 24 Q5_0 (ID 6), inkompatibel.
+PGRN-Split-Guard bleibt unabhängig blockierend. Keine Engine-Änderung, Konvertierung oder Modellstarts. Bericht und sources.json aktualisiert. Empfehlung: keine weitere große Datei laden; GLM/PGRN-Versuch bis zu belegter offizieller Lösung zurückstellen.
+Abschließende kritische Neubewertung vom 17.10.2026: Entscheidung C, dokumentiert in ENTSCHEIDUNG_GLM_SLIPSTREAM.md. GLM/PGRN technisch blockiert; ursprüngliche positive Empfehlung zurückgenommen. Offizieller Katalog nennt UD-Q4_K_XL-Einzeldatei ohne Revisionspin, Anbieterstand zeigt zwei Teile im Unterordner; kein erfolgreicher offizieller GLM-PGRN-E2E-Beleg gefunden. Expliziter Split-Guard betrifft gefüllte Eintrittsliste, Einzeldatei-Einstieg wird zusätzlich durch Hash-Inkonsistenz des nativen Split-Konverters blockiert (Quellcodebefund, nicht live ausgelöst). Upstream merge offiziell vorhanden, aber typbewahrend; löst vorhandene Expertentypen nicht. v0.3.5 enthält keinen relevanten Engine-Fix; öffentliche Issues/PRs state=all leer, keine konkrete offizielle Korrektur belegt. Nur Berichte/Quellenbelege aktualisiert; keine Code- oder Konfigurationsänderungen, keine Modellgewichte, Installation, Konvertierung oder Modellstarts.
+
+
+Qwen-Referenzvorprüfung 2026-10-17T14:13:19.511895+00:00
+Gepinnter LFS-Zeiger bestätigt Repository/Revision/22853663008 Bytes/SHA 55983c5a…fe9f1. Projekt-PGRN 20128754176 Bytes dokumentiert, hier nicht erzeugt. Frühes gleichnamiges Nicht-MTP-Modell (22360456160 Bytes, anderer Hash) und spätere MTP-Datei getrennt; historische Engine 24b6efd77 nicht mit installiertem 852e7daa1 gleichgesetzt.
+Exakte Datei in geprüften lokalen Namensablagen nicht gefunden. Vollständige Tensor-Rangeprüfung noch NICHT ausgeführt: bekannte Shell-Netzwerkbeschränkung, Recherchezugriff ohne Range-Header. Sicher begrenztes qwen_reference/probe_metadata.py vorbereitet, Offline-Prüfungen bestanden. Daher noch keine vollständige Kompatibilitätszusage.
+QWEN_REFERENZPLAN.md: A GGUF extern/PGRN intern, B identische PGRN auf T7; begrenzter Cache, echte Miss-/Geräte-Lese-Belege, Dateicachevorbehalt, Messprofil und spätere Befehle. Zusätzlich request_stream.py vorbereitet, nicht ausgeführt. Kein Modelldownload, keine Konvertierung, kein Modellstart und keine Änderung bestehender Labordienste/GLM-Gewichte.
+
+Qwen-Metadatenabschluss 2026-10-17T14:20:36.088762+00:00
+Nutzer-Terminalausführung und gespeicherte Ergebnisse lokal bestätigt: 43 HTTP-206-Abrufe; 11010208 Bodybytes inklusive LFS-Zeiger. 753 Tensoren, 123 geroutete Expertentensoren in 41 vollständigen Tripeln; Gate/Up je 40 Q4_K + 1 Q5_K, Down 38 Q5_K + 3 Q6_K. Alle Typen/Geometrie zugelassen, qwen35moe/256 Experten/Top8/1 NextN; kein Split, keine Duplikate. Q8_0/BF16 nur andere/residente Gewichte. Headerende10991364, begrenzter Vorabruf18708 Bytes. Metadatenvoraussetzungen bestanden, noch keine Voll-SHA/ Konvertierung/ Inferenz. Plan und Quellenstand aktualisiert. Nächste Stufe erfordert separate Downloadfreigabe für 22853663008 Bytes extern; keine automatische Konvertierung oder Modellstarts.
+
+Qwen-Download freigegeben 2026-10-17T14:22:05.097871+00:00
+Downloader qwen_reference/download_qwen.py vorbereitet und Syntax/fehlender-Mount-Schutz geprüft. Mount aktuell vorhanden, 925696000000 Bytes frei. Positive exakte Metadatenprüfung erforderlich; publizierter LFS-Zeiger wird vor Transfer erneut verglichen, externer fortsetzbarer Download, Größe/GGUF-Signatur/Voll-SHA, kein interner Gewichtecache. Bekannte Netzwerk-/externe Schreibbeschränkung dieser Ausführungsumgebung nicht erneut ausgelöst; tatsächliche Ausführung im Nutzer-Terminal erforderlich. Noch kein Downloadabschluss behauptet, keine Konvertierung oder Modellstarts.
+
+Qwen-Downloadabschluss nachgelesen 2026-10-17T15:01:28.404909+00:00
+Nutzerausgabe und qwen_reference/logs/download-complete.json bestätigen vollständige SHA-256-Prüfung des gepinnten Modells (22853663008 Bytes, 55983c5a…fe9f1). Externe endgültige Datei und Größe lesend bestätigt, Vollhash nicht unnötig erneut berechnet. Keine Konvertierung, kein Konverter-Dry-run und kein Modellstart in diesem Schritt.
+
+Qwen-Konverter-Dry-run 2026-10-17T15:02:06.274310+00:00
+Freigegebener Aufruf des installierten pgrn-convert ausschließlich --input <externe Qwen-Datei> --dry-run, kein --output. Exit0. 1 GGUF, 41 Expertenlayer, 256 Experten/Layer, 10496 Records; estimated_output_bytes=20128754176. Berechneter Wert stimmt mit dokumentiertem Projekt-PGRN überein, ist hier noch keine gemessene Ausgabedatei. Keine Konvertierung und kein Modellstart.
+
+Qwen-PGRN-Konvertierung abgeschlossen 2026-10-17T15:05:44.019017+00:00
+Installierter Konverter mit --expect-sha256 (vollständiger GGUF-Hash), --io-threads 4, --min-free-gb16 und Standard-CRC-Abschlussprüfung: Exit0. Interne PGRN tatsächlich erzeugt: /Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017/pgrn/Qwen3.6-35B-A3B-UD-Q4_K_XL.pgrn
+Gemessene Größe 20128754176 Bytes. Zusätzlich Voll-SHA berechnet: 732a314b95cb3a63e31c3c9cd44e284757721d13a29d7aecd10360d13e193269; exakt identisch mit offiziellem Referenzartefakt. Keine externe PGRN-Kopie und kein Modellstart. Modelle/Labordienste nicht umkonfiguriert oder beendet. Logs: qwen_reference/logs/conversion-status.json, conversion-progress.jsonl, conversion-stderr.txt.
+
+Isolierter Inferenztest A freigegeben 2026-10-17T15:09:01.117160+00:00
+run_internal_test.py vorbereitet: read-only localhost/Labor-Vorprüfung vor Mutation; selektive Qwen-Entladung per Router-API, unbekannte/aktive Zustände verweigert; eigener direkter Engine-Prozess auf8083 plus eigene caffeinate-Assertion. 2GiB Cache/8GiB Reserve, 512 Kontext, 32/32 Batch, MTP4, feste 64/128-Token-SSE-Anfragen; positive native Miss-Telemetrie erforderlich. Swapout-/Router-Wiederladungswache; Cleanup nur eigener Popen-Handles; Laborlistener/HTTP-Vergleich. Syntax und Modellzustandsauswahl offline geprüft. Bekannte localhost-Umgebungsbeschränkung nicht erneut ausgelöst, Ausführung im Nutzer-Terminal erforderlich. Noch kein Modell entladen und keine Inferenz gestartet. Keine externe PGRN-Kopie.
+
+Inferenzlauf internal-20261017T150932745365Z ausgewertet 2026-10-17T15:10:51.452047+00:00
+Abbruch vor eigenem Engine-Start: Nach erfolgreichem Qwen-Entladeaufruf wurde loading gemeldet. Ursache nicht belegt; weder Slipstream-Ladefehler noch Inferenzfehler. Labor-Listener/HTTP laut gespeichertem Vergleich identisch,8083frei. Alte Ausgabe „bleiben entladen“ unzutreffend, da Entladeaufruf keinen stabilen Endzustand beweist. Starter korrigiert: bis60s auf drei aufeinanderfolgende unloaded-Beobachtungen warten, niemals Start neben loaded/loading/unloading; beobachtete Zustände speichern, kein wiederholtes erzwungenes Entladen. Meldung präzisiert. Syntax/Zustandstests offline bestanden. Keine erneute Entladung oder Inferenz in dieser Diagnose.
+
+Diagnose Lauf internal-20261017T161311852472Z 2026-10-17T16:14:22.658674+00:00
+Connection refused beim ersten Router-GET, vor Modellentladung oder Testengine-Start. Nutzer hatte ganzes Labor gestoppt; bisheriger Starter setzte laufenden Router voraus. Neuer expliziter --lab-stopped-Modus: keine Router-API/Entladung, anfangs alle Laborports und andere llama-server-Instanzen abwesend erforderlich, während Lauf Rückkehr anderer Instanzen überwachen, nachher gestoppten Zustand vergleichen. Syntax und Listener-Erkennung geprüft. Aktuell Laborports frei/keine llama-server-Instanzen sichtbar. Keine Inferenz bei dieser Diagnose ausgeführt.
+
+Interne Qwen-PGRN-Inferenz nachgewiesen 2026-10-17T16:26:55.212134+00:00
+Nutzerlauf internal-20261017T161514971893Z vollständig nachgelesen. Modell/PGRN/Enginepfad aus vorbereitetem Profil, offene interne PGRN im Report; Enginegesundheit nach150.77s, SSE64/128Tokens vollständig. Native Decode5.8231/5.4332tok/s, TTFT3.6736/4.5793s, Gesamt14.6647/28.1383s. Cache2046.03MiB, Highwater2136.04MiB; kumulativ14534Hits/47702Misses, tatsächliche Engine-Misses belegt. PeakRSS6795632KiB (ca6.48GiB), keine zusätzlichen Swapouts (13465913->13465913); vorhandener Swap ca8GB nicht mit neuem Wachstum verwechseln. EngineExit0, keine Zwangsbeendigung, Port8083frei, Labor bliebgestoppt. Keine externe PGRN-Kopie/T7-Inferenz; physische Geräte-Lesezuordnung nicht als bestätigt ausgegeben. Keine Qualitäts-/Haiku-/48GB-plus-Aussage.
+
+Vergleich A/B freigegeben und vorbereitet 2026-10-17T16:34:59.104203+00:00
+Aktueller Mount/Platz lesend geprüft, Laborports frei. Physische Zuordnung erfolgreich aus IORegistry-Ancestor-Kette: intern disk3s5->disk0, extern disk6s2->Samsung T7 disk5; dynamische Readbytes-/Readops-Zähler verfügbar. Keine fest kodierte alte Kennung. compare_storage.py: sichere externe Kopie/Vollhash, A1B1B2A2B3A3, je zwei ursprüngliche Prompts mit128Limit, identische Engineargumente außerPGRN, echte Cachemisses sowie perRequest-/Decode-GeräteReadfenster, Leerlaufwerte, RSS/Swap, nur eigene Prozesse aufräumen. Syntax und Geräte-/fehlende-Beleg-Auswertung geprüft. Bekannte externe Schreib-/localhost-Beschränkung nicht erneut ausgelöst; normale Terminalausführung erforderlich. Noch KEINE externe PGRN-Kopie und KEINE sechs Vergleichsinferenzen durchgeführt; keine Messwerte behauptet. Anleitung qwen_reference/VERGLEICH_AB.md.
+
+PGRN-intern/T7-Vergleich abgeschlossen 2026-10-17T17:04:30.877053+00:00
+Nutzer-Terminalserie20261017T163646986349Z vollständig nachgelesen: A1B1B2A2B3A3, je2Prompts128Tokens,6Prozesse/12Anfragen bestanden, Exit0, allePorts8083danachfrei, Laborbliebgestoppt. ExterneKopie20128754176Bytes/VollSHA732a314b…193269 stimmt. AlleEngineargsbisaufPGRNgleich. MedianDecodeintern5.92(5.48-6.27)tok/s,extern1.97(1.82-2.12), jePromptstabiletwaFaktor3; PeakRSS6.48GiB, zusätzlicheSwapoutsalle0. T7ReadsAalle0,B36.88-38.73GB/Anfrage und29.02-33.00GBinDecodeTeilfenstern; externeLeerlaufReadsalle0. PhysischeexterneReadsbelegt, Gerätetelemetrienichtdateiexklusiv. Kopie/Hash/Load/Inferenzfenstergetrennt; keinKaltcachebeleg. EmpfehlungaktivePGRNintern; externeExpertenablagefunktionalbewiesenmitdeutlichemZeitnachteil. KeineModelle>48GB/GLM/Reviewerqualitätsaussage. BerichtERGEBNIS.md undverified-review.json ergänzt.
+
+Sechs-Fälle-Reviewer-Evaluation vorbereitet 2026-10-17T17:15:09.602499+00:00
+Vier Python-Fehlerfälle und zwei Gegenbeispiele unter reviewer_eval_6cases; 6 private Reproduktion-/Verifikationstests bestanden. Vollständige Modellprompts, private Musterlösungen und vorab festgelegte qualitative Rubrik in FROZEN.json (26 Dateien, e68dbc7bf5a6392616e83f424a1334f3abf4fb922ae5df75e236013776a47da2) eingefroren. Offline-SSE-Prüfung ohne Netzwerk/Engine: sechs getrennte Nachrichtenpaare, Rohantwortspeicherung, Stop vollständig und Längenabbruch unvollständig bestätigt. Kontext4096 statt512 wegen vollständigem Code und Review, Limit1024, Thinking aus; übrige bewährte Cache-/Reserve-/Batch-/MTP-Parameter unverändert. --no-context-shift, Template/Tokenprüfung vor jeder Anfrage, keine Tools/privaten Lösungen im Kontext. Starter verweigert laufendes Labor/erkannte große Modellinstanzen; nur eigene Prozesse cleanup. KEINE Reviewer-Inferenz in dieser Umgebung durchgeführt; bekannte localhost-Beschränkung nicht erneut ausgelöst. Normales macOS-Terminal: python3 -B "/Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017/reviewer_eval_6cases/run_eval.py". Fachliche Einzelfallbewertung und Empfehlung zu echtem Projekt stehen bis zu tatsächlichen Antworten aus. Aktuelle lesende Prozess-/Portprüfung in PREPARATION.json.
+
+Reviewer-Evaluation ausgewertet 2026-10-17T17:58:54.273052+00:00
+Lauf20261017T172010678718Z: alle6Streams DONE, jedoch jeweils1024Tokens/finish_reason=length, keine vollständig abgeschlossenen Reviews. Freeze26Dateien und alle6Prompts unverändert bestätigt. Primärfehler01/02/04 im vorhandenen Fragment richtig erklärt;03teilweise;Kontrollen05/06unvollständig,05mitzurückgenommenenAlarmen,06bedingteRisikenundDetailfehler. Median237.24s,Decode4.96tok/s,RSSmax7.84GiB,keineSwapouts,EngineExit0,Laborbliebgestoppt,8083frei. inference_passedfalsewegenbewussterClient-Unvollständigkeitsmeldung,keinEngine-Startfehler. Keine neue Inferenz/Downloads/Codeänderung an eingefrorenen Aufgaben. Fachbericht und strukturierte Auswertung im Laufverzeichnis BEWERTUNG.md/json. EmpfehlungzuerstAusgabeumfang/-disziplin getrenntversioniertprüfen;nochkeinbreiterProjekt-Review. KeineGesamtnote/Haiku-/Allgemeinqualitätsaussage.

@@ -292,6 +292,29 @@ def call_llm_for_evaluation(items: List[Dict[str, Any]]) -> str:
     return content
 
 
+def save_report(filepath: Path, report_content: str, now: datetime) -> None:
+    """
+    Schreibt den LLM-Bericht in die Datei.
+
+    A1: Existiert die Datei bereits (Zweitlauf derselben ISO-KW), wird der
+    neue Output als klar gekennzeichneter Nachtrag angehängt, statt den
+    Erstbericht zu überschreiben.
+    """
+    iso_year, iso_week, _ = now.isocalendar()
+    date_str = now.strftime("%Y-%m-%d %H:%M")
+
+    if filepath.exists():
+        # Zweitlauf: Nachtrag anhängen, Erstbericht bleibt byte-identisch
+        with open(filepath, 'a', encoding='utf-8') as f:
+            f.write(f"\n\n---\n\n")
+            f.write(f"## Nachtrag KW{iso_week}_{iso_year} ({date_str})\n\n")
+            f.write(report_content)
+    else:
+        # Erstlauf: Datei neu anlegen
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.write(report_content)
+
+
 def main():
     # Exit-Code-Semantik:
     #   0 = Erfolg (inkl. "keine neuen Items")
@@ -335,14 +358,13 @@ def main():
         # 3. Evaluation durch LLM
         report_content = call_llm_for_evaluation(new_items)
 
-        # 4. Bericht speichern
+        # 4. Bericht speichern (A1: Zweitlauf hängt nach, statt zu überschreiben)
         os.makedirs(REPORT_DIR, exist_ok=True)
         now = datetime.now()
         filename = week_key_for_filename(now)
         filepath = REPORT_DIR / filename
 
-        with open(filepath, 'w', encoding='utf-8') as f:
-            f.write(report_content)
+        save_report(filepath, report_content, now)
         print(f"Bericht gespeichert unter: {filepath}")
 
         # 5. Erst jetzt markieren – und nur, was wirklich bewertet wurde

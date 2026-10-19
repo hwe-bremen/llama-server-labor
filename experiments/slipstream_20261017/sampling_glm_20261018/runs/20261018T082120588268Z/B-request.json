@@ -1,0 +1,24 @@
+{
+  "model": "qwen-stream-reference",
+  "messages": [
+    {
+      "role": "system",
+      "content": "Prüfe den vollständig gegebenen Python-Code ausschließlich gegen die angegebene Spezifikation. Erfinde keine zusätzlichen Anforderungen. Ein fehlerfreies Ergebnis ist ausdrücklich zulässig. Antworte knapp mit einem abschließenden Urteil und einer kurzen Begründung. Suche nicht weiter, wenn kein Fehler vorliegt."
+    },
+    {
+      "role": "user",
+      "content": "Spezifikation: Für Python-int-Eingaben liefert clamp den Wert begrenzt auf das inklusive Intervall [lower, upper]. Bei lower > upper muss ValueError ausgelöst werden. Keine Typprüfung, keine anderen Eingabetypen und keine Nebenläufigkeit gefordert.\n\n```python\ndef clamp(value: int, lower: int, upper: int) -> int:\n    if lower > upper:\n        raise ValueError(\"lower must not exceed upper\")\n    return min(max(value, lower), upper)\n```\nPrüfe auf Verletzungen dieser Spezifikation. Wenn keine vorliegen, schreibe ausdrücklich „Keine Beanstandung“."
+    }
+  ],
+  "temperature": 0.6,
+  "seed": 42,
+  "max_tokens": 512,
+  "cache_prompt": false,
+  "chat_template_kwargs": {
+    "enable_thinking": false
+  },
+  "stream": true,
+  "stream_options": {
+    "include_usage": true
+  }
+}

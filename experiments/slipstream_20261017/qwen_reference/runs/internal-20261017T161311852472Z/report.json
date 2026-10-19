@@ -1,0 +1,24 @@
+{
+  "run": "/Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017/qwen_reference/runs/internal-20261017T161311852472Z",
+  "variant": "A: GGUF external / PGRN internal",
+  "inference_passed": false,
+  "external_streaming_proven": false,
+  "unloaded_models": [],
+  "model_reload_performed": false,
+  "error": "<urlopen error [Errno 61] Connection refused>",
+  "memory_after": {
+    "at": "2026-10-17T16:13:11.878251+00:00",
+    "vm_stat": {
+      "returncode": 0,
+      "stdout": "Mach Virtual Memory Statistics: (page size of 16384 bytes)\nPages free:                                   628282.\nPages active:                                 888944.\nPages inactive:                              1249562.\nPages speculative:                              4708.\nPages throttled:                                   0.\nPages wired down:                             230461.\nPages purgeable:                               33110.\n\"Translation faults\":                     1701933335.\nPages copy-on-write:                        94430871.\nPages zero filled:                        1692042171.\nPages reactivated:                         376378855.\nPages purged:                               27412306.\nFile-backed pages:                           1402188.\nAnonymous pages:                              741026.\nPages stored in compressor:                   180610.\nPages occupied by compressor:                  88027.\nDecompressions:                            277768890.\nCompressions:                              333934194.\nPageins:                                   153436514.\nPageouts:                                     212866.\nSwapins:                                     7962747.\nSwapouts:                                   13465913.\n",
+      "stderr": ""
+    },
+    "swapusage": {
+      "returncode": 0,
+      "stdout": "vm.swapusage: total = 9216,00M  used = 8120,00M  free = 1096,00M  (encrypted)\n",
+      "stderr": ""
+    },
+    "swapouts": 13465913
+  },
+  "test_port_after": "frei"
+}

@@ -1,0 +1,377 @@
+{
+  "revision": "ce09c67b53bc8739eef83fe67b2f5d293c270632",
+  "filename": "Qwen3-Coder-Next-Q4_K_M.gguf",
+  "budget_bytes": 33554432,
+  "reserved_bytes": 5989432,
+  "body_bytes_read": 5989408,
+  "requests": [
+    {
+      "start": 0,
+      "end": 23,
+      "reserved_bytes": 24,
+      "status": null,
+      "body_bytes_read": 0,
+      "error_class": "URLError"
+    },
+    {
+      "start": 0,
+      "end": 23,
+      "reserved_bytes": 24,
+      "status": 206,
+      "body_bytes_read": 24,
+      "verified_206": true
+    },
+    {
+      "start": 24,
+      "end": 27683,
+      "reserved_bytes": 27660,
+      "status": 206,
+      "body_bytes_read": 27660,
+      "verified_206": true
+    },
+    {
+      "start": 27684,
+      "end": 289827,
+      "reserved_bytes": 262144,
+      "status": 206,
+      "body_bytes_read": 262144,
+      "verified_206": true
+    },
+    {
+      "start": 289828,
+      "end": 551971,
+      "reserved_bytes": 262144,
+      "status": 206,
+      "body_bytes_read": 262144,
+      "verified_206": true
+    },
+    {
+      "start": 551972,
+      "end": 814115,
+      "reserved_bytes": 262144,
+      "status": 206,
+      "body_bytes_read": 262144,
+      "verified_206": true
+    },
+    {
+      "start": 814116,
+      "end": 1076259,
+      "reserved_bytes": 262144,
+      "status": 206,
+      "body_bytes_read": 262144,
+      "verified_206": true
+    },
+    {
+      "start": 1076260,
+      "end": 1338403,
+      "reserved_bytes": 262144,
+      "status": 206,
+      "body_bytes_read": 262144,
+      "verified_206": true
+    },
+    {
+      "start": 1338404,
+      "end": 1600547,
+      "reserved_bytes": 262144,
+      "status": 206,
+      "body_bytes_read": 262144,
+      "verified_206": true
+    },
+    {
+      "start": 1600548,
+      "end": 1862691,
+      "reserved_bytes": 262144,
+      "status": 206,
+      "body_bytes_read": 262144,
+      "verified_206": true
+    },
+    {
+      "start": 1862692,
+      "end": 2124835,
+      "reserved_bytes": 262144,
+      "status": 206,
+      "body_bytes_read": 262144,
+      "verified_206": true
+    },
+    {
+      "start": 2124836,
+      "end": 2324894,
+      "reserved_bytes": 200059,
+      "status": 206,
+      "body_bytes_read": 200059,
+      "verified_206": true
+    },
+    {
+      "start": 2324895,
+      "end": 2460592,
+      "reserved_bytes": 135698,
+      "status": 206,
+      "body_bytes_read": 135698,
+      "verified_206": true
+    },
+    {
+      "start": 2460593,
+      "end": 2555857,
+      "reserved_bytes": 95265,
+      "status": 206,
+      "body_bytes_read": 95265,
+      "verified_206": true
+    },
+    {
+      "start": 2555858,
+      "end": 2601568,
+      "reserved_bytes": 45711,
+      "status": 206,
+      "body_bytes_read": 45711,
+      "verified_206": true
+    },
+    {
+      "start": 2601569,
+      "end": 3198070,
+      "reserved_bytes": 596502,
+      "status": 206,
+      "body_bytes_read": 596502,
+      "verified_206": true
+    },
+    {
+      "start": 3198071,
+      "end": 3225189,
+      "reserved_bytes": 27119,
+      "status": 206,
+      "body_bytes_read": 27119,
+      "verified_206": true
+    },
+    {
+      "start": 3225190,
+      "end": 3487333,
+      "reserved_bytes": 262144,
+      "status": 206,
+      "body_bytes_read": 262144,
+      "verified_206": true
+    },
+    {
+      "start": 3487334,
+      "end": 3749477,
+      "reserved_bytes": 262144,
+      "status": 206,
+      "body_bytes_read": 262144,
+      "verified_206": true
+    },
+    {
+      "start": 3749478,
+      "end": 4011621,
+      "reserved_bytes": 262144,
+      "status": 206,
+      "body_bytes_read": 262144,
+      "verified_206": true
+    },
+    {
+      "start": 4011622,
+      "end": 4273765,
+      "reserved_bytes": 262144,
+      "status": 206,
+      "body_bytes_read": 262144,
+      "verified_206": true
+    },
+    {
+      "start": 4273766,
+      "end": 4535909,
+      "reserved_bytes": 262144,
+      "status": 206,
+      "body_bytes_read": 262144,
+      "verified_206": true
+    },
+    {
+      "start": 4535910,
+      "end": 4798053,
+      "reserved_bytes": 262144,
+      "status": 206,
+      "body_bytes_read": 262144,
+      "verified_206": true
+    },
+    {
+      "start": 4798054,
+      "end": 5060197,
+      "reserved_bytes": 262144,
+      "status": 206,
+      "body_bytes_read": 262144,
+      "verified_206": true
+    },
+    {
+      "start": 5060198,
+      "end": 5322341,
+      "reserved_bytes": 262144,
+      "status": 206,
+      "body_bytes_read": 262144,
+      "verified_206": true
+    },
+    {
+      "start": 5322342,
+      "end": 5565588,
+      "reserved_bytes": 243247,
+      "status": 206,
+      "body_bytes_read": 243247,
+      "verified_206": true
+    },
+    {
+      "start": 5565589,
+      "end": 5726155,
+      "reserved_bytes": 160567,
+      "status": 206,
+      "body_bytes_read": 160567,
+      "verified_206": true
+    },
+    {
+      "start": 5726156,
+      "end": 5839321,
+      "reserved_bytes": 113166,
+      "status": 206,
+      "body_bytes_read": 113166,
+      "verified_206": true
+    },
+    {
+      "start": 5839322,
+      "end": 5913973,
+      "reserved_bytes": 74652,
+      "status": 206,
+      "body_bytes_read": 74652,
+      "verified_206": true
+    },
+    {
+      "start": 5913974,
+      "end": 5949256,
+      "reserved_bytes": 35283,
+      "status": 206,
+      "body_bytes_read": 35283,
+      "verified_206": true
+    },
+    {
+      "start": 5949257,
+      "end": 5969530,
+      "reserved_bytes": 20274,
+      "status": 206,
+      "body_bytes_read": 20274,
+      "verified_206": true
+    },
+    {
+      "start": 5969531,
+      "end": 5979556,
+      "reserved_bytes": 10026,
+      "status": 206,
+      "body_bytes_read": 10026,
+      "verified_206": true
+    },
+    {
+      "start": 5979557,
+      "end": 5984519,
+      "reserved_bytes": 4963,
+      "status": 206,
+      "body_bytes_read": 4963,
+      "verified_206": true
+    },
+    {
+      "start": 5984520,
+      "end": 5986964,
+      "reserved_bytes": 2445,
+      "status": 206,
+      "body_bytes_read": 2445,
+      "verified_206": true
+    },
+    {
+      "start": 5986965,
+      "end": 5988199,
+      "reserved_bytes": 1235,
+      "status": 206,
+      "body_bytes_read": 1235,
+      "verified_206": true
+    },
+    {
+      "start": 5988200,
+      "end": 5988808,
+      "reserved_bytes": 609,
+      "status": 206,
+      "body_bytes_read": 609,
+      "verified_206": true
+    },
+    {
+      "start": 5988809,
+      "end": 5989078,
+      "reserved_bytes": 270,
+      "status": 206,
+      "body_bytes_read": 270,
+      "verified_206": true
+    },
+    {
+      "start": 5989079,
+      "end": 5989231,
+      "reserved_bytes": 153,
+      "status": 206,
+      "body_bytes_read": 153,
+      "verified_206": true
+    },
+    {
+      "start": 5989232,
+      "end": 5989300,
+      "reserved_bytes": 69,
+      "status": 206,
+      "body_bytes_read": 69,
+      "verified_206": true
+    },
+    {
+      "start": 5989301,
+      "end": 5989342,
+      "reserved_bytes": 42,
+      "status": 206,
+      "body_bytes_read": 42,
+      "verified_206": true
+    },
+    {
+      "start": 5989343,
+      "end": 5989374,
+      "reserved_bytes": 32,
+      "status": 206,
+      "body_bytes_read": 32,
+      "verified_206": true
+    },
+    {
+      "start": 5989375,
+      "end": 5989383,
+      "reserved_bytes": 9,
+      "status": 206,
+      "body_bytes_read": 9,
+      "verified_206": true
+    },
+    {
+      "start": 5989384,
+      "end": 5989387,
+      "reserved_bytes": 4,
+      "status": 206,
+      "body_bytes_read": 4,
+      "verified_206": true
+    },
+    {
+      "start": 5989388,
+      "end": 5989395,
+      "reserved_bytes": 8,
+      "status": 206,
+      "body_bytes_read": 8,
+      "verified_206": true
+    },
+    {
+      "start": 5989396,
+      "end": 5989399,
+      "reserved_bytes": 4,
+      "status": 206,
+      "body_bytes_read": 4,
+      "verified_206": true
+    },
+    {
+      "start": 5989400,
+      "end": 5989407,
+      "reserved_bytes": 8,
+      "status": 206,
+      "body_bytes_read": 8,
+      "verified_206": true
+    }
+  ]
+}

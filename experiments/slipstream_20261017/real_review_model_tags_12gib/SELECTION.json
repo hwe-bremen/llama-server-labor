@@ -1,0 +1,22 @@
+{
+  "prepared_at": "2026-10-17T18:02:38.162309+00:00",
+  "head_at_selection": "8ce8a897b0ba1a3c5aca1dd3ba41d4ff1f3ea976",
+  "target_commit": "f58b4e67d6bf24fd870e6d57ec8de6d71d624ff5",
+  "base_commit": "1a1bd6b0c7cc4553ae813ebc42ed0d49ff762f27",
+  "scope": [
+    "role-split/role_proxy.py",
+    "role-split/test_role_proxy.py"
+  ],
+  "change_at_head_unchanged": true,
+  "scope_reason": "Zusammenhängende Modellkürzel-Änderung mit bestehenden Tests, ohne neu erstellte Evaluation, generierte Dateien oder Modellgewichte.",
+  "scope_is_partial_commit": true,
+  "other_commit_changes_excluded": [
+    "config/models.ini",
+    "role-split/eval/"
+  ],
+  "own_reference_review": "Erst nach Speicherung und Kenntnis der Qwen-Antwort; dann ausdrücklich nicht blind.",
+  "preassessment_given_to_qwen": false,
+  "secrets_checked": "Übertragen werden nur git-gepinntes Python mit env-Namen und lokalen Defaults sowie dokumentierte Modell-IDs; keine .env/Token/Schlüssel oder Laufzeitkonfiguration.",
+  "thinking_previous_run": "Six cases: enable_thinking=false; separate reasoning strings empty; verbose self-corrections in final content. No evidence of hidden thinking consuming output budget.",
+  "current_execution": "Prepared; no model start yet."
+}
