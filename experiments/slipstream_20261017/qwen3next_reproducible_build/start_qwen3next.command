@@ -31,6 +31,24 @@ FREE=$(memory_pressure -Q 2>/dev/null | sed -n 's/.*free percentage: \([0-9]*\)%
 echo "Freier Speicher: ${FREE:-?} %   Cache: ${CACHE_GB} GiB   Reserve: ${HEADROOM_GB} GiB   Kontext: ${CTX}"
 [ -z "$FREE" ] || [ "$FREE" -ge 50 ] || die "nur ${FREE} % frei (laeuft ein grosses Modell auf 8080?)"
 
+# Gleiche Rechnung wie Slipstreams Zulassung (peregrine_system_memory.c): verfuegbar = freie + inaktive Seiten.
+# Bedarf = fester Modellteil (~4771 MiB, gemessen 19.10.) + Cache + Reserve. Spart ~5 min Laden bis zum Abbruch.
+PAGE=$(vm_stat | sed -n 's/.*page size of \([0-9]*\) bytes.*/\1/p')
+PFREE=$(vm_stat | awk '/^Pages free/ {gsub("\\.","",$3); print $3}')
+PINACT=$(vm_stat | awk '/^Pages inactive/ {gsub("\\.","",$3); print $3}')
+if [ -n "$PAGE" ] && [ -n "$PFREE" ] && [ -n "$PINACT" ]; then
+  AVAIL_MIB=$(( (PFREE + PINACT) * PAGE / 1048576 ))
+  NEED_MIB=$(( 4771 + CACHE_GB * 1024 + HEADROOM_GB * 1024 ))
+  echo "Slipstream-Rechnung: verfuegbar ${AVAIL_MIB} MiB, benoetigt ${NEED_MIB} MiB"
+  if [ "$AVAIL_MIB" -lt "$NEED_MIB" ]; then
+    FIT=$(( (AVAIL_MIB - 4771 - HEADROOM_GB * 1024) / 1024 ))
+    echo "ABBRUCH: Slipstream wuerde nach dem Laden ablehnen (Dateicache belegt Speicher)." >&2
+    echo "  -> sudo purge   und neu starten" >&2
+    [ "$FIT" -ge 4 ] && echo "  -> oder CACHE_GB=${FIT} (passt jetzt, aber langsamer)" >&2
+    exit 1
+  fi
+fi
+
 # geerbte llama-Voreinstellungen nur fuer diesen Prozess entfernen
 for v in $(env | sed -n 's/^\(LLAMA_ARG_[A-Z0-9_]*\)=.*/\1/p'); do unset "$v"; done
 

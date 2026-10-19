@@ -1,0 +1,285 @@
+diff --git a/agents/llm_scout/llm_scout.py b/agents/llm_scout/llm_scout.py
+index bd83a05..e09ad4d 100755
+--- a/agents/llm_scout/llm_scout.py
++++ b/agents/llm_scout/llm_scout.py
+@@ -341,9 +341,23 @@ def main():
+         filename = week_key_for_filename(now)
+         filepath = REPORT_DIR / filename
+ 
+-        with open(filepath, 'w', encoding='utf-8') as f:
+-            f.write(report_content)
+-        print(f"Bericht gespeichert unter: {filepath}")
++        if filepath.exists():
++            # Zweitlauf (oder dritter Lauf) → Nachtrag anhaengen
++            # Trenner und Header fuer den Nachtrag
++            now_str = now.strftime("%Y-%m-%d %H:%M")
++            iso_cal = now.isocalendar()
++            kw_week = iso_cal[1]
++            kw_year = iso_cal[0]
++            nachtrag_header = f"\n\n---\n\n## Nachtrag KW{kw_week}_{kw_year} ({now_str})\n\n"
++            with open(filepath, 'a', encoding='utf-8') as f:
++                f.write(nachtrag_header)
++                f.write(report_content)
++            print(f"Nachtrag angehaengt an: {filepath}")
++        else:
++            # Erstlauf → Datei neu anlegen
++            with open(filepath, 'w', encoding='utf-8') as f:
++                f.write(report_content)
++            print(f"Bericht gespeichert unter: {filepath}")
+ 
+         # 5. Erst jetzt markieren – und nur, was wirklich bewertet wurde
+         evaluated = select_items(new_items)
+diff --git a/docs/projekt_management/spec_20261018_scout_bericht_ueberschreiben.md b/docs/projekt_management/spec_20261018_scout_bericht_ueberschreiben.md
+index 7cb7f16..c65dd44 100644
+--- a/docs/projekt_management/spec_20261018_scout_bericht_ueberschreiben.md
++++ b/docs/projekt_management/spec_20261018_scout_bericht_ueberschreiben.md
+@@ -284,3 +284,15 @@ Gemeinsamer Testaufbau (Setup/Teardown jeder Testklasse):
+ - **A3 – Zustandszeile vor Versand (bewusste Abweichung von `scout_kw_doppelversand` A1):** Die dortige Anforderung „Zustandszeile nur nach erfolgreichem `sendmail()`" wird hier **aufgebrochen**. Begründung: Bei Nachträgen führt die Nach-Verdikt-Logik zum Datenverlust. Szenario: Lauf 2 schreibt den Nachtrag in die Datei, Zustandszeile wird **nach** dem SMTP-Versand geschrieben. Zwischen Datei-Schreib und Zustands-Write crasht die Pipeline. Nächster Lauf: Zustandszeile fehlt → `send_scout_email.py` denkt, `lauf_nr 2` sei ungesendet → sendet. Aber `llm_scout.py` schreibt **keinen** neuen Nachtrag (die Items sind markiert, kein neuer Lauf), also: Die Mail geht, aber sie enthält **keinen** neuen Inhalt – oder schlimmer: Der Scout findet keine neuen Items, beendet mit Exit 0, und `send_scout_email.py` sendet den **alten** Bericht erneut (Doppelversand des Erstberichts). Mit Zustands-Write **vor** Versand: Crash → Zustandszeile existiert, Mail fehlt → nächster Lauf: Exit 0, keine Mail. **Datenverlust: kein.** **Doppelversand: nein.** **Verlust:** Der Nachtrag fehlt in der Mail (wird nie gesendet). Das ist das kleinere Übel. **Entscheidung:** Zustandszeile vor Versand. Das Restrisiko „Nachtrag fehlt in der Mail nach Crash" wird akzeptiert und ist in der Fehlerpfad-Tabelle (A3, „Absturz mitten im Lauf") dokumentiert.
+ 
+ - **A1 – Teilweiser Nachtrag nach Crash (Restrisiko):** Ein `KeyboardInterrupt` oder OOM während des Anhängens kann eine Datei mit teilweisem Nachtrag hinterlassen. Die nächste Lauf-Anhäng-Logik erkennt den teilweise Nachtrag **nicht** und hängt einen weiteren an. Die Datei enthält dann einen kaputten Nachtrag + einen kompletten. **Entscheidung:** Akzeptiert. Die Wahrscheinlichkeit ist gering (das Anhängen ist ein einzelner `f.write()`-Aufruf), und die Bereinigung würde eine Parsing-Logik für Markdown erfordern, die überproportional ist. Die Datei bleibt lesbar, der Erstbericht ist intakt.
++
++---
++
++## Nachtrag 19.10.2026: Nachbesserung (Claude), ersetzt Teile dieser Spec
++
++Auswertung der Kette ergab zwei Defekte, die aus dieser Spec stammen. Gültig ist ab jetzt:
++
++- **A3 ersetzt:** Der Versand-Nachweis wird erst **nach** erfolgreichem `sendmail()` geschrieben (wie in `scout_kw_doppelversand`). Die Begründung oben („sonst Datenverlust") trifft nicht zu: `mode_normal()` vergleicht die Läufe in der Datei mit dem Nachweis und sendet nach einem SMTP-Fehler beim nächsten Lauf nach. Mit Reservierung vor dem Versand wäre jede Mail nach einem SMTP-Fehler dauerhaft verloren gewesen, auch der Erstbericht (Verstoß gegen „jeder Eintrag genau einmal").
++- **A2 ergänzt:** Die Nachtrag-Mail enthält **nur** die noch nicht gesendeten Abschnitte, Betreff „LLM Scout KWxx JJJJ – Nachtrag" (bzw. „– n Nachträge"). Der Nachweis bekommt die höchste gesendete `lauf_nr`.
++- **Nachweis-Format:** Zeilen werden exakt geparst. Eine Zeile im alten Format `{key} {datum}` (Kette 3) zählt als `lauf_nr 1`.
++- **Zählung:** Ein Nachtrag zählt nur an der Trennstelle aus `save_report()` (`\n\n---\n\n## Nachtrag KW…`), nicht bei jedem Vorkommen des Texts.
++- **Tests:** T3 umgedreht (SMTP-Fehler → kein Merker → nächster Lauf sendet nach), T7 als echter Pipeline-Lauf mit Platzhaltern, neu T10 (Erfolgsfall), T11 (Nachtrag-Mail), T12 (Alt-Zeile), T13 (Zählung). Details: Handover-Nachtrag.
+diff --git a/scripts/send_scout_email.py b/scripts/send_scout_email.py
+index 748d81f..cef90fe 100644
+--- a/scripts/send_scout_email.py
++++ b/scripts/send_scout_email.py
+@@ -143,6 +143,72 @@ Automatisch generiert vom LLM Scout (llama-server Lab).
+     return msg
+ 
+ 
++def build_email_message_for_run(report_path: Path, run_index: int) -> MIMEText:
++    """
++    Extrahiert den Abschnitt run_index aus der Berichts-Datei und baut eine MIME-Message.
++    run_index=0 ist der Erstbericht, run_index>=1 sind Nachtraege.
++    Betreff ist bei Nachtraegen: "LLM Scout KWxx JJJJ – Nachtrag" (bzw. "– n Nachträge").
++    """
++    content = report_path.read_text(encoding="utf-8")
++    runs = parse_report_runs(content)
++    if run_index >= len(runs):
++        raise ValueError(f"run_index {run_index} ist groesser als Anzahl der Laeufe {len(runs)}")
++    run_content = runs[run_index]
++
++    iso_cal = datetime.now().isocalendar()
++    kw_year = iso_cal[0]
++    week = iso_cal[1]
++
++    if run_index == 0:
++        subject = f"LLM Scout KW{week} {kw_year}"
++    else:
++        # Betreff fuer Nachtrag: "– Nachtrag" oder "– n Nachträge"
++        if run_index == 1:
++            subject_suffix = "– Nachtrag"
++        else:
++            subject_suffix = f"– {run_index} Nachträge"
++        subject = f"LLM Scout KW{week} {kw_year} {subject_suffix}"
++
++    # Markdown zu HTML konvertieren (nur fuer den Abschnitt)
++    import markdown as md_lib
++    html_body = md_lib.markdown(
++        run_content,
++        extensions=["extra", "tables", "fenced_code"],
++    )
++
++    # HTML-E-Mail zusammenbauen (mit minimalem CSS fuer bessere Lesbarkeit)
++    html_template = f"""<!DOCTYPE html>
++<html>
++<head>
++<meta charset="utf-8">
++<style>
++body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.6; color: #333; max-width: 700px; margin: 0 auto; padding: 20px; }}
++code {{ background: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }}
++pre {{ background: #f4f4f4; padding: 12px; border-radius: 5px; overflow-x: auto; }}
++pre code {{ background: none; padding: 0; }}
++h1, h2, h3 {{ color: #222; }}
++a {{ color: #1a73e8; }}
++table {{ border-collapse: collapse; width: 100%; }}
++th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
++th {{ background: #f0f0f0; }}
++</style>
++</head>
++<body>
++{html_body}
++<hr>
++<p style="font-size: 0.85em; color: #888;">
++Automatisch generiert vom LLM Scout (llama-server Lab).
++</p>
++</body>
++</html>"""
++
++    msg = MIMEText(html_template, "html", "utf-8")
++    msg["Subject"] = subject
++    msg["From"] = SENDER
++    msg["To"] = RECIPIENT
++    return msg
++
++
+ def build_fail_email(exit_code: int) -> MIMEText:
+     """
+     Baut eine kurze Fehler-Mail basierend auf dem Scout-Exit-Code.
+@@ -239,45 +305,87 @@ def get_current_week_key() -> str:
+     return f"{iso_year}_{iso_week:02d}"
+ 
+ 
+-def is_week_already_sent() -> bool:
++def parse_report_runs(content: str) -> list[str]:
++    """
++    Teilt den Bericht-Inhalt in Abschnitte anhand der Trennstelle fuer Nachtraege.
++    Die Trennstelle ist: "\n\n---\n\n## Nachtrag KW..."
++    Liefert Liste: [erstbericht, nachtrag1, nachtrag2, ...]
++    """
++    separator = "\n\n---\n\n## Nachtrag KW"
++    if separator not in content:
++        # Keine Nachtraege
++        return [content]
++    parts = content.split(separator)
++    # parts[0] ist der Erstbericht (evtl. mit fuehrendem Whitespace, aber das ist OK)
++    # parts[1:] sind die Nachtraege (ohne den Separator, aber das ist OK)
++    result = [parts[0]]
++    for part in parts[1:]:
++        result.append(part)
++    return result
++
++
++def count_report_runs(filepath: Path) -> int:
+     """
+-    Prueft, ob die aktuelle ISO-Kalenderwoche bereits im Versand-Nachweis steht.
+-    Gibt True zurueck, wenn eine Zeile mit dem aktuellen Wochenschluessel existiert.
++    Zaehlt die Anzahl der Laeufe (Erstbericht + Nachtraege) in der Berichts-Datei.
++    Ein Nachtrag ist an der Trennstelle "\n\n---\n\n## Nachtrag KW..." erkennbar.
++    """
++    content = filepath.read_text(encoding="utf-8")
++    runs = parse_report_runs(content)
++    return len(runs)
++
++
++def get_last_sent_lauf_nr() -> int:
++    """
++    Liefert die hoechste gesendete lauf_nr fuer die aktuelle ISO-Kalenderwoche.
++    Liefert 0, wenn keine Zeile fuer die aktuelle Woche existiert.
+     """
+     if not SENT_STATE_FILE.exists():
+-        return False
++        return 0
+     current_key = get_current_week_key()
+     content = SENT_STATE_FILE.read_text(encoding="utf-8").strip()
+     if not content:
+-        return False
++        return 0
++    max_lauf_nr = 0
+     for line in content.splitlines():
+         line = line.strip()
+         if not line:
+             continue
+-        # Zeilenformat: "YYYY_WW YYYY-MM-DD"
++        # Zeilenformat: "YYYY_WW lauf_nr YYYY-MM-DD"
+         parts = line.split()
+-        if parts and parts[0] == current_key:
+-            return True
+-    return False
+-
+-
+-def record_sent_week() -> None:
++        if len(parts) < 2:
++            continue
++        if parts[0] == current_key:
++            try:
++                lauf_nr = int(parts[1])
++                if lauf_nr > max_lauf_nr:
++                    max_lauf_nr = lauf_nr
++            except ValueError:
++                # lauf_nr ist keine gueltige Zahl; altes Format: nur Woche
++                # Zaelle als lauf_nr 1
++                max_lauf_nr = max(max_lauf_nr, 1)
++    return max_lauf_nr
++
++
++def record_sent_week(lauf_nr: int) -> None:
+     """
+-    Speichert eine Zustandszeile fuer die aktuelle ISO-Kalenderwoche atomar.
+-    Format: "YYYY_WW YYYY-MM-DD" pro Zeile.
++    Speichert eine Zustandszeile fuer die aktuelle ISO-Kalenderwoche und lauf_nr atomar.
++    Format: "YYYY_WW lauf_nr YYYY-MM-DD" pro Zeile.
+     Nutzt atomares Schreiben (Temp-Datei + os.replace) (A6).
+-    Wenn die Woche bereits im Nachweis steht, wird nichts geschrieben.
++    Wenn die Kombination (Woche, lauf_nr) bereits im Nachweis steht, wird nichts geschrieben.
+     """
+     current_key = get_current_week_key()
+     today = datetime.now().strftime("%Y-%m-%d")
+-    new_line = f"{current_key} {today}\n"
++    new_line = f"{current_key} {lauf_nr} {today}\n"
+ 
+-    # Pruefen, ob die Woche bereits im Nachweis steht
++    # Pruefen, ob die Kombination (Woche, lauf_nr) bereits im Nachweis steht
+     if SENT_STATE_FILE.exists():
+         content = SENT_STATE_FILE.read_text(encoding="utf-8").strip()
+         for line in content.splitlines():
+             line = line.strip()
+-            if line and line.split()[0] == current_key:
++            if not line:
++                continue
++            parts = line.split()
++            if len(parts) >= 2 and parts[0] == current_key and parts[1] == str(lauf_nr):
+                 # Bereits vorhanden, nichts tun
+                 return
+ 
+@@ -312,33 +420,39 @@ def mode_normal() -> int:
+     """
+     Normaler Versand: Bericht finden, bauen, per SMTP versenden.
+ 
+-    Exit-Code 0: Erfolg oder KW bereits gesendet (A2).
++    Exit-Code 0: Erfolg oder alles gesendet (A2).
+     Exit-Code 1: SMTP-Fehler.
+     Exit-Code 3: Bericht fehlt und Woche nicht abgedeckt (A3).
+     """
+-    # A2: Pruefen, ob die KW bereits gesendet wurde
+-    if is_week_already_sent():
+-        print("KW bereits gesendet, kein Zweitversand.")
+-        return 0
+-
+     report_path = find_current_report()
+     if report_path is None:
+         # A3: Bericht fehlt und Woche nicht abgedeckt -> Exit 3
+         print(
+             "Fehler: Keine Bericht-Datei fuer die aktuelle KW gefunden, "
+-            "Woche noch nicht gesendet. Exit 3.",
++            "Woche noch nicht abgedeckt. Exit 3.",
+             file=sys.stderr,
+         )
+         return 3
+ 
+     print(f"Bericht gefunden: {report_path}")
+ 
++    # A2: Ermitteln, wie viele Laeufe in der Datei sind
++    expected_lauf_nr = count_report_runs(report_path)
++    # Ermitteln, was bereits gesendet wurde
++    sent_lauf_nr = get_last_sent_lauf_nr()
++
++    if sent_lauf_nr >= expected_lauf_nr:
++        print("Alle Laeufe bereits gesendet.")
++        return 0
++
++    # Es gibt ungesendete Laeufe
++    # A2: Senden Sie den naechsten Lauf (run_index = sent_lauf_nr, da 0-basiert)
+     try:
+-        msg = build_email_message(report_path)
++        msg = build_email_message_for_run(report_path, sent_lauf_nr)
+         send_email_smtp(msg)
+-        # A1: Nur nach erfolgreichem Versand den Nachweis schreiben
+-        record_sent_week()
+-        print(f"E-Mail versendet: {report_path.name}")
++        # A3: Nach erfolgreichem Versand den Nachweis fuer den naechsten Lauf schreiben
++        record_sent_week(sent_lauf_nr + 1)
++        print(f"E-Mail versendet (Lauf {sent_lauf_nr + 1}): {report_path.name}")
+         return 0
+     except Exception as e:
+         print(f"Fehler beim E-Mail-Versand: {e}", file=sys.stderr)

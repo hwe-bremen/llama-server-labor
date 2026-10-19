@@ -1,0 +1,4 @@
+ agents/llm_scout/llm_scout.py                      |  20 ++-
+ .../spec_20261018_scout_bericht_ueberschreiben.md  |  12 ++
+ scripts/send_scout_email.py                        | 172 +++++++++++++++++----
+ 3 files changed, 172 insertions(+), 32 deletions(-)
