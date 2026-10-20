@@ -5,15 +5,18 @@ weil sie die richtigen Antworten enthält. Hier: Punkte und Schlüsse.
 
 ## Ergebnis
 
-| Modell | Teil A je Lauf (max 32) | Teil B je Lauf (max 7) | Gesamt je Lauf | Median | Läufe ohne Code | Fallen-Erfindungen (W5+W6, 3 Läufe) |
+| Modell | Teil A je Lauf (max 32) | Teil B je Lauf (max 7) | Gesamt je Lauf | Median | Läufe ohne Code | Erfindungen Teil B (3 Läufe: Fallen + falsche IDs) |
 |---|---|---|---|---|---|---|
-| Qwen3.6-27B | 0 · 15 · 0 | 2 · 1,5 · 2 | 2 · 16,5 · 2 | **2** | 1 (Schleife) | 6 / 6 |
-| Qwen3.8-27B | 18 · 23 · 0 | 2,5 · 2,5 · 2,5 | 20,5 · 25,5 · 2,5 | **20,5** | 1 (Schleife) | 6 / 6 |
-| Mellum2-12B | 0 · 0 · 0 | 0 · 0 · 0 | 0 · 0 · 0 | **0** | 2 (Schleife) | 5 / 6 |
-| Qwen3-Coder-Next 80B | 0 · 0 · 0 | 2 · 2 · 2 | 2 · 2 · 2 | **2** | 0 | 6 / 6 |
+| Qwen3.6-27B | 0 · 15 · 0 | 2 · 1,5 · 2 | 2 · 16,5 · 2 | **2** | 1 (Schleife) | 6 + 13 = 19 |
+| Qwen3.8-27B | 18 · 23 · 0 | 2,5 · 2,5 · 2,5 | 20,5 · 25,5 · 2,5 | **20,5** | 1 (Schleife) | 6 + 6 = 12 |
+| Mellum2-12B | 0 · 0 · 0 | 0 · 0 · 0 | 0 · 0 · 0 | **0** | 2 (Schleife) | 5 + 14 = 19 |
+| Qwen3-Coder-Next 80B | 0 · 0 · 0 | 2 · 2 · 2 | 2 · 2 · 2 | **2** | 0 | 6 + 12 = 18 |
 
-Siegkriterium „Qwen3-Next gewinnt klar" (vorab festgelegt): Median ≥ 4 über Qwen3.6 → **nein** (2 gegen 2);
-Quant-Größen auf D1 in ≥ 2/3 Läufen → **nein** (kein Modell, kein Lauf); Erfindungen ≤ Qwen3.6 → gleich.
+Siegkriterium „Qwen3-Next gewinnt klar" (vorab festgelegt):
+1. Median ≥ 4 über Qwen3.6 → **nein** (2 gegen 2)
+2. Quant-Größen auf D1 in ≥ 2/3 Läufen → **nein** (kein Modell, kein Lauf)
+3. Erfindungen ≤ Qwen3.6 → ja, knapp (18 gegen 19)
+
 **Kein Gewinn. Nachtlauf (Schritt 2) entfällt vorerst.**
 
 ## Was passiert ist
@@ -31,6 +34,12 @@ Quant-Größen auf D1 in ≥ 2/3 Läufen → **nein** (kein Modell, kein Lauf); 
   die Q4_K-Blockgröße richtig nennen: Wissen in der Frage-Antwort kommt nicht im Code an.
 - Beide Fallen (W5, W6) bedient jedes Modell in jedem Lauf mit einer erfundenen Zahl (Ausnahme: Mellum einmal
   ohne Zahl). Kein Modell sagt „gibt es nicht".
+
+## Folgerung
+
+Formatwissen aus dem Gedächtnis ist bei allen getesteten lokalen Modellen unzuverlässig. Wo es auf Konstanten ankommt
+(Typ-IDs, Blockgrößen, Flags), gehört die Quelle (Header, `--help`, Referenzbibliothek) in den Kontext — ein größeres
+Modell ersetzt das nicht.
 
 ## Vorbehalte
 
