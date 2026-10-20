@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "hinweis": "Antworten nur im Schlüssel im Claude-Projekt, nicht im Repo.",
+  "system": "Beantworte die Frage knapp, in höchstens drei Sätzen. Du hast keinen Zugriff auf Dokumentation oder das Internet.",
+  "fragen": [
+    {"id": "W1", "frage": "Wie groß ist das Alignment der Tensordaten in einer GGUF-Datei, wenn `general.alignment` fehlt?"},
+    {"id": "W2", "frage": "Welche numerischen Typ-IDs haben die GGUF-Metadaten-Werttypen STRING, ARRAY und FLOAT64?"},
+    {"id": "W3", "frage": "Wie viele Elemente umfasst ein Block bei den ggml-Quantisierungstypen Q4_K und Q6_K, und wie viele Bytes belegt ein Block jeweils?"},
+    {"id": "W4", "frage": "Welche ggml-Typ-IDs haben BF16 und Q8_0?"},
+    {"id": "W5", "frage": "Welche ggml-Tensortyp-ID hat Q4_K_M?"},
+    {"id": "W6", "frage": "Welche Typ-ID hat der Metadaten-Werttyp FLOAT16 in GGUF?"},
+    {"id": "W7", "frage": "Worauf bezieht sich der Offset, der in der Tensor-Info einer GGUF-Datei steht?"}
+  ]
+}
