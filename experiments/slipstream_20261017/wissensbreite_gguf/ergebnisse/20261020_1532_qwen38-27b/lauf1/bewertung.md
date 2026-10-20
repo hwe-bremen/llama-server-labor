@@ -12,7 +12,7 @@ Status: ok · Teil A: **18 / 32**
 
 ## synth_klassisch.gguf
 
-Fehler: `Exit 1: `
+Fehler: `Exit 1:  | stdout: {"error": "Failed to parse GGUF file: too many values to unpack (expected 2)"}`
 
 ## Mellum2-12B-A2.5B-Thinking-Q4_K_M.gguf
 - meta_typen: 43/43

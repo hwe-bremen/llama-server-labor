@@ -1,0 +1,12 @@
+{
+ "lauf": "/Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017/wissensbreite_gguf/ergebnisse/20261020_2031_qwen3-80b-quelle/lauf1",
+ "dateien": {},
+ "summe": 0,
+ "max": 32,
+ "status": "Syntaxfehler: '(' was never closed (Zeile 156)",
+ "code": {
+  "syntax": "'(' was never closed (Zeile 156)",
+  "verboten": [],
+  "riskant": []
+ }
+}

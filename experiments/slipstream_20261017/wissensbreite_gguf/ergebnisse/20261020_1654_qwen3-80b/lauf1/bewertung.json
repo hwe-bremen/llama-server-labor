@@ -3,23 +3,23 @@
  "dateien": {
   "synth_klassisch.gguf": {
    "summe": 0,
-   "fehler": "Exit 1: "
+   "fehler": "Exit 1:  | stdout: {\"error\": \"\"}"
   },
   "Mellum2-12B-A2.5B-Thinking-Q4_K_M.gguf": {
    "summe": 0,
-   "fehler": "Exit 1: "
+   "fehler": "Exit 1:  | stdout: {\"error\": \"\"}"
   },
   "Qwen3.6-27B-UD-Q4_K_XL.gguf": {
    "summe": 0,
-   "fehler": "Exit 1: "
+   "fehler": "Exit 1:  | stdout: {\"error\": \"\"}"
   },
   "Qwen3-Coder-Next-Q4_K_M.gguf": {
    "summe": 0,
-   "fehler": "Exit 1: "
+   "fehler": "Exit 1:  | stdout: {\"error\": \"\"}"
   },
   "synth_neu.gguf": {
    "summe": 0,
-   "fehler": "Exit 1: "
+   "fehler": "Exit 1:  | stdout: {\"error\": \"\"}"
   }
  },
  "summe": 0,

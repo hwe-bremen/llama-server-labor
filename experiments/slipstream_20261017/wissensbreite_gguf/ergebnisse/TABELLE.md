@@ -12,3 +12,9 @@
 | ergebnisse/20261020_1654_qwen3-80b/lauf1 | ok | 0/32 | – |
 | ergebnisse/20261020_1654_qwen3-80b/lauf2 | ok | 0/32 | – |
 | ergebnisse/20261020_1654_qwen3-80b/lauf3 | ok | 0/32 | – |
+| ergebnisse/20261020_2031_qwen3-80b-quelle/lauf1 | Syntaxfehler: '(' was never closed (Zeil | 0/32 | – |
+| ergebnisse/20261020_2031_qwen3-80b-quelle/lauf2 | ok | 27/32 | ✓ |
+| ergebnisse/20261020_2102_qwen36-27b-quelle/lauf1 | ok | 32/32 | ✓ |
+| ergebnisse/20261020_2102_qwen36-27b-quelle/lauf2 | ok | 32/32 | ✓ |
+| ergebnisse/20261020_2112_qwen38-27b-quelle/lauf1 | ok | 32/32 | ✓ |
+| ergebnisse/20261020_2112_qwen38-27b-quelle/lauf2 | ok | 32/32 | ✓ |

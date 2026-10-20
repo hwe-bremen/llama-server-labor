@@ -12,23 +12,23 @@ Status: ok · Teil A: **0 / 32**
 
 ## synth_klassisch.gguf
 
-Fehler: `Exit 1: `
+Fehler: `Exit 1:  | stdout: {"error": ""}`
 
 ## Mellum2-12B-A2.5B-Thinking-Q4_K_M.gguf
 
-Fehler: `Exit 1: `
+Fehler: `Exit 1:  | stdout: {"error": ""}`
 
 ## Qwen3.6-27B-UD-Q4_K_XL.gguf
 
-Fehler: `Exit 1: `
+Fehler: `Exit 1:  | stdout: {"error": ""}`
 
 ## Qwen3-Coder-Next-Q4_K_M.gguf
 
-Fehler: `Exit 1: `
+Fehler: `Exit 1:  | stdout: {"error": ""}`
 
 ## synth_neu.gguf
 
-Fehler: `Exit 1: `
+Fehler: `Exit 1:  | stdout: {"error": ""}`
 
 ## Teil B (von Hand gegen den Schlüssel bewerten)
 

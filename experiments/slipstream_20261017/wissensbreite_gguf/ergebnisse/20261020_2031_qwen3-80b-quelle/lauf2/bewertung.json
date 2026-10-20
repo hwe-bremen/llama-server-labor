@@ -1,0 +1,331 @@
+{
+ "lauf": "/Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017/wissensbreite_gguf/ergebnisse/20261020_2031_qwen3-80b-quelle/lauf2",
+ "dateien": {
+  "synth_klassisch.gguf": {
+   "punkte": {
+    "kopf": true,
+    "meta_typen": true,
+    "meta_skalare": true,
+    "meta_arrays": false,
+    "tensor_infos": true,
+    "n_bytes": true,
+    "alignment_offset": true,
+    "ende": false
+   },
+   "summe": 6,
+   "info": {
+    "meta_typen": {
+     "fehlend": [],
+     "extra": [],
+     "typ_falsch": [],
+     "anteil": "23/23"
+    },
+    "meta_skalare": {
+     "falsch": [],
+     "anteil": "15/15"
+    },
+    "meta_arrays": {
+     "falsch": [
+      "t.arr_u8",
+      "t.arr_i32",
+      "t.arr_f32",
+      "t.arr_str",
+      "t.arr_bool"
+     ],
+     "anteil": "0/8"
+    },
+    "tensor_infos": {
+     "falsch": [],
+     "anteil": "27/27"
+    },
+    "n_bytes": {
+     "falsch": [],
+     "anteil": "27/27"
+    },
+    "alignment_offset": {
+     "kandidat": [
+      64,
+      2432
+     ],
+     "referenz": [
+      64,
+      2432
+     ]
+    },
+    "ende": {
+     "kandidat": [
+      9832,
+      10624,
+      false
+     ],
+     "referenz": [
+      10592,
+      10624,
+      true
+     ]
+    }
+   }
+  },
+  "Mellum2-12B-A2.5B-Thinking-Q4_K_M.gguf": {
+   "punkte": {
+    "kopf": true,
+    "meta_typen": true,
+    "meta_skalare": true,
+    "meta_arrays": false,
+    "tensor_infos": true,
+    "n_bytes": true,
+    "alignment_offset": true,
+    "ende": true
+   },
+   "summe": 7,
+   "info": {
+    "meta_typen": {
+     "fehlend": [],
+     "extra": [],
+     "typ_falsch": [],
+     "anteil": "43/43"
+    },
+    "meta_skalare": {
+     "falsch": [],
+     "anteil": "37/37"
+    },
+    "meta_arrays": {
+     "falsch": [
+      "general.tags",
+      "general.languages",
+      "mellum.attention.sliding_window_pattern",
+      "tokenizer.ggml.tokens",
+      "tokenizer.ggml.token_type"
+     ],
+     "anteil": "0/6"
+    },
+    "tensor_infos": {
+     "falsch": [],
+     "anteil": "339/339"
+    },
+    "n_bytes": {
+     "falsch": [],
+     "anteil": "339/339"
+    },
+    "alignment_offset": {
+     "kandidat": [
+      32,
+      3589184
+     ],
+     "referenz": [
+      32,
+      3589184
+     ]
+    },
+    "ende": {
+     "kandidat": [
+      8071295040,
+      8071295040,
+      true
+     ],
+     "referenz": [
+      8071295040,
+      8071295040,
+      true
+     ]
+    }
+   }
+  },
+  "Qwen3.6-27B-UD-Q4_K_XL.gguf": {
+   "punkte": {
+    "kopf": true,
+    "meta_typen": true,
+    "meta_skalare": true,
+    "meta_arrays": false,
+    "tensor_infos": true,
+    "n_bytes": true,
+    "alignment_offset": true,
+    "ende": true
+   },
+   "summe": 7,
+   "info": {
+    "meta_typen": {
+     "fehlend": [],
+     "extra": [],
+     "typ_falsch": [],
+     "anteil": "52/52"
+    },
+    "meta_skalare": {
+     "falsch": [],
+     "anteil": "47/47"
+    },
+    "meta_arrays": {
+     "falsch": [
+      "general.tags",
+      "qwen35.rope.dimension_sections",
+      "tokenizer.ggml.tokens",
+      "tokenizer.ggml.token_type",
+      "tokenizer.ggml.merges"
+     ],
+     "anteil": "0/5"
+    },
+    "tensor_infos": {
+     "falsch": [],
+     "anteil": "866/866"
+    },
+    "n_bytes": {
+     "falsch": [],
+     "anteil": "866/866"
+    },
+    "alignment_offset": {
+     "kandidat": [
+      32,
+      10994816
+     ],
+     "referenz": [
+      32,
+      10994816
+     ]
+    },
+    "ende": {
+     "kandidat": [
+      17909097600,
+      17909097600,
+      true
+     ],
+     "referenz": [
+      17909097600,
+      17909097600,
+      true
+     ]
+    }
+   }
+  },
+  "Qwen3-Coder-Next-Q4_K_M.gguf": {
+   "punkte": {
+    "kopf": true,
+    "meta_typen": true,
+    "meta_skalare": true,
+    "meta_arrays": false,
+    "tensor_infos": true,
+    "n_bytes": true,
+    "alignment_offset": true,
+    "ende": true
+   },
+   "summe": 7,
+   "info": {
+    "meta_typen": {
+     "fehlend": [],
+     "extra": [],
+     "typ_falsch": [],
+     "anteil": "53/53"
+    },
+    "meta_skalare": {
+     "falsch": [],
+     "anteil": "49/49"
+    },
+    "meta_arrays": {
+     "falsch": [
+      "general.tags",
+      "tokenizer.ggml.tokens",
+      "tokenizer.ggml.token_type",
+      "tokenizer.ggml.merges"
+     ],
+     "anteil": "0/4"
+    },
+    "tensor_infos": {
+     "falsch": [],
+     "anteil": "843/843"
+    },
+    "n_bytes": {
+     "falsch": [],
+     "anteil": "843/843"
+    },
+    "alignment_offset": {
+     "kandidat": [
+      32,
+      5989408
+     ],
+     "referenz": [
+      32,
+      5989408
+     ]
+    },
+    "ende": {
+     "kandidat": [
+      48528320544,
+      48528320544,
+      true
+     ],
+     "referenz": [
+      48528320544,
+      48528320544,
+      true
+     ]
+    }
+   }
+  },
+  "synth_neu.gguf": {
+   "punkte": {
+    "kopf": true,
+    "meta_typen": true,
+    "meta_skalare": true,
+    "meta_arrays": true,
+    "tensor_infos": true,
+    "n_bytes": true,
+    "alignment_offset": true,
+    "ende": false
+   },
+   "summe": 7,
+   "info": {
+    "meta_typen": {
+     "fehlend": [],
+     "extra": [],
+     "typ_falsch": [],
+     "anteil": "2/2"
+    },
+    "meta_skalare": {
+     "falsch": [],
+     "anteil": "2/2"
+    },
+    "meta_arrays": {
+     "falsch": [],
+     "anteil": "0/0"
+    },
+    "tensor_infos": {
+     "falsch": [],
+     "anteil": "3/3"
+    },
+    "n_bytes": {
+     "falsch": [],
+     "anteil": "3/3"
+    },
+    "alignment_offset": {
+     "kandidat": [
+      64,
+      320
+     ],
+     "referenz": [
+      64,
+      320
+     ]
+    },
+    "ende": {
+     "kandidat": [
+      694,
+      832,
+      false
+     ],
+     "referenz": [
+      772,
+      832,
+      true
+     ]
+    }
+   }
+  }
+ },
+ "summe": 27,
+ "max": 32,
+ "status": "ok",
+ "code": {
+  "syntax": null,
+  "verboten": [],
+  "riskant": []
+ }
+}

@@ -3,7 +3,7 @@
  "dateien": {
   "synth_klassisch.gguf": {
    "summe": 0,
-   "fehler": "Exit 1: "
+   "fehler": "Exit 1:  | stdout: {\"error\": \"Failed to parse GGUF file: too many values to unpack (expected 2)\"}"
   },
   "Mellum2-12B-A2.5B-Thinking-Q4_K_M.gguf": {
    "punkte": {
