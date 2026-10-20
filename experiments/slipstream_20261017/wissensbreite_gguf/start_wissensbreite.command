@@ -5,6 +5,8 @@
 #            Selbsttest, Referenz der Prüfdateien, dann je 3 Läufe: Qwen3.6, Qwen3.8, Mellum Q4_K_M.
 #            Modelle mit schon 3 fertigen Läufen werden übersprungen (kein doppeltes Rechnen).
 #   next     Qwen3-Next muss über scripts/launch_qwen3next.command laufen (8083). 3 Läufe.
+#   router-quelle / next-quelle  wie router/next, aber Teil A mit Formatbeschreibung aus gguf-py
+#            (quelle.md, wird vorher neu erzeugt), 2 Läufe je Modell, nur Qwen3.6/Qwen3.8 bzw. Qwen3-Next.
 #   bewerten Alle Ergebnisordner bewerten, Übersicht nach ergebnisse/TABELLE.md.
 #
 # Die Prüfdateien werden selbst gesucht (HF-Cache, externe SSD). Alles wird zusätzlich nach
@@ -26,6 +28,11 @@ MODELLE_ROUTER=(
   "JetBrains/Mellum2-12B-A2.5B-Thinking-GGUF-Q4_K_M:Q4_K_M"
 )
 MODELL_NEXT="Qwen3-Coder-Next-80B-A3B"
+MODELLE_QUELLE=(
+  "unsloth/Qwen3.6-27B-MTP-GGUF:Q4_K_XL"
+  "unsloth/Qwen3.8-27B-GGUF:Q4_K_XL"
+)
+LAEUFE_QUELLE=2
 
 mkdir -p "$HIER/ergebnisse"
 LOG="$HIER/ergebnisse/starter_$(date +%Y%m%d_%H%M%S)_${MODUS}.log"
@@ -74,6 +81,28 @@ case "$MODUS" in
     "$PY" "$HIER/lauf.py" --url "$NEXT" --modell "$MODELL_NEXT" --ueberspringen-wenn-fertig
     schritt "Fertig. Weiter: bash $HIER/start_wissensbreite.command bewerten"
     ;;
+  router-quelle)
+    server_da "$ROUTER" || die "Router $ROUTER antwortet nicht – erst start_eval.command starten."
+    schritt "Formatbeschreibung aus gguf-py"
+    "$PY" "$HIER/pruefen.py" quelle || die "quelle.md nicht erzeugt."
+    for m in "${MODELLE_QUELLE[@]}"; do
+      schritt "Läufe mit Quelle $m"
+      "$PY" "$HIER/lauf.py" --url "$ROUTER" --modell "$m" --mit-quelle --laeufe "$LAEUFE_QUELLE" --nur a \
+        --ueberspringen-wenn-fertig || echo "!! $m mit Fehler beendet – weiter mit dem nächsten Modell"
+    done
+    schritt "Router-Modelle mit Quelle fertig"
+    echo "Weiter: Lab beenden, 'sudo purge', bash scripts/launch_qwen3next.command,"
+    echo "        dann: bash $HIER/start_wissensbreite.command next-quelle"
+    ;;
+  next-quelle)
+    [ -z "${D4_FEHLT:-}" ] || die "externe SSD anschließen (Qwen3-Next-Datei wird auch zum Prüfen gebraucht)."
+    server_da "$NEXT" || die "Qwen3-Next auf $NEXT antwortet nicht – bash scripts/launch_qwen3next.command starten."
+    "$PY" "$HIER/pruefen.py" quelle || die "quelle.md nicht erzeugt."
+    schritt "Läufe mit Quelle $MODELL_NEXT"
+    "$PY" "$HIER/lauf.py" --url "$NEXT" --modell "$MODELL_NEXT" --mit-quelle --laeufe "$LAEUFE_QUELLE" --nur a \
+      --ueberspringen-wenn-fertig
+    schritt "Fertig. Weiter: bash $HIER/start_wissensbreite.command bewerten"
+    ;;
   bewerten)
     [ -z "${D4_FEHLT:-}" ] || echo "WARNUNG: ohne Qwen3-Next-Datei – Teil A dann max. 24 statt 32."
     ORDNER=()
@@ -84,6 +113,6 @@ case "$MODUS" in
     "$PY" "$HIER/pruefen.py" tabelle "$HIER/ergebnisse" | tee "$HIER/ergebnisse/TABELLE.md"
     schritt "Fertig: ergebnisse/TABELLE.md und je Lauf bewertung.md – Claude kann beides selbst lesen."
     ;;
-  *) die "Modus '$MODUS' unbekannt (router | next | bewerten)." ;;
+  *) die "Modus '$MODUS' unbekannt (router | next | router-quelle | next-quelle | bewerten)." ;;
 esac
 echo; echo "Log: $LOG"

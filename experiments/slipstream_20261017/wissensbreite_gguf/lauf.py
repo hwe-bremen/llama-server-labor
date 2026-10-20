@@ -32,6 +32,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 AUFGABE = HERE / "aufgabe.md"
+QUELLE = HERE / "quelle.md"          # Variante „mit Quelle": von pruefen.py quelle aus gguf-py erzeugt
 FRAGEN = HERE / "fragen.json"
 ERGEBNISSE = HERE / "ergebnisse"
 
@@ -88,13 +89,20 @@ def fertiger_ordner(tag: str, laeufe: int) -> Path | None:
     return None
 
 
+def aufgabentext(mit_quelle: bool) -> str:
+    text = AUFGABE.read_text(encoding="utf-8")
+    if mit_quelle:
+        text += "\nDu darfst dich auf die folgende Formatbeschreibung stützen.\n\n" + QUELLE.read_text(encoding="utf-8")
+    return text
+
+
 def ein_lauf(ordner: Path, a, fragen: dict) -> dict:
     ordner.mkdir(parents=True, exist_ok=False)
     meta = {"modell": a.modell, "url": a.url, "start": datetime.now().isoformat(timespec="seconds"),
             "temperatur": a.temperatur, "max_tokens_a": a.max_tokens, "thinking": "aus (enable_thinking=false)",
-            "fragen_version": fragen["version"]}
+            "fragen_version": fragen["version"], "mit_quelle": a.mit_quelle}
     if a.nur in (None, "a"):
-        r = anfrage(a.url, a.modell, [{"role": "user", "content": AUFGABE.read_text(encoding="utf-8")}],
+        r = anfrage(a.url, a.modell, [{"role": "user", "content": aufgabentext(a.mit_quelle)}],
                     a.max_tokens, a.temperatur, a.timeout)
         meta["teil_a"] = {k: v for k, v in r.items() if k != "antwort"}
         (ordner / "antwort_a.md").write_text(r.get("antwort") or r.get("fehler") or "", encoding="utf-8")
@@ -130,19 +138,24 @@ def main(argv=None) -> int:
     ap.add_argument("--timeout", type=int, default=3600, help="Sekunden je Anfrage (inkl. Laden)")
     ap.add_argument("--nur", choices=["a", "b"])
     ap.add_argument("--trocken", action="store_true")
+    ap.add_argument("--mit-quelle", action="store_true",
+                    help="Formatbeschreibung (quelle.md) an Teil A anhängen; Ordnerkürzel bekommt '-quelle'")
     ap.add_argument("--ueberspringen-wenn-fertig", action="store_true",
                     help="nichts tun, wenn für dieses Modell schon ein Ordner mit allen Läufen existiert")
     a = ap.parse_args(argv)
 
     fragen = json.loads(FRAGEN.read_text(encoding="utf-8"))
-    tag = a.kuerzel or kuerzel(a.modell)
+    tag = (a.kuerzel or kuerzel(a.modell)) + ("-quelle" if a.mit_quelle else "")
+    if a.mit_quelle and not QUELLE.exists():
+        print(f"ABBRUCH: {QUELLE} fehlt – erst `pruefen.py quelle`.")
+        return 1
     if a.ueberspringen_wenn_fertig and (fertig := fertiger_ordner(tag, a.laeufe)):
         print(f"Übersprungen: {a.modell} [{tag}] hat schon {a.laeufe} fertige Läufe in {fertig.name}")
         return 0
     basis = ERGEBNISSE / f"{datetime.now():%Y%m%d_%H%M}_{tag}"
     print(f"Modell {a.modell} [{tag}] · {a.url} · {a.laeufe} Läufe · Temperatur {a.temperatur} · Ziel {basis}")
     if a.trocken:
-        print("\n--- Teil A ---\n" + AUFGABE.read_text(encoding="utf-8"))
+        print("\n--- Teil A ---\n" + aufgabentext(a.mit_quelle))
         print("--- Teil B ---\nSystem: " + fragen["system"])
         for f in fragen["fragen"]:
             print(f"{f['id']}: {f['frage']}")

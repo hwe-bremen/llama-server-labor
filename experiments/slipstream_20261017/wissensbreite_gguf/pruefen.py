@@ -131,6 +131,52 @@ def erzeuge_synth(ziel: Path, typen: list[str], mit_metadaten: bool) -> Path:
     return ziel
 
 
+QUELLE = HERE / "quelle.md"
+
+QUELLE_KOPF = """## Referenz zum Format (aus gguf-py, llama.cpp)
+
+Alle Zahlen little-endian. `str` = u64 Länge in Byte, danach UTF-8-Bytes (ohne Nullbyte).
+
+Dateiaufbau:
+1. Magic: 4 Byte `GGUF` (als u32: 0x{magic:08X})
+2. u32 Version
+3. u64 Anzahl Tensoren, u64 Anzahl Schlüssel-Wert-Paare
+4. Je Schlüssel-Wert-Paar: `str` Schlüssel, u32 Werttyp-ID, Wert
+   - Skalar: Wert in der Größe des Typs (BOOL = 1 Byte, 0 oder 1)
+   - STRING: `str`
+   - ARRAY: u32 Elementtyp-ID, u64 Anzahl, danach die Elemente ohne eigene Typ-ID
+     (Elemente vom Typ ARRAY tragen wieder u32 Elementtyp-ID + u64 Anzahl)
+5. Je Tensor: `str` Name, u32 Anzahl Dimensionen, je Dimension u64, u32 ggml-Typ-ID, u64 Offset
+6. Danach Auffüllung bis zur nächsten durch das Alignment teilbaren Position: dort beginnen die Tensordaten.
+   Alignment = Wert von `general.alignment` (UINT32), wenn vorhanden, sonst {align}.
+7. Der Offset eines Tensors zählt ab dem Beginn der Tensordaten (nicht ab Dateianfang).
+8. Größe eines Tensors in Byte = Anzahl Elemente × Bytes je Block ÷ Elemente je Block.
+"""
+
+
+def quelle_text() -> str:
+    """Formatbeschreibung für die Variante 'mit Quelle' – erzeugt aus gguf-py, nicht von Hand."""
+    pfad = Path(os.environ.get("GGUF_PY", GGUF_PY_DEFAULT))
+    if pfad.exists():
+        sys.path.insert(0, str(pfad))
+    from gguf.constants import (GGUF_MAGIC, GGUF_DEFAULT_ALIGNMENT, GGUFValueType,
+                                GGMLQuantizationType, GGML_QUANT_SIZES)
+    z = [QUELLE_KOPF.format(magic=GGUF_MAGIC, align=GGUF_DEFAULT_ALIGNMENT), "Werttyp-IDs (Metadaten):", ""]
+    z += ["| ID | Typ |", "|---|---|"] + [f"| {int(t)} | {t.name} |" for t in GGUFValueType]
+    z += ["", "ggml-Tensortypen:", "", "| ID | Name | Elemente je Block | Bytes je Block |", "|---|---|---|---|"]
+    for t in GGMLQuantizationType:
+        if t in GGML_QUANT_SIZES:
+            bs, ts = GGML_QUANT_SIZES[t]
+            z.append(f"| {int(t)} | {t.name} | {bs} | {ts} |")
+    return "\n".join(z) + "\n"
+
+
+def cmd_quelle(_a) -> int:
+    QUELLE.write_text(quelle_text(), encoding="utf-8")
+    print(f"{QUELLE} geschrieben ({len(QUELLE.read_text(encoding='utf-8'))} Zeichen)")
+    return 0
+
+
 def cmd_synth(_a) -> int:
     d1 = erzeuge_synth(PRUEFDATEIEN / "synth_klassisch.gguf", KLASSISCH, True)
     bonus = erzeuge_synth(PRUEFDATEIEN / "synth_neu.gguf", NEU, False)
@@ -462,6 +508,7 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="Wissensbreite GGUF – Prüfer")
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("synth", help="synthetische Prüfdateien erzeugen")
+    sub.add_parser("quelle", help="quelle.md (Formatbeschreibung aus gguf-py) für die Variante mit Quelle schreiben")
     r = sub.add_parser("referenz", help="Referenz für echte Dateien rechnen und anzeigen")
     r.add_argument("dateien", nargs="+")
     b = sub.add_parser("bewerten", help="Laufordner bewerten")
@@ -473,7 +520,8 @@ def main(argv=None) -> int:
     t = sub.add_parser("tabelle", help="Übersicht über bewertete Läufe")
     t.add_argument("ordner", nargs="+")
     a = ap.parse_args(argv)
-    return {"synth": cmd_synth, "referenz": cmd_referenz, "bewerten": cmd_bewerten, "tabelle": cmd_tabelle}[a.cmd](a)
+    return {"synth": cmd_synth, "quelle": cmd_quelle, "referenz": cmd_referenz, "bewerten": cmd_bewerten,
+            "tabelle": cmd_tabelle}[a.cmd](a)
 
 
 if __name__ == "__main__":
