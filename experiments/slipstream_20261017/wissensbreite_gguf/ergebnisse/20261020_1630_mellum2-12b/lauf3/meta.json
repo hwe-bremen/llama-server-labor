@@ -1,0 +1,18 @@
+{
+ "modell": "JetBrains/Mellum2-12B-A2.5B-Thinking-GGUF-Q4_K_M:Q4_K_M",
+ "url": "http://127.0.0.1:8080",
+ "start": "2026-10-20T16:36:36",
+ "temperatur": 0.2,
+ "max_tokens_a": 16000,
+ "thinking": "aus (enable_thinking=false)",
+ "fragen_version": 1,
+ "teil_a": {
+  "reasoning_zeichen": 0,
+  "finish": "stop",
+  "prompt_tokens": 901,
+  "completion_tokens": 4154,
+  "sekunden": 42.1,
+  "code_zeilen": 335
+ },
+ "ende": "2026-10-20T16:37:21"
+}

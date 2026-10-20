@@ -80,6 +80,14 @@ def anfrage(url: str, modell: str, messages: list, max_tokens: int, temperatur: 
             "completion_tokens": usage.get("completion_tokens"), "sekunden": round(time.time() - t0, 1)}
 
 
+def fertiger_ordner(tag: str, laeufe: int) -> Path | None:
+    """Ergebnisordner dieses Modells, in dem alle Läufe ein meta.json haben (= abgeschlossen)."""
+    for o in sorted(ERGEBNISSE.glob(f"*_{tag}")):
+        if all((o / f"lauf{i}" / "meta.json").exists() for i in range(1, laeufe + 1)):
+            return o
+    return None
+
+
 def ein_lauf(ordner: Path, a, fragen: dict) -> dict:
     ordner.mkdir(parents=True, exist_ok=False)
     meta = {"modell": a.modell, "url": a.url, "start": datetime.now().isoformat(timespec="seconds"),
@@ -122,10 +130,15 @@ def main(argv=None) -> int:
     ap.add_argument("--timeout", type=int, default=3600, help="Sekunden je Anfrage (inkl. Laden)")
     ap.add_argument("--nur", choices=["a", "b"])
     ap.add_argument("--trocken", action="store_true")
+    ap.add_argument("--ueberspringen-wenn-fertig", action="store_true",
+                    help="nichts tun, wenn für dieses Modell schon ein Ordner mit allen Läufen existiert")
     a = ap.parse_args(argv)
 
     fragen = json.loads(FRAGEN.read_text(encoding="utf-8"))
     tag = a.kuerzel or kuerzel(a.modell)
+    if a.ueberspringen_wenn_fertig and (fertig := fertiger_ordner(tag, a.laeufe)):
+        print(f"Übersprungen: {a.modell} [{tag}] hat schon {a.laeufe} fertige Läufe in {fertig.name}")
+        return 0
     basis = ERGEBNISSE / f"{datetime.now():%Y%m%d_%H%M}_{tag}"
     print(f"Modell {a.modell} [{tag}] · {a.url} · {a.laeufe} Läufe · Temperatur {a.temperatur} · Ziel {basis}")
     if a.trocken:

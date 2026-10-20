@@ -257,7 +257,9 @@ def kandidat_ausfuehren(skript: Path, gguf: Path, zeitgrenze: int = ZEITGRENZE) 
         except subprocess.TimeoutExpired:
             return {"fehler": f"Zeitüberschreitung {zeitgrenze} s"}
     if p.returncode != 0:
-        return {"fehler": f"Exit {p.returncode}: " + p.stderr.decode("utf-8", "replace").strip()[-600:]}
+        err = p.stderr.decode("utf-8", "replace").strip()[-600:]
+        out = p.stdout.decode("utf-8", "replace").strip()[-300:]       # manche Leser melden Fehler als JSON auf stdout
+        return {"fehler": f"Exit {p.returncode}: {err}" + (f" | stdout: {out}" if out else "")}
     text = p.stdout.decode("utf-8", "replace").strip()
     try:
         return {"json": json.loads(text)}

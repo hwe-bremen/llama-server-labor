@@ -1,0 +1,72 @@
+[
+ {
+  "id": "W1",
+  "frage": "Wie groß ist das Alignment der Tensordaten in einer GGUF-Datei, wenn `general.alignment` fehlt?",
+  "antwort": "Wenn `general.alignment` in einer GGUF-Datei fehlt, ist das Alignment standardmäßig 8. Dies ist der typische Wert, wenn keine spezifische Angabe im Header vorliegt.",
+  "reasoning_zeichen": 0,
+  "finish": "stop",
+  "prompt_tokens": 85,
+  "completion_tokens": 51,
+  "sekunden": 0.5
+ },
+ {
+  "id": "W2",
+  "frage": "Welche numerischen Typ-IDs haben die GGUF-Metadaten-Werttypen STRING, ARRAY und FLOAT64?",
+  "antwort": "Die GGUF-Metadaten-Werttypen haben folgende numerische Typ-IDs:\n\n- **STRING**: `1`\n- **ARRAY**: `2`\n- **FLOAT64**: `3`",
+  "reasoning_zeichen": 0,
+  "finish": "stop",
+  "prompt_tokens": 85,
+  "completion_tokens": 50,
+  "sekunden": 0.5
+ },
+ {
+  "id": "W3",
+  "frage": "Wie viele Elemente umfasst ein Block bei den ggml-Quantisierungstypen Q4_K und Q6_K, und wie viele Bytes belegt ein Block jeweils?",
+  "antwort": "Ein Block bei den ggml-Quantisierungstypen Q4_K und Q6_K umfasst 4 oder 6 Bits. Da ein Byte 8 Bits hat, belegt ein Block Q4_K 0,5 Byte und ein Block Q6_K 0,75 Byte.",
+  "reasoning_zeichen": 0,
+  "finish": "stop",
+  "prompt_tokens": 102,
+  "completion_tokens": 69,
+  "sekunden": 0.7
+ },
+ {
+  "id": "W4",
+  "frage": "Welche ggml-Typ-IDs haben BF16 und Q8_0?",
+  "antwort": "BF16: 1\nQ8_0: 2",
+  "reasoning_zeichen": 0,
+  "finish": "stop",
+  "prompt_tokens": 74,
+  "completion_tokens": 15,
+  "sekunden": 0.2
+ },
+ {
+  "id": "W5",
+  "frage": "Welche ggml-Tensortyp-ID hat Q4_K_M?",
+  "antwort": "Q4_K_M hat die ggml-Tensortyp-ID 19.",
+  "reasoning_zeichen": 0,
+  "finish": "stop",
+  "prompt_tokens": 75,
+  "completion_tokens": 22,
+  "sekunden": 0.4
+ },
+ {
+  "id": "W6",
+  "frage": "Welche Typ-ID hat der Metadaten-Werttyp FLOAT16 in GGUF?",
+  "antwort": "In GGUF ist der Metadaten-Werttyp FLOAT16 mit der Typ-ID **1**.",
+  "reasoning_zeichen": 0,
+  "finish": "stop",
+  "prompt_tokens": 78,
+  "completion_tokens": 25,
+  "sekunden": 0.3
+ },
+ {
+  "id": "W7",
+  "frage": "Worauf bezieht sich der Offset, der in der Tensor-Info einer GGUF-Datei steht?",
+  "antwort": "Der Offset in der Tensor-Info einer GGUF-Datei bezieht sich auf die Position (im Dateistream) der GPUTransition-Tabelle, die für die Tensor-Konfiguration steht. Diese Tabelle enthält Informationen, wie die GPUTransition-Parameter für verschiedene Tensor-Layer-Konfigurationen verwaltet werden.",
+  "reasoning_zeichen": 0,
+  "finish": "stop",
+  "prompt_tokens": 81,
+  "completion_tokens": 78,
+  "sekunden": 0.8
+ }
+]

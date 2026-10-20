@@ -1,0 +1,284 @@
+{
+ "lauf": "/Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017/wissensbreite_gguf/ergebnisse/20261020_1532_qwen38-27b/lauf1",
+ "dateien": {
+  "synth_klassisch.gguf": {
+   "summe": 0,
+   "fehler": "Exit 1: "
+  },
+  "Mellum2-12B-A2.5B-Thinking-Q4_K_M.gguf": {
+   "punkte": {
+    "kopf": true,
+    "meta_typen": true,
+    "meta_skalare": true,
+    "meta_arrays": true,
+    "tensor_infos": true,
+    "n_bytes": false,
+    "alignment_offset": true,
+    "ende": false
+   },
+   "summe": 6,
+   "info": {
+    "meta_typen": {
+     "fehlend": [],
+     "extra": [],
+     "typ_falsch": [],
+     "anteil": "43/43"
+    },
+    "meta_skalare": {
+     "falsch": [],
+     "anteil": "37/37"
+    },
+    "meta_arrays": {
+     "falsch": [],
+     "anteil": "6/6"
+    },
+    "tensor_infos": {
+     "falsch": [],
+     "anteil": "339/339"
+    },
+    "n_bytes": {
+     "falsch": [
+      "output.weight (Q6_K: Q5_K 452984832 statt 185794560)",
+      "token_embd.weight (Q4_K: Q3_K 452984832 statt 127401984)",
+      "blk.0.attn_k.weight (Q4_K: Q3_K 2359296 statt 663552)",
+      "blk.0.attn_output.weight (Q4_K: Q3_K 18874368 statt 5308416)",
+      "blk.0.attn_q.weight (Q4_K: Q3_K 18874368 statt 5308416)",
+      "blk.0.attn_v.weight (Q6_K: Q5_K 2359296 statt 967680)",
+      "blk.0.ffn_down_exps.weight (Q8_0: Q8_1 264241152 statt 140378112)",
+      "blk.0.ffn_gate_exps.weight (Q4_K: Q3_K 264241152 statt 74317824)"
+     ],
+     "anteil": "141/339"
+    },
+    "alignment_offset": {
+     "kandidat": [
+      32,
+      3589184
+     ],
+     "referenz": [
+      32,
+      3589184
+     ]
+    },
+    "ende": {
+     "kandidat": [
+      8257629184,
+      8071295040,
+      false
+     ],
+     "referenz": [
+      8071295040,
+      8071295040,
+      true
+     ]
+    }
+   }
+  },
+  "Qwen3.6-27B-UD-Q4_K_XL.gguf": {
+   "punkte": {
+    "kopf": true,
+    "meta_typen": true,
+    "meta_skalare": true,
+    "meta_arrays": true,
+    "tensor_infos": true,
+    "n_bytes": false,
+    "alignment_offset": true,
+    "ende": false
+   },
+   "summe": 6,
+   "info": {
+    "meta_typen": {
+     "fehlend": [],
+     "extra": [],
+     "typ_falsch": [],
+     "anteil": "52/52"
+    },
+    "meta_skalare": {
+     "falsch": [],
+     "anteil": "47/47"
+    },
+    "meta_arrays": {
+     "falsch": [],
+     "anteil": "5/5"
+    },
+    "tensor_infos": {
+     "falsch": [],
+     "anteil": "866/866"
+    },
+    "n_bytes": {
+     "falsch": [
+      "output.weight (Q6_K: Q5_K 2542796800 statt 1042944000)",
+      "token_embd.weight (Q4_K: Q3_K 2542796800 statt 715161600)",
+      "blk.0.attn_gate.weight (Q5_K: Q4_K 62914560 statt 21626880)",
+      "blk.0.attn_qkv.weight (Q6_K: Q5_K 104857600 statt 43008000)",
+      "blk.0.ffn_down.weight (Q6_K: Q5_K 178257920 statt 73113600)",
+      "blk.0.ffn_gate.weight (Q4_K: Q3_K 178257920 statt 50135040)",
+      "blk.0.ffn_up.weight (Q4_K: Q3_K 178257920 statt 50135040)",
+      "blk.0.ssm_out.weight (Q8_0: Q8_1 62914560 statt 33423360)"
+     ],
+     "anteil": "456/866"
+    },
+    "alignment_offset": {
+     "kandidat": [
+      32,
+      10994816
+     ],
+     "referenz": [
+      32,
+      10994816
+     ]
+    },
+    "ende": {
+     "kandidat": [
+      17970438144,
+      17909097600,
+      false
+     ],
+     "referenz": [
+      17909097600,
+      17909097600,
+      true
+     ]
+    }
+   }
+  },
+  "Qwen3-Coder-Next-Q4_K_M.gguf": {
+   "punkte": {
+    "kopf": true,
+    "meta_typen": true,
+    "meta_skalare": true,
+    "meta_arrays": true,
+    "tensor_infos": true,
+    "n_bytes": false,
+    "alignment_offset": true,
+    "ende": false
+   },
+   "summe": 6,
+   "info": {
+    "meta_typen": {
+     "fehlend": [],
+     "extra": [],
+     "typ_falsch": [],
+     "anteil": "53/53"
+    },
+    "meta_skalare": {
+     "falsch": [],
+     "anteil": "49/49"
+    },
+    "meta_arrays": {
+     "falsch": [],
+     "anteil": "4/4"
+    },
+    "tensor_infos": {
+     "falsch": [],
+     "anteil": "843/843"
+    },
+    "n_bytes": {
+     "falsch": [
+      "output.weight (Q6_K: Q5_K 622329856 statt 255252480)",
+      "token_embd.weight (Q4_K: Q3_K 622329856 statt 175030272)",
+      "blk.0.attn_gate.weight (Q4_K: Q3_K 16777216 statt 4718592)",
+      "blk.0.attn_qkv.weight (Q5_K: Q4_K 33554432 statt 11534336)",
+      "blk.0.ffn_down_exps.weight (Q6_K: Q5_K 1073741824 statt 440401920)",
+      "blk.0.ffn_down_shexp.weight (Q6_K: Q5_K 2097152 statt 860160)",
+      "blk.0.ffn_gate_exps.weight (Q4_K: Q3_K 1073741824 statt 301989888)",
+      "blk.0.ffn_gate_shexp.weight (MXFP4: UNBEKANNT None statt 557056)"
+     ],
+     "anteil": "361/843"
+    },
+    "alignment_offset": {
+     "kandidat": [
+      32,
+      5989408
+     ],
+     "referenz": [
+      32,
+      5989408
+     ]
+    },
+    "ende": {
+     "kandidat": [
+      49293517824,
+      48528320544,
+      false
+     ],
+     "referenz": [
+      48528320544,
+      48528320544,
+      true
+     ]
+    }
+   }
+  },
+  "synth_neu.gguf": {
+   "punkte": {
+    "kopf": true,
+    "meta_typen": true,
+    "meta_skalare": true,
+    "meta_arrays": true,
+    "tensor_infos": true,
+    "n_bytes": false,
+    "alignment_offset": false,
+    "ende": false
+   },
+   "summe": 5,
+   "info": {
+    "meta_typen": {
+     "fehlend": [],
+     "extra": [],
+     "typ_falsch": [],
+     "anteil": "2/2"
+    },
+    "meta_skalare": {
+     "falsch": [],
+     "anteil": "2/2"
+    },
+    "meta_arrays": {
+     "falsch": [],
+     "anteil": "0/0"
+    },
+    "tensor_infos": {
+     "falsch": [],
+     "anteil": "3/3"
+    },
+    "n_bytes": {
+     "falsch": [
+      "tensor_00_tq1_0 (TQ1_0: TQ1_0 1024 statt 108)",
+      "tensor_01_tq2_0 (TQ2_0: TQ2_0 1536 statt 198)",
+      "tensor_02_mxfp4 (MXFP4: UNBEKANNT None statt 68)"
+     ],
+     "anteil": "0/3"
+    },
+    "alignment_offset": {
+     "kandidat": [
+      32,
+      288
+     ],
+     "referenz": [
+      64,
+      320
+     ]
+    },
+    "ende": {
+     "kandidat": [
+      1664,
+      832,
+      false
+     ],
+     "referenz": [
+      772,
+      832,
+      true
+     ]
+    }
+   }
+  }
+ },
+ "summe": 18,
+ "max": 32,
+ "status": "ok",
+ "code": {
+  "syntax": null,
+  "verboten": [],
+  "riskant": []
+ }
+}

@@ -1,0 +1,18 @@
+{
+ "modell": "Qwen3-Coder-Next-80B-A3B",
+ "url": "http://127.0.0.1:8083",
+ "start": "2026-10-20T17:08:55",
+ "temperatur": 0.2,
+ "max_tokens_a": 16000,
+ "thinking": "aus (enable_thinking=false)",
+ "fragen_version": 1,
+ "teil_a": {
+  "reasoning_zeichen": 0,
+  "finish": "stop",
+  "prompt_tokens": 799,
+  "completion_tokens": 4859,
+  "sekunden": 400.3,
+  "code_zeilen": 448
+ },
+ "ende": "2026-10-20T17:16:10"
+}

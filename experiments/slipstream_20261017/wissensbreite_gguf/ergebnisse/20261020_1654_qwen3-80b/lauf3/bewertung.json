@@ -1,0 +1,33 @@
+{
+ "lauf": "/Users/hans-wernereberhardt/PycharmProjects/llama-server/experiments/slipstream_20261017/wissensbreite_gguf/ergebnisse/20261020_1654_qwen3-80b/lauf3",
+ "dateien": {
+  "synth_klassisch.gguf": {
+   "summe": 0,
+   "fehler": "Exit 1: "
+  },
+  "Mellum2-12B-A2.5B-Thinking-Q4_K_M.gguf": {
+   "summe": 0,
+   "fehler": "Exit 1: "
+  },
+  "Qwen3.6-27B-UD-Q4_K_XL.gguf": {
+   "summe": 0,
+   "fehler": "Exit 1: "
+  },
+  "Qwen3-Coder-Next-Q4_K_M.gguf": {
+   "summe": 0,
+   "fehler": "Exit 1: "
+  },
+  "synth_neu.gguf": {
+   "summe": 0,
+   "fehler": "Exit 1: "
+  }
+ },
+ "summe": 0,
+ "max": 32,
+ "status": "ok",
+ "code": {
+  "syntax": null,
+  "verboten": [],
+  "riskant": []
+ }
+}

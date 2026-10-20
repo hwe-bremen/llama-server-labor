@@ -1,0 +1,18 @@
+{
+ "modell": "unsloth/Qwen3.8-27B-GGUF:Q4_K_XL",
+ "url": "http://127.0.0.1:8080",
+ "start": "2026-10-20T15:38:22",
+ "temperatur": 0.2,
+ "max_tokens_a": 16000,
+ "thinking": "aus (enable_thinking=false)",
+ "fragen_version": 1,
+ "teil_a": {
+  "reasoning_zeichen": 0,
+  "finish": "stop",
+  "prompt_tokens": 772,
+  "completion_tokens": 10717,
+  "sekunden": 918.3,
+  "code_zeilen": 839
+ },
+ "ende": "2026-10-20T15:54:06"
+}

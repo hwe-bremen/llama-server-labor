@@ -118,6 +118,12 @@ class PrueferTest(unittest.TestCase):
             os.chdir(alt)
         self.assertEqual(erg["summe"], 8, erg)
 
+    def test_15_fehler_auf_stdout_sichtbar(self):
+        """Leser, die Fehler als JSON auf stdout melden und mit 1 enden (Qwen3-Next 20.10.)."""
+        code = "import json, sys\nprint(json.dumps({'error': 'kaputt'}))\nsys.exit(1)\n"
+        erg = self.bewerte(code, "stdoutfehler")
+        self.assertIn("kaputt", erg["dateien"][D1.name]["fehler"])
+
     def test_11_zeitgrenze(self):
         lauf = Path(self.tmp.name) / "langsam"
         lauf.mkdir()

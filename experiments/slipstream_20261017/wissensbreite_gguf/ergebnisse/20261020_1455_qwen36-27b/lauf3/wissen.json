@@ -1,0 +1,72 @@
+[
+ {
+  "id": "W1",
+  "frage": "Wie groß ist das Alignment der Tensordaten in einer GGUF-Datei, wenn `general.alignment` fehlt?",
+  "antwort": "Wenn das Feld `general.alignment` in einer GGUF-Datei fehlt, wird standardmäßig ein Alignment von 32 Byte verwendet. Dies stellt sicher, dass die Tensordaten korrekt im Speicher ausgerichtet sind, um die Performance zu optimieren.",
+  "reasoning_zeichen": 0,
+  "finish": "stop",
+  "prompt_tokens": 67,
+  "completion_tokens": 52,
+  "sekunden": 4.4
+ },
+ {
+  "id": "W2",
+  "frage": "Welche numerischen Typ-IDs haben die GGUF-Metadaten-Werttypen STRING, ARRAY und FLOAT64?",
+  "antwort": "In der GGUF-Spezifikation haben die Werttypen die folgenden numerischen IDs: STRING ist 2, ARRAY ist 7 und FLOAT64 ist 11.",
+  "reasoning_zeichen": 0,
+  "finish": "stop",
+  "prompt_tokens": 69,
+  "completion_tokens": 37,
+  "sekunden": 3.0
+ },
+ {
+  "id": "W3",
+  "frage": "Wie viele Elemente umfasst ein Block bei den ggml-Quantisierungstypen Q4_K und Q6_K, und wie viele Bytes belegt ein Block jeweils?",
+  "antwort": "Bei Q4_K umfasst ein Block 256 Elemente und belegt 152 Bytes, während Q6_K ebenfalls 256 Elemente pro Block hat, aber 192 Bytes belegt. Beide Quantisierungstypen verwenden also die gleiche Blockgröße in Bezug auf die Anzahl der Elemente, unterscheiden sich jedoch in der Speichereffizienz und Genauigkeit.",
+  "reasoning_zeichen": 0,
+  "finish": "stop",
+  "prompt_tokens": 76,
+  "completion_tokens": 77,
+  "sekunden": 6.2
+ },
+ {
+  "id": "W4",
+  "frage": "Welche ggml-Typ-IDs haben BF16 und Q8_0?",
+  "antwort": "Die ggml-Typ-ID für BF16 ist `GGML_TYPE_BF16` (numerisch 15), und die für Q8_0 ist `GGML_TYPE_Q8_0` (numerisch 10). Diese Werte können je nach Version der Bibliothek variieren, da die Enumerationswerte im Laufe der Zeit angepasst wurden.",
+  "reasoning_zeichen": 0,
+  "finish": "stop",
+  "prompt_tokens": 60,
+  "completion_tokens": 77,
+  "sekunden": 6.2
+ },
+ {
+  "id": "W5",
+  "frage": "Welche ggml-Tensortyp-ID hat Q4_K_M?",
+  "antwort": "Die ggml-Tensortyp-ID für Q4_K_M ist 10.\nDieser Wert ist in der `ggml.h`-Headerdatei der llama.cpp-Bibliothek definiert.",
+  "reasoning_zeichen": 0,
+  "finish": "stop",
+  "prompt_tokens": 57,
+  "completion_tokens": 43,
+  "sekunden": 3.5
+ },
+ {
+  "id": "W6",
+  "frage": "Welche Typ-ID hat der Metadaten-Werttyp FLOAT16 in GGUF?",
+  "antwort": "Der Metadaten-Werttyp `FLOAT16` hat in GGUF die Typ-ID 1.\nDieser Typ wird verwendet, um 16-Bit-Gleitkommazahlen im Format IEEE 754-2008 darzustellen.",
+  "reasoning_zeichen": 0,
+  "finish": "stop",
+  "prompt_tokens": 61,
+  "completion_tokens": 56,
+  "sekunden": 4.5
+ },
+ {
+  "id": "W7",
+  "frage": "Worauf bezieht sich der Offset, der in der Tensor-Info einer GGUF-Datei steht?",
+  "antwort": "Der Offset in der Tensor-Info einer GGUF-Datei bezieht sich auf die Byte-Position relativ zum Anfang des Datenbereichs (Data Section) der Datei. Er gibt an, wo die tatsächlichen Tensor-Daten im Speicherlayout der Datei beginnen.",
+  "reasoning_zeichen": 0,
+  "finish": "stop",
+  "prompt_tokens": 66,
+  "completion_tokens": 55,
+  "sekunden": 4.4
+ }
+]

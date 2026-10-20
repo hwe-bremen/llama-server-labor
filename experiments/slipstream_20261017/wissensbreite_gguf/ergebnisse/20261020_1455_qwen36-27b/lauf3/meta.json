@@ -1,0 +1,18 @@
+{
+ "modell": "unsloth/Qwen3.6-27B-MTP-GGUF:Q4_K_XL",
+ "url": "http://127.0.0.1:8080",
+ "start": "2026-10-20T15:09:08",
+ "temperatur": 0.2,
+ "max_tokens_a": 16000,
+ "thinking": "aus (enable_thinking=false)",
+ "fragen_version": 1,
+ "teil_a": {
+  "reasoning_zeichen": 0,
+  "finish": "length",
+  "prompt_tokens": 772,
+  "completion_tokens": 16000,
+  "sekunden": 1326.7,
+  "code_zeilen": 0
+ },
+ "ende": "2026-10-20T15:31:47"
+}
