@@ -2,23 +2,23 @@
 
 Ziel: https://github.com/Schero94/slipstream (Issues). Abschicken macht Hawe, nicht Claude.
 
-## Vorher prüfen (Hawe, ~2 min)
+## Stand der Prüfung
 
-Gebaut und getestet haben wir v0.3.4 (`0b30cac`). Laut unseren Notizen gibt es v0.3.5. Bevor wir melden: Ist der
-Fehler im aktuellen Stand schon behoben oder bereits gemeldet?
+- 20.10.2026, 22:29: aktueller `main` von Schero94/slipstream per HTTPS geholt. In `patches/slipstream-seams.patch`
+  (Zeile 2100–2104) steht dieselbe Prüfung wie in v0.3.4: `tensor->ne[1] <= 0` ohne Sonderfall. Der Fehler ist also
+  nicht behoben, die Meldung bleibt berechtigt.
+- Offen (Hawe): unter Issues (auch geschlossene) nach „geometry“ und „qwen3next“ suchen. Gibt es schon ein Issue,
+  den Text unten dort als Kommentar anhängen statt ein neues aufzumachen.
+- Offen (Hawe): `<VERSION>` unten ersetzen (`sw_vers -productVersion`).
+
+Befehl zum Wiederholen der Prüfung (holt nur, ändert nichts am ausgecheckten Stand):
 
 ```bash
-cd ~/PycharmProjects/llama-server/experiments/slipstream_20261017/qwen3next_reproducible_build/slipstream
-git remote -v                                   # sollte github.com/Schero94/slipstream zeigen
-git fetch origin --tags                          # ändert nichts am ausgecheckten Stand
-git log --oneline 0b30cac..origin/main | head -30
-git show origin/main:patches/slipstream-seams.patch | grep -n "ne\[1\]"
+S=~/PycharmProjects/llama-server/experiments/slipstream_20261017/qwen3next_reproducible_build/slipstream
+[ -d "$S/.git" ] && echo "eigenes Repo ok" || echo "STOPP: kein eigenes Repo in $S"
+git -C "$S" fetch https://github.com/Schero94/slipstream.git main --tags
+git --no-pager -C "$S" grep -n -B12 "geometry is incompatible" FETCH_HEAD
 ```
-
-- Zeigt die letzte Zeile eine Sonderbehandlung für `ne[1] == 0` (oder ist `ne[1] <= 0` aus der Bedingung verschwunden),
-  ist der Fehler behoben → nicht melden, Notiz anpassen.
-- Sonst im Browser unter Issues nach „geometry" und „qwen3next" suchen (Claude kann die Issue-Seite nicht abrufen).
-- Platzhalter unten ausfüllen: macOS-Version (`sw_vers -productVersion`).
 
 ## Text für GitHub (englisch)
 
@@ -37,6 +37,8 @@ cache sizes.
 
 - Slipstream v0.3.4 (`0b30cac2a6a40439b74cce6a512f08166f6e3ab3`), built from source (llama.cpp `79bba02` +
   `slipstream-seams.patch`), Apple clang 21.0.0, CMake 4.1.1. The official v0.3.4 release binary shows the same error.
+- Checked current `main` (fetched 2026-10-20): the guard in `patches/slipstream-seams.patch` is unchanged
+  (`tensor->ne[1] <= 0`), so the issue should still apply.
 - MacBook Pro M4 Pro, 48 GB unified memory, macOS <VERSION>
 - Model: `Qwen3-Coder-Next-Q4_K_M.gguf` (48,528,320,544 bytes), PGRN converted with v0.3.4 (46,909,751,296 bytes)
 - Server: `--pgrn-cache-gb 12 --pgrn-headroom-gb 8 --batch-size 25 --ubatch-size 25 --parallel 1 --spec-type none
