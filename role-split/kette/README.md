@@ -12,9 +12,7 @@ und ein Test hat echt gesendet.
 
 | Schritt | Wo | Prompt holen |
 |---|---|---|
-| 0 Anforderung | Terminal | `python3 role-split/kette/kette.py anforderung <kurztitel> --aufgabe "…"` – deine Aufgabe wörtlich, verbindliche Vorgabe für alle Schritte |
-| 1 Spec | Web-UI, `start_rollen`, neuer Chat | `python3 role-split/kette/kette.py prompt spec <kurztitel>` (Aufgabe wird aus der Anforderung eingesetzt) |
-| – | Rückfrage der Spec-Instanz beantwortet? → **Antwort auch eintragen:** `… anforderung <kurztitel> --antwort "…" [--frage "…"]` | |
+| 1 Aufgabe + Spec | Web-UI, `start_rollen`, neuer Chat | `@review Neue Aufgabe <kurztitel>: <Text>` – der Rollen-Proxy schreibt Aufgabe und deine Antworten wörtlich nach `anforderung_<datum>_<kurztitel>.md` und gibt die Spec-Anweisungen mit; ohne Web-UI: `kette.py anforderung …` + `prompt spec …` |
 | – | Spec lesen; Außenwirkung? → **Sperre vor der Umsetzung** einbauen; `git commit` | |
 | 2 Umsetzung | OpenCode, Agent „umsetzung" | `… prompt umsetzung <kurztitel> --commit <rücksetzpunkt>` (ohne `--commit`: HEAD, mit Warnung) |
 | – | **Prüfen:** `… abgleich <kurztitel>`, `python3 -m unittest -v tests/test_<kurztitel>.py` und `… gegenprobe <kurztitel> --commit <rücksetzpunkt>` | |

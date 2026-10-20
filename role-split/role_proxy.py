@@ -14,6 +14,13 @@ in die Nachrichten:
   der Anfrage) wird als erste System-Nachricht gesetzt; ein vorhandener
   System-Prompt des Clients bleibt darunter erhalten.
 * Trigger dürfen mit Doppelpunkt geschrieben werden: "@review: …".
+* Aufgaben-Mitschrift (seit 20.10.): Beginnt eine Nutzernachricht (nach dem Trigger)
+  mit "Neue Aufgabe <kurztitel>: <Text>", legt der Proxy
+  docs/projekt_management/anforderung_<datum>_<kurztitel>.md WOERTLICH an (nie
+  ueberschreiben) und haengt jede spaetere Nutzernachricht dieses Chats woertlich als
+  Antwort an (mit der letzten Frage des Modells davor). Kommandos wie "Spec schreiben"
+  werden nicht mitgeschrieben. Das Modell bekommt die Spec-Anweisungen aus
+  kette/prompts/spec.md automatisch. Geschrieben wird von dieser Maschine, nicht vom Modell.
 
 Rollen-Dateien werden bei jeder Anfrage neu gelesen: Prompt ändern, nächste
 Nachricht schicken, fertig.
@@ -48,6 +55,10 @@ RESET_WORDS = {"aus", "off"}
 TRIGGER_RE = re.compile(r"^\s*@([A-Za-z0-9_-]+):?(?=\s|$)")
 # Bekannte Modellfamilien für das Kürzel im Dateinamen (Reihenfolge = Priorität).
 MODEL_FAMILIES = ("qwen", "gemma", "mellum", "apertus", "devstral", "llama", "mistral", "phi", "deepseek", "gpt-oss")
+# "Neue Aufgabe scout_feeds_pruefen: Text …" (Kurztitel: Kleinbuchstaben, Ziffern, _)
+NEW_TASK_RE = re.compile(r"^\s*neue\s+aufgabe\s+([a-z0-9_]+)\s*:\s*(.+)$", re.I | re.S)
+# Nachrichten, die Kommandos sind und nicht in die Anforderung gehoeren
+COMMAND_RE = re.compile(r"^\s*(spec\s+schreiben|danke)\s*[.!]?\s*$|^\(Rolle (abgeschaltet|gewechselt)", re.I)
 WOCHENTAGE = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
 # Nach @aus: ohne diesen Hinweis setzt das Modell die Rolle aus dem Verlauf fort
 # (Messung 14.10.: Qwen3.6 27B nannte sich nach @aus weiter Review-Instanz).
@@ -191,6 +202,80 @@ def _prepend_system(msgs: list, text: str) -> None:
         msgs.insert(0, {"role": "system", "content": text})
 
 
+# ------------------------------------------------------------ Aufgaben-Mitschrift
+
+def _kette():
+    """kette.py aus role-split/kette laden (liefert anforderung(), datei_suchen(), PM)."""
+    sys.path.insert(0, str(HERE / "kette"))
+    try:
+        import kette  # noqa: WPS433
+    finally:
+        sys.path.pop(0)
+    return kette
+
+
+def _last_question(msgs: list, upto: int) -> str | None:
+    """Letzte Zeile mit '?' aus der letzten Assistenten-Nachricht vor Index upto (max. 300 Zeichen)."""
+    for m in reversed(msgs[:upto]):
+        if isinstance(m, dict) and m.get("role") == "assistant":
+            zeilen = [z.strip() for z in _content_as_text(m.get("content")).splitlines() if "?" in z]
+            return zeilen[-1][:300] if zeilen else None
+        if isinstance(m, dict) and m.get("role") == "user":
+            return None
+    return None
+
+
+def capture_task(msgs: list) -> str:
+    """Schreibt Aufgabe und Antworten woertlich in die Anforderungsdatei.
+
+    msgs: Nachrichten NACH dem Entfernen der Trigger. Gibt den Spec-Auftrag fuer den
+    System-Prompt zurueck ('' wenn der Chat keine "Neue Aufgabe" enthaelt).
+    """
+    start = None
+    for i, m in enumerate(msgs):
+        if isinstance(m, dict) and m.get("role") == "user":
+            hit = NEW_TASK_RE.match(_content_as_text(m.get("content")))
+            if hit:
+                start, kurztitel, aufgabe = i, hit.group(1).lower(), hit.group(2).strip()
+                break
+    if start is None:
+        return ""
+    import contextlib, io
+    k = _kette()
+    with contextlib.redirect_stdout(io.StringIO()):
+        anf = k.datei_suchen("anforderung", kurztitel, None)
+        if anf is None:
+            k.anforderung(kurztitel, aufgabe, None, None, None)
+            anf = k.datei_suchen("anforderung", kurztitel, None)
+        if anf is None:
+            return ""
+        vorhanden = anf.read_text(encoding="utf-8")
+        for i in range(start + 1, len(msgs)):
+            m = msgs[i]
+            if not (isinstance(m, dict) and m.get("role") == "user"):
+                continue
+            text = _content_as_text(m.get("content")).strip()
+            if not text or COMMAND_RE.match(text):
+                continue
+            zitat = "\n".join("> " + z if z else ">" for z in text.splitlines())
+            if zitat in vorhanden:
+                continue  # schon mitgeschrieben (UI schickt den Verlauf jedes Mal)
+            k.anforderung(kurztitel, None, text, _last_question(msgs, i), None)
+            vorhanden = anf.read_text(encoding="utf-8")
+            print(f"[role-split] Antwort an {anf.name} angehaengt", file=sys.stderr)
+    datum = re.search(r"_(\d{8})_", anf.name).group(1)
+    vorlage = HERE / "kette" / "prompts" / "spec.md"
+    if not vorlage.is_file():
+        return ""
+    t = vorlage.read_text(encoding="utf-8")
+    t = "\n".join(z for z in t.splitlines() if not z.startswith("<!--")).strip()
+    t = re.sub(r"^@review\s+", "", t)
+    t = (t.replace("{kurztitel}", kurztitel).replace("{datum}", datum)
+          .replace("{anforderung}", f"docs/projekt_management/{anf.name}"))
+    t = re.sub(r"<AUFGABE[^>]*>", lambda _m: aufgabe, t)
+    return ("## Auftrag dieses Chats (automatisch; Hawes Worte stehen woertlich in der Anforderungsdatei)\n\n" + t)
+
+
 def apply_roles(body: dict, roles: dict[str, str],
                 today: _dt.date | None = None) -> tuple[dict, str | None]:
     """Setzt den Rollen-Prompt gemäß dem zuletzt gesetzten Trigger.
@@ -218,6 +303,13 @@ def apply_roles(body: dict, roles: dict[str, str],
         mline = model_line(effective_model(body))
         if mline:
             info += "\n" + mline
+        try:
+            auftrag = capture_task(new_msgs)
+        except Exception as exc:  # Mitschrift darf den Proxy nie stoppen
+            print(f"[role-split] Aufgaben-Mitschrift fehlgeschlagen: {exc}", file=sys.stderr)
+            auftrag = ""
+        if auftrag:
+            info += "\n\n" + auftrag
         _prepend_system(new_msgs, roles[active].strip() + "\n\n" + info)
     elif last_trigger in RESET_WORDS:
         _prepend_system(new_msgs, RESET_NOTE)

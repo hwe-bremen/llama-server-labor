@@ -302,5 +302,63 @@ class DefaultModelTest(unittest.TestCase):
         self.assertEqual(rp.model_tag("Qwen3-Coder-Next-80B-A3B"), "qwen3-80b")
 
 
+class AufgabenMitschriftTests(unittest.TestCase):
+    """Neue Aufgabe <kurztitel>: ... wird woertlich als Anforderung abgelegt (20.10.)."""
+
+    def setUp(self):
+        self.d = tempfile.TemporaryDirectory(); self.addCleanup(self.d.cleanup)
+        self.k = rp._kette()
+        alt = (self.k.ROOT, self.k.PM)
+        self.k.ROOT = Path(self.d.name); self.k.PM = self.k.ROOT / "docs/projekt_management"
+        self.addCleanup(lambda: setattr(self.k, "ROOT", alt[0]) or setattr(self.k, "PM", alt[1]))
+
+    def anf(self):
+        treffer = sorted(self.k.PM.glob("anforderung_*_feeds.md"))
+        return treffer[0].read_text(encoding="utf-8") if treffer else None
+
+    def test_neue_aufgabe_woertlich_und_spec_auftrag(self):
+        text = "Neue Aufgabe feeds: Die GitHub-Feeds liefern nichts.\nBitte Ursache finden."
+        out, role = rp.apply_roles({"messages": [u("@review " + text)]}, ROLES, TODAY)
+        self.assertEqual(role, "review")
+        inhalt = self.anf()
+        self.assertIn("> Die GitHub-Feeds liefern nichts.\n> Bitte Ursache finden.", inhalt)
+        system = out["messages"][0]["content"]
+        self.assertIn("Die GitHub-Feeds liefern nichts.", system)
+        self.assertIn("Spec schreiben", system)
+        self.assertRegex(system, r"docs/projekt_management/anforderung_\d{8}_feeds\.md")
+        self.assertNotIn("<AUFGABE", system)
+
+    def test_antwort_mit_frage_einmal_angehaengt(self):
+        verlauf = [u("@review Neue Aufgabe feeds: Feeds liefern nichts."),
+                   a("Stärkste Schwäche: unklar.\nSoll der Scout bei leeren Feeds warnen?"),
+                   u("Ja, mit einer Zeile im Bericht.")]
+        rp.apply_roles({"messages": verlauf}, ROLES, TODAY)
+        rp.apply_roles({"messages": verlauf + [a("Gut."), u("Spec schreiben")]}, ROLES, TODAY)
+        inhalt = self.anf()
+        self.assertEqual(inhalt.count("> Ja, mit einer Zeile im Bericht."), 1, "kein Doppeleintrag")
+        self.assertIn("Frage: Soll der Scout bei leeren Feeds warnen?", inhalt)
+        self.assertNotIn("Spec schreiben", inhalt.split("## Antworten")[1])
+
+    def test_kurze_antwort_ja_wird_mitgeschrieben(self):
+        verlauf = [u("@review Neue Aufgabe feeds: X."), a("Soll warnen?"), u("ja")]
+        rp.apply_roles({"messages": verlauf}, ROLES, TODAY)
+        self.assertIn("> ja", self.anf())
+
+    def test_vorhandene_anforderung_bleibt(self):
+        rp.apply_roles({"messages": [u("@review Neue Aufgabe feeds: Erste Fassung.")]}, ROLES, TODAY)
+        rp.apply_roles({"messages": [u("@review Neue Aufgabe feeds: Andere Fassung.")]}, ROLES, TODAY)
+        inhalt = self.anf()
+        self.assertIn("> Erste Fassung.", inhalt)
+        self.assertNotIn("Andere Fassung", inhalt.split("## Antworten")[0])
+
+    def test_ohne_neue_aufgabe_nichts_geschrieben(self):
+        rp.apply_roles({"messages": [u("@review Prüf bitte das Handover.")]}, ROLES, TODAY)
+        self.assertFalse(self.k.PM.exists() and any(self.k.PM.glob("anforderung_*")))
+
+    def test_ohne_rolle_keine_mitschrift(self):
+        rp.apply_roles({"messages": [u("Neue Aufgabe feeds: ohne Rolle")]}, ROLES, TODAY)
+        self.assertIsNone(self.anf())
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

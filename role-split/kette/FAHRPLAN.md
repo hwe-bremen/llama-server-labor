@@ -13,34 +13,25 @@ Notiere je Schritt: Start- und Endzeit, Modell, deine Eingriffe (Antworten, Frei
 
 ---
 
-## Schritt 0 – Anforderung festhalten (Terminal, 2 min)
-
-Deine Aufgabe **wörtlich** und ohne Lösungsweg. Sie ist ab jetzt die verbindliche Vorgabe für alle Schritte.
-
-```sh
-python3 role-split/kette/kette.py anforderung $K --aufgabe "Was soll erreicht werden und warum (2–5 Sätze)."
-```
-
-Ergebnis: `docs/projekt_management/anforderung_<datum>_$K.md` (wird nie überschrieben).
-
----
-
-## Schritt 1 – Spec (Web-UI, ca. 30–60 min)
+## Schritt 1 – Aufgabe im Chat geben, Spec entsteht (Web-UI, ca. 30–60 min)
 
 1. Lab starten: `bash start_rollen.command` → Browser `http://127.0.0.1:8092`, **neuer Chat**, Modell **Qwen3.8**, Reasoning **aus**.
-2. Prompt holen (landet in der Zwischenablage, Aufgabe ist schon eingesetzt):
-   ```sh
-   python3 role-split/kette/kette.py prompt spec $K
+2. Aufgabe einfach hinschreiben – Kurztitel nach „Neue Aufgabe", dann Doppelpunkt:
    ```
-3. Einfügen, abschicken. Das Modell diskutiert erst und stellt höchstens eine Rückfrage.
-4. **Rückfrage beantworten** – knapp, ohne Lösung vorzugeben. Die Antwort **zusätzlich** eintragen:
-   ```sh
-   python3 role-split/kette/kette.py anforderung $K --frage "Kurzfassung der Rückfrage" --antwort "Deine Antwort wörtlich"
+   @review Neue Aufgabe scout_feeds_pruefen: Die GitHub-Feeds im Scout liefern seit Wochen nichts mehr. Ich will wissen warum und dass ein Ausfall künftig auffällt.
    ```
-5. Wenn die Diskussion steht: im Chat **„Spec schreiben"**.
+   Der Rollen-Proxy schreibt deinen Text **wörtlich** nach `docs/projekt_management/anforderung_<datum>_scout_feeds_pruefen.md`
+   (verbindliche Vorgabe für alle Schritte) und gibt dem Modell die Spec-Anweisungen automatisch mit.
+3. Das Modell diskutiert und stellt höchstens eine Rückfrage. **Einfach im Chat antworten** – jede deiner Antworten
+   wird mit der Frage davor wörtlich an die Anforderung angehängt. Kommandos wie „Spec schreiben" nicht.
+4. Wenn die Diskussion steht: im Chat **„Spec schreiben"**.
+5. Kontrolle (optional): `cat docs/projekt_management/anforderung_*_$K.md`
+
+Ohne Web-UI (Ausnahme): `python3 role-split/kette/kette.py anforderung $K --aufgabe "…"` und `… prompt spec $K` wie bisher.
+
 6. **Spec lesen** (`docs/projekt_management/spec_<datum>_$K.md`), Checkliste:
    - [ ] „Außenwirkung und Sperre": Kann die Aufgabe Mails, Netz, echte Daten oder den Schlüsselbund berühren? Ist eine **technische Sperre** genannt (z. B. `SCOUT_ALLOW_SEND`)? Fehlt sie → im Chat nachfordern, **vor** der Umsetzung einbauen.
-   - [ ] „Offene Fragen": Stehen dort Einschränkungen gegenüber deiner Anforderung (Verlust, Doppelversand, „Restrisiko")? → Entscheide, trage die Entscheidung mit `anforderung $K --antwort …` ein und lass die Spec anpassen.
+   - [ ] „Offene Fragen": Stehen dort Einschränkungen gegenüber deiner Anforderung (Verlust, Doppelversand, „Restrisiko")? → Im selben Chat entscheiden (wird mitgeschrieben) und die Spec anpassen lassen.
    - [ ] Jeder Test hat ID, prüfbare Erwartung und keine Außenwirkung.
 7. Spec committen und **Rücksetzpunkt notieren**:
    ```sh
@@ -145,10 +136,8 @@ git commit -m "Kette $K: Umsetzung + Handover + Verdikt"
 
 ```sh
 K=<kurztitel>
-python3 role-split/kette/kette.py anforderung $K --aufgabe "…"
 bash start_rollen.command                                   # Spec: Qwen3.8, Reasoning aus
-python3 role-split/kette/kette.py prompt spec $K
-python3 role-split/kette/kette.py anforderung $K --frage "…" --antwort "…"   # je Rückfrage
+# Web-UI: "@review Neue Aufgabe <kurztitel>: …" – Antworten im Chat werden mitgeschrieben – "Spec schreiben"
 git add docs/projekt_management/*_$K.md && git commit -m "Spec $K" && R=$(git rev-parse --short HEAD)
 python3 role-split/kette/kette.py prompt umsetzung $K --commit $R            # OpenCode, Qwen3.6, Agent umsetzung
 python3 role-split/kette/kette.py abgleich $K
