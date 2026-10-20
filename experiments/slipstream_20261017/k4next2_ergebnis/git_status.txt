@@ -1,0 +1,4 @@
+ M agents/llm_scout/llm_scout.py
+ M scripts/send_scout_email.py
+?? docs/projekt_management/handover_20261019_scout_bericht_ueberschreiben.md
+?? tests/test_scout_bericht_ueberschreiben.py
