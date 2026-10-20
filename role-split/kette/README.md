@@ -8,6 +8,8 @@ und ein Test hat echt gesendet.
 
 ## Ablauf
 
+**Schritt-für-Schritt mit allen Befehlen: [FAHRPLAN.md](FAHRPLAN.md)**
+
 | Schritt | Wo | Prompt holen |
 |---|---|---|
 | 0 Anforderung | Terminal | `python3 role-split/kette/kette.py anforderung <kurztitel> --aufgabe "…"` – deine Aufgabe wörtlich, verbindliche Vorgabe für alle Schritte |
