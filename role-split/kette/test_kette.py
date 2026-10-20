@@ -180,5 +180,53 @@ class PromptTests(unittest.TestCase):
             self.assertIn("mein_thema", out, s)
 
 
+
+class AnforderungTests(unittest.TestCase):
+    def setUp(self):
+        self.d = tempfile.TemporaryDirectory(); self.addCleanup(self.d.cleanup)
+        root = Path(self.d.name); (root / "docs/projekt_management").mkdir(parents=True)
+        self.alt = (kette.ROOT, kette.PM)
+        kette.ROOT, kette.PM = root, root / "docs/projekt_management"
+        self.addCleanup(lambda: setattr(kette, "ROOT", self.alt[0]) or setattr(kette, "PM", self.alt[1]))
+
+    def test_anlegen_antwort_und_kein_ueberschreiben(self):
+        code, _ = lauf(kette.anforderung, "t", "Zweitlauf darf nichts verlieren.\nZweite Zeile.", None, None, "20261018")
+        self.assertEqual(code, 0)
+        p = kette.PM / "anforderung_20261018_t.md"
+        self.assertEqual(kette.aufgabe_lesen(p), "Zweitlauf darf nichts verlieren.\nZweite Zeile.")
+        code, _ = lauf(kette.anforderung, "t", None, "Jeder Eintrag genau einmal per Mail.", "Mail nach Zweitlauf?", None)
+        self.assertEqual(code, 0)
+        text = p.read_text(encoding="utf-8")
+        self.assertIn("> Jeder Eintrag genau einmal per Mail.", text)
+        self.assertIn("Frage: Mail nach Zweitlauf?", text)
+        code, _ = lauf(kette.anforderung, "t", "anders", None, None, None)
+        self.assertEqual(code, 2, "vorhandene Anforderung darf nicht ueberschrieben werden")
+        self.assertIn("Zweitlauf darf nichts verlieren.", p.read_text(encoding="utf-8"))
+
+    def test_spec_prompt_fuellt_aufgabe(self):
+        lauf(kette.anforderung, "t", "Zweitlauf darf nichts verlieren.", None, None, "20261018")
+        code, out = lauf(kette.prompt, "spec", "t", None, "abc1234")
+        self.assertEqual(code, 0)
+        self.assertIn("Zweitlauf darf nichts verlieren.", out)
+        self.assertNotIn("<AUFGABE", out)
+        self.assertIn("docs/projekt_management/anforderung_20261018_t.md", out)
+        self.assertIn("spec_20261018_t.md", out)
+
+    def test_review_nimmt_datum_der_spec(self):
+        lauf(kette.anforderung, "t", "Aufgabe.", None, None, "20261018")
+        (kette.PM / "spec_20261018_t.md").write_text("# Spec\n", encoding="utf-8")
+        code, out = lauf(kette.prompt, "review", "t", None, "abc1234")
+        self.assertEqual(code, 0)
+        self.assertIn("spec_20261018_t.md", out)
+        self.assertIn("handover_20261018_t.md", out)
+        self.assertIn("anforderung_20261018_t.md", out)
+        self.assertNotIn("{", out)
+
+    def test_ohne_anforderung_platzhalterpfad(self):
+        code, out = lauf(kette.prompt, "review", "x", "20261020", "abc1234")
+        self.assertEqual(code, 0)
+        self.assertIn("anforderung_20261020_x.md", out)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

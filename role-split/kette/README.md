@@ -10,15 +10,19 @@ und ein Test hat echt gesendet.
 
 | Schritt | Wo | Prompt holen |
 |---|---|---|
-| 1 Spec | Web-UI, `start_rollen`, neuer Chat | `python3 role-split/kette/kette.py prompt spec <kurztitel>` (dann `<AUFGABE>` ersetzen) |
+| 0 Anforderung | Terminal | `python3 role-split/kette/kette.py anforderung <kurztitel> --aufgabe "…"` – deine Aufgabe wörtlich, verbindliche Vorgabe für alle Schritte |
+| 1 Spec | Web-UI, `start_rollen`, neuer Chat | `python3 role-split/kette/kette.py prompt spec <kurztitel>` (Aufgabe wird aus der Anforderung eingesetzt) |
+| – | Rückfrage der Spec-Instanz beantwortet? → **Antwort auch eintragen:** `… anforderung <kurztitel> --antwort "…" [--frage "…"]` | |
 | – | Spec lesen; Außenwirkung? → **Sperre vor der Umsetzung** einbauen; `git commit` | |
-| 2 Umsetzung | OpenCode, Agent „umsetzung" | `… prompt umsetzung <kurztitel>` (Rücksetzpunkt = aktueller Commit) |
+| 2 Umsetzung | OpenCode, Agent „umsetzung" | `… prompt umsetzung <kurztitel> --commit <rücksetzpunkt>` (ohne `--commit`: HEAD, mit Warnung) |
 | – | **Prüfen:** `… abgleich <kurztitel>`, `python3 -m unittest -v tests/test_<kurztitel>.py` und `… gegenprobe <kurztitel> --commit <rücksetzpunkt>` | |
 | 3 Review | Web-UI, neuer Chat | `… prompt review <kurztitel>` |
 | – | **Prüfen:** `… urteil docs/projekt_management/verdict_….md --anhaengen` | |
 | 4 Tiefenprüfung (optional, Eval) | `start_eval`, Modell laden, MCP aus/an, neuer Chat | `… prompt tief <kurztitel>` |
 
 `prompt` kopiert den Text am Mac gleich in die Zwischenablage (pbcopy).
+
+`prompt` nimmt ohne `--datum` das Datum der vorhandenen Spec (nicht „heute“). Review und Tiefenprüfung prüfen zuerst die Spec gegen die Anforderung, dann Code und Tests gegen die Anforderung (seit 20.10.: In Kette 4 bestätigten alle Reviewer eine falsche Spec; mit der Anforderung im Auftrag fanden Qwen3.6 und Qwen3.8 den Defekt).
 
 ## Was die Prüfbefehle tun
 

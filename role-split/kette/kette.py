@@ -2,11 +2,19 @@
 """
 kette.py — Werkzeug fuer die Kette Spec -> Umsetzung -> Review (-> Tiefenpruefung).
 
-Drei Befehle, nur Standardbibliothek, liest/schreibt nur im Projekt:
+Befehle, nur Standardbibliothek, liest/schreibt nur im Projekt:
+
+  python3 role-split/kette/kette.py anforderung <kurztitel> --aufgabe "TEXT"
+  python3 role-split/kette/kette.py anforderung <kurztitel> --antwort "TEXT" [--frage "TEXT"]
+        Legt Hawes Aufgabe woertlich als docs/projekt_management/anforderung_<datum>_<kurztitel>.md ab
+        bzw. haengt eine Antwort auf eine Rueckfrage an. Diese Datei ist die verbindliche Vorgabe,
+        gegen die Spec, Umsetzung und Review gemessen werden (seit 20.10., Befund Kette 4).
 
   python3 role-split/kette/kette.py prompt <schritt> <kurztitel> [--datum JJJJMMTT] [--commit HASH]
         schritt: spec | umsetzung | review | tief
         Gibt den fertigen Startprompt aus (und kopiert ihn per pbcopy, falls vorhanden).
+        Ohne --datum: Datum der vorhandenen Spec (bzw. Anforderung), sonst heute.
+        Ohne --commit: aktueller HEAD, mit Warnung (im Worktree/Hauptrepo pruefen!).
 
   python3 role-split/kette/kette.py abgleich <kurztitel> [--datum JJJJMMTT]
         Vergleicht die Test-IDs der Spec mit dem Handover (fehlt, ausgetauscht,
@@ -399,22 +407,83 @@ def gegenprobe(kurztitel: str, commit: str, timeout: int = 300) -> int:
               "dann wird die Gegenprobe je Test aussagekraeftig.")
     return 0 if not gruen else 1
 
+# ---------------------------------------------------------------- anforderung
+
+def _datum_aus(pfad: Path | None) -> str | None:
+    m = re.search(r"_(\d{8})_", pfad.name) if pfad else None
+    return m.group(1) if m else None
+
+
+def aufgabe_lesen(pfad: Path) -> str:
+    """Text unter '## Aufgabe' (ohne Zitatzeichen)."""
+    block = abschnitt(pfad.read_text(encoding="utf-8"), "Aufgabe")
+    zeilen = [re.sub(r"^>\s?", "", z) for z in block.splitlines()]
+    return "\n".join(zeilen).strip()
+
+
+def anforderung(kurztitel: str, aufgabe: str | None, antwort: str | None, frage: str | None,
+                datum: str | None) -> int:
+    vorhanden = datei_suchen("anforderung", kurztitel, datum)
+    zitat = lambda t: "\n".join("> " + z if z else ">" for z in t.strip().splitlines())
+    if aufgabe:
+        if vorhanden:
+            print(f"Gibt es schon: {vorhanden} (nichts ueberschrieben; Antworten mit --antwort anhaengen)")
+            return 2
+        d = datum or dt.date.today().strftime("%Y%m%d")
+        ziel = PM / f"anforderung_{d}_{kurztitel}.md"
+        PM.mkdir(parents=True, exist_ok=True)
+        ziel.write_text(
+            f"# Anforderung: {kurztitel}\n\n"
+            "Verbindliche Vorgabe von Hawe, woertlich. Spec, Umsetzung und Review werden an diesem Text gemessen;\n"
+            "die Spec ist ein Loesungsvorschlag und kann falsch sein. Nur Hawe aendert diese Datei.\n\n"
+            f"## Aufgabe\n\n{zitat(aufgabe)}\n\n## Antworten auf Rueckfragen\n\n", encoding="utf-8")
+        print(f"Angelegt: {ziel}")
+        return 0
+    if antwort:
+        if not vorhanden:
+            print(f"Keine anforderung_*_{kurztitel}.md – erst mit --aufgabe anlegen"); return 2
+        stamp = dt.datetime.now().strftime("%Y-%m-%d %H:%M")
+        teil = f"**{stamp}**" + (f" — Frage: {frage.strip()}" if frage else "") + f"\n\n{zitat(antwort)}\n\n"
+        with vorhanden.open("a", encoding="utf-8") as f:
+            f.write(teil)
+        print(f"Angehaengt an {vorhanden.name}")
+        return 0
+    print("--aufgabe oder --antwort angeben"); return 2
+
+
 # ---------------------------------------------------------------- prompt
 
 def prompt(schritt: str, kurztitel: str, datum: str | None, commit: str | None) -> int:
     vorlage = PROMPTS / f"{schritt}.md"
     if not vorlage.is_file():
         print(f"Keine Vorlage: {vorlage}"); return 2
+    anf = datei_suchen("anforderung", kurztitel, datum)
+    if not datum:
+        # Datum der vorhandenen Spec (Kette 4: "heute" passte nicht mehr am Folgetag)
+        datum = _datum_aus(datei_suchen("spec", kurztitel, None)) or _datum_aus(anf) \
+            or dt.date.today().strftime("%Y%m%d")
+        anf = anf or datei_suchen("anforderung", kurztitel, datum)
     if not commit:
         try:
             commit = subprocess.run(["git", "-C", str(ROOT), "rev-parse", "--short", "HEAD"],
                                     capture_output=True, text=True, check=True).stdout.strip()
         except Exception:
             commit = "<HASH>"
+        if schritt != "spec":
+            print(f"Hinweis: Ruecksetzpunkt = HEAD von {ROOT} ({commit}). Stimmt das (Worktree?)? "
+                  "Sonst --commit angeben.", file=sys.stderr)
+    anf_pfad = f"docs/projekt_management/{anf.name}" if anf else \
+        f"docs/projekt_management/anforderung_{datum}_{kurztitel}.md"
+    if not anf:
+        print(f"Hinweis: {anf_pfad} fehlt. Anlegen mit: kette.py anforderung {kurztitel} --aufgabe \"…\"",
+              file=sys.stderr)
     text = (vorlage.read_text(encoding="utf-8")
             .replace("{kurztitel}", kurztitel)
-            .replace("{datum}", datum or dt.date.today().strftime("%Y%m%d"))
-            .replace("{commit}", commit))
+            .replace("{datum}", datum)
+            .replace("{commit}", commit)
+            .replace("{anforderung}", anf_pfad))
+    if anf:
+        text = re.sub(r"<AUFGABE[^>]*>", lambda _m: aufgabe_lesen(anf), text)
     text = "\n".join(z for z in text.splitlines() if not z.startswith("<!--")).strip() + "\n"
     print(text)
     if shutil.which("pbcopy"):
@@ -429,6 +498,8 @@ def main(argv=None) -> int:
     sub = ap.add_subparsers(dest="cmd", required=True)
     p = sub.add_parser("prompt"); p.add_argument("schritt", choices=SCHRITTE); p.add_argument("kurztitel")
     p.add_argument("--datum"); p.add_argument("--commit")
+    n = sub.add_parser("anforderung"); n.add_argument("kurztitel")
+    n.add_argument("--aufgabe"); n.add_argument("--antwort"); n.add_argument("--frage"); n.add_argument("--datum")
     a = sub.add_parser("abgleich"); a.add_argument("kurztitel"); a.add_argument("--datum")
     u = sub.add_parser("urteil"); u.add_argument("verdikt"); u.add_argument("--anhaengen", action="store_true")
     g = sub.add_parser("gegenprobe"); g.add_argument("kurztitel")
@@ -437,6 +508,8 @@ def main(argv=None) -> int:
     args = ap.parse_args(argv)
     if args.cmd == "gegenprobe":
         return gegenprobe(args.kurztitel, args.commit, args.timeout)
+    if args.cmd == "anforderung":
+        return anforderung(args.kurztitel, args.aufgabe, args.antwort, args.frage, args.datum)
     if args.cmd == "prompt":
         return prompt(args.schritt, args.kurztitel, args.datum, args.commit)
     if args.cmd == "abgleich":
