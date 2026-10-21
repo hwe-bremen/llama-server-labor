@@ -262,6 +262,17 @@ class QuellenTests(unittest.TestCase):
         self.assertIn("1| a", t); self.assertIn("2| b", t)
         self.assertIn("– Kopf", t)
 
+    def test_def_in_backticks_mit_klammern_und_unklar(self):
+        self.spec("- `src/mod.py` `def lesen()` – Kopf\n- `src/mod.py` `class Feld` – Typen\n"
+                  "- `src/mod.py` irgendwo unten – unklare Angabe\n")
+        code, out = lauf(kette.quellen, "t", None)
+        t = self.ergebnis()
+        self.assertIn("return kopf", t)
+        self.assertIn("return 1", t)
+        self.assertIn("**UNKLAR:**", t, "unklare Fundstelle muss gemeldet, nicht verschluckt werden")
+        self.assertIn("UNKLAR (nicht geholt)", out)
+        self.assertEqual(code, 1)
+
     def test_fehlt_und_verweigert(self):
         self.spec("- `src/gibtsnicht.py` – x\n- `../../etc/passwd` – x\n- `src/mod.py` def fehlt – x\n")
         code, out = lauf(kette.quellen, "t", None)

@@ -461,7 +461,7 @@ def anforderung(kurztitel: str, aufgabe: str | None, antwort: str | None, frage:
 
 QUELLE_RE = re.compile(
     r"^\s*[-*]\s*`([^`]+)`\s*"
-    r"(?:(?:Zeilen?|Z\.)\s*(\d+)\s*(?:[–-]\s*(\d+))?|(def|class)\s+([A-Za-z_]\w*))?"
+    r"(?:(?:Zeilen?|Z\.)\s*(\d+)\s*(?:[–-]\s*(\d+))?|`?(def|class)\s+([A-Za-z_]\w*)(?:\([^)`]*\))?`?)?"
     r"\s*(?:[–-]\s*(.*))?$")
 QUELLE_MAX = 400
 SPRACHE = {".py": "python", ".sh": "bash", ".command": "bash", ".json": "json", ".md": "markdown",
@@ -496,7 +496,13 @@ def quellen(kurztitel: str, datum: str | None = None) -> int:
     if not spec:
         print(f"Keine spec_*_{kurztitel}.md"); return 2
     block = abschnitt(spec.read_text(encoding="utf-8"), "Quellen")
-    eintraege = [m for m in (QUELLE_RE.match(z) for z in block.splitlines()) if m]
+    eintraege, unerkannt = [], []
+    for z in block.splitlines():
+        m = QUELLE_RE.match(z)
+        if m:
+            eintraege.append(m)
+        elif re.match(r"^\s*[-*]\s*`[^`]+/[^`]*`", z):  # sieht nach Fundstelle aus, Form aber unklar
+            unerkannt.append(z.strip())
     if not eintraege:
         print(f"{spec.name}: Abschnitt '## Quellen' fehlt oder hat keine Zeile der Form - `pfad` …"); return 2
     d = _datum_aus(spec)
@@ -538,9 +544,14 @@ def quellen(kurztitel: str, datum: str | None = None) -> int:
         code = "\n".join(f"{n:>{breite}}| {zeilen[n - 1]}" for n in range(a, b + 1))
         teile.append(f"### {titel} (Zeilen {a}–{b})" + (f" – {zweck.strip()}" if zweck else "") +
                      f"\n\n```{SPRACHE.get(ziel.suffix, '')}\n{code}\n```\n")
+    for z in unerkannt:
+        teile.append(f"### Nicht erkannt\n\n**UNKLAR:** `{z[:200]}` – Form: `pfad` Zeilen a–b | def Name | class Name\n")
+        fehler += 1
     ziel_datei = PM / f"quellen_{d}_{kurztitel}.md"
     ziel_datei.write_text("\n".join(teile), encoding="utf-8")
-    print(f"{len(eintraege)} Quellen -> {ziel_datei}" + (f"   {fehler} mit FEHLT/VERWEIGERT/ZU LANG" if fehler else ""))
+    print(f"{len(eintraege)} Quellen -> {ziel_datei}" + (f"   {fehler} mit FEHLT/VERWEIGERT/ZU LANG/UNKLAR" if fehler else ""))
+    for z in unerkannt:
+        print(f"  UNKLAR (nicht geholt): {z[:120]}")
     return 1 if fehler else 0
 
 
