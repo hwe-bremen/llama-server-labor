@@ -1,6 +1,7 @@
 <!-- Schritt 2, OpenCode, Agent „umsetzung" (Tab). Rücksetzpunkt = aktueller Commit. -->
 Setz docs/projekt_management/spec_{datum}_{kurztitel}.md um.
 
+Konstanten, Formate, Schnittstellen und Optionen nimmst du ausschließlich aus {quellen} und dem Code selbst, nie aus dem Gedächtnis. Fehlt dort etwas, setz nichts Erfundenes ein, sondern nenne es im Handover unter „Abweichungen".
 Verbindliche Vorgabe ist {anforderung}. Widerspricht die Spec ihr an einer Stelle, setzt du die Spec um und nennst den Widerspruch im Handover unter „Abweichungen".
 
 - Rücksetzpunkt ist Commit {commit}; nicht selbst committen.

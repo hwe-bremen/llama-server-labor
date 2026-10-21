@@ -228,5 +228,60 @@ class AnforderungTests(unittest.TestCase):
         self.assertIn("anforderung_20261020_x.md", out)
 
 
+
+class QuellenTests(unittest.TestCase):
+    def setUp(self):
+        self.d = tempfile.TemporaryDirectory(); self.addCleanup(self.d.cleanup)
+        root = Path(self.d.name); (root / "docs/projekt_management").mkdir(parents=True); (root / "src").mkdir()
+        self.alt = (kette.ROOT, kette.PM)
+        kette.ROOT, kette.PM = root, root / "docs/projekt_management"
+        self.addCleanup(lambda: setattr(kette, "ROOT", self.alt[0]) or setattr(kette, "PM", self.alt[1]))
+        (root / "src/mod.py").write_text(
+            "MAGIC = 0x46554747\n\n\n@dekor\ndef lesen(f):\n    kopf = f.read(4)\n\n    return kopf\n\n\n"
+            "class Feld:\n    TYPEN = {0: 'u8'}\n\n    def wert(self):\n        return 1\n\n\ndef danach():\n    pass\n",
+            encoding="utf-8")
+        (root / "src/kurz.txt").write_text("a\nb\n", encoding="utf-8")
+
+    def spec(self, quellen: str):
+        (kette.PM / "spec_20261021_t.md").write_text(f"# Spec\n\n## Quellen\n\n{quellen}\n## Anforderungen\n", encoding="utf-8")
+
+    def ergebnis(self):
+        return (kette.PM / "quellen_20261021_t.md").read_text(encoding="utf-8")
+
+    def test_zeilen_def_class_ganz(self):
+        self.spec("- `src/mod.py` Zeilen 1–1 – Magic\n- `src/mod.py` def lesen – Kopf\n"
+                  "- `src/mod.py` class Feld – Typen\n- `src/kurz.txt` – ganz\n")
+        code, out = lauf(kette.quellen, "t", None)
+        self.assertEqual(code, 0, out)
+        t = self.ergebnis()
+        self.assertIn("1| MAGIC = 0x46554747", t)
+        self.assertIn("@dekor", t, "Dekorator gehoert zur def")
+        self.assertIn("return kopf", t)
+        self.assertIn("return 1", t, "Methode gehoert zur class")
+        self.assertNotIn("def danach", t, "naechste Funktion gehoert nicht dazu")
+        self.assertIn("1| a", t); self.assertIn("2| b", t)
+        self.assertIn("– Kopf", t)
+
+    def test_fehlt_und_verweigert(self):
+        self.spec("- `src/gibtsnicht.py` – x\n- `../../etc/passwd` – x\n- `src/mod.py` def fehlt – x\n")
+        code, out = lauf(kette.quellen, "t", None)
+        self.assertEqual(code, 1)
+        t = self.ergebnis()
+        self.assertEqual(t.count("**FEHLT:**"), 2)
+        self.assertIn("**VERWEIGERT:**", t)
+
+    def test_ohne_abschnitt(self):
+        (kette.PM / "spec_20261021_t.md").write_text("# Spec\n\n## Anforderungen\n", encoding="utf-8")
+        code, _ = lauf(kette.quellen, "t", None)
+        self.assertEqual(code, 2)
+
+    def test_umsetzung_prompt_nennt_quellen(self):
+        self.spec("- `src/kurz.txt` – ganz\n")
+        code, out = lauf(kette.prompt, "umsetzung", "t", None, "abc1234")
+        self.assertEqual(code, 0)
+        self.assertIn("docs/projekt_management/quellen_20261021_t.md", out)
+        self.assertNotIn("{", out)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

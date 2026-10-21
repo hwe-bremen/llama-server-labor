@@ -10,6 +10,12 @@ Befehle, nur Standardbibliothek, liest/schreibt nur im Projekt:
         bzw. haengt eine Antwort auf eine Rueckfrage an. Diese Datei ist die verbindliche Vorgabe,
         gegen die Spec, Umsetzung und Review gemessen werden (seit 20.10., Befund Kette 4).
 
+  python3 role-split/kette/kette.py quellen <kurztitel> [--datum JJJJMMTT]
+        Liest den Abschnitt "## Quellen" der Spec (je Zeile: `pfad` [Zeilen a-b | def/class Name] - Zweck)
+        und schreibt die Auszuege WOERTLICH mit Zeilennummern nach quellen_<datum>_<kurztitel>.md.
+        Nur Dateien im Repo. Die Umsetzung nimmt Konstanten/Formate/Schnittstellen nur von dort (21.10.,
+        Befund Wissensbreite: mit Quelle 32/32, aus dem Gedaechtnis 0-23/32).
+
   python3 role-split/kette/kette.py prompt <schritt> <kurztitel> [--datum JJJJMMTT] [--commit HASH]
         schritt: spec | umsetzung | review | tief
         Gibt den fertigen Startprompt aus (und kopiert ihn per pbcopy, falls vorhanden).
@@ -451,6 +457,93 @@ def anforderung(kurztitel: str, aufgabe: str | None, antwort: str | None, frage:
     print("--aufgabe oder --antwort angeben"); return 2
 
 
+# ---------------------------------------------------------------- quellen
+
+QUELLE_RE = re.compile(
+    r"^\s*[-*]\s*`([^`]+)`\s*"
+    r"(?:(?:Zeilen?|Z\.)\s*(\d+)\s*(?:[–-]\s*(\d+))?|(def|class)\s+([A-Za-z_]\w*))?"
+    r"\s*(?:[–-]\s*(.*))?$")
+QUELLE_MAX = 400
+SPRACHE = {".py": "python", ".sh": "bash", ".command": "bash", ".json": "json", ".md": "markdown",
+           ".ini": "ini", ".toml": "toml", ".yaml": "yaml", ".yml": "yaml", ".plist": "xml"}
+
+
+def _block(zeilen: list[str], art: str, name: str) -> tuple[int, int] | None:
+    """Zeilenbereich (1-basiert, inkl.) einer def/class samt Dekoratoren bis zur naechsten gleich tiefen Zeile."""
+    kopf = re.compile(rf"^(\s*)(?:async\s+)?{art}\s+{re.escape(name)}\b")
+    for i, z in enumerate(zeilen):
+        m = kopf.match(z)
+        if not m:
+            continue
+        tiefe = len(m.group(1))
+        start = i
+        while start > 0 and zeilen[start - 1].strip().startswith("@"):
+            start -= 1
+        ende = i
+        for j in range(i + 1, len(zeilen)):
+            zj = zeilen[j]
+            if zj.strip() and len(zj) - len(zj.lstrip()) <= tiefe and not zj.lstrip().startswith(("#", ")")):
+                break
+            ende = j
+        while ende > i and not zeilen[ende].strip():
+            ende -= 1
+        return start + 1, ende + 1
+    return None
+
+
+def quellen(kurztitel: str, datum: str | None = None) -> int:
+    spec = datei_suchen("spec", kurztitel, datum)
+    if not spec:
+        print(f"Keine spec_*_{kurztitel}.md"); return 2
+    block = abschnitt(spec.read_text(encoding="utf-8"), "Quellen")
+    eintraege = [m for m in (QUELLE_RE.match(z) for z in block.splitlines()) if m]
+    if not eintraege:
+        print(f"{spec.name}: Abschnitt '## Quellen' fehlt oder hat keine Zeile der Form - `pfad` …"); return 2
+    d = _datum_aus(spec)
+    try:
+        stand = subprocess.run(["git", "-C", str(ROOT), "rev-parse", "--short", "HEAD"],
+                               capture_output=True, text=True, check=True).stdout.strip()
+    except Exception:
+        stand = "?"
+    teile = [f"# Quellen: {kurztitel}\n",
+             f"Maschinell und woertlich aus dem Repo geholt mit `kette.py quellen {kurztitel}` "
+             f"({dt.datetime.now():%Y-%m-%d %H:%M}, Stand `{stand}`), nach dem Abschnitt „Quellen“ in `{spec.name}`.",
+             "Nicht von Hand aendern – bei Bedarf die Spec anpassen und neu erzeugen. "
+             "Konstanten, Formate und Schnittstellen werden nur von hier oder aus dem Code genommen, nie aus dem Gedaechtnis.\n"]
+    fehler = 0
+    for m in eintraege:
+        pfad, von, bis, art, name, zweck = m.groups()
+        ziel = (ROOT / pfad).resolve()
+        titel = f"`{pfad}`"
+        try:
+            ziel.relative_to(ROOT.resolve())
+        except ValueError:
+            teile.append(f"### {titel}\n\n**VERWEIGERT:** liegt ausserhalb des Repos.\n"); fehler += 1; continue
+        if not ziel.is_file():
+            teile.append(f"### {titel}\n\n**FEHLT:** Datei nicht gefunden.\n"); fehler += 1; continue
+        zeilen = ziel.read_text(encoding="utf-8", errors="replace").splitlines()
+        if art:
+            bereich = _block(zeilen, art, name)
+            if not bereich:
+                teile.append(f"### {titel} {art} {name}\n\n**FEHLT:** `{art} {name}` nicht gefunden.\n"); fehler += 1; continue
+            a, b = bereich; titel += f" {art} {name}"
+        elif von:
+            a = max(1, int(von)); b = min(len(zeilen), int(bis or von))
+        else:
+            a, b = 1, len(zeilen)
+        if b - a + 1 > QUELLE_MAX:
+            teile.append(f"### {titel}\n\n**ZU LANG:** {b - a + 1} Zeilen (max. {QUELLE_MAX}) – Zeilen oder def/class angeben.\n")
+            fehler += 1; continue
+        breite = len(str(b))
+        code = "\n".join(f"{n:>{breite}}| {zeilen[n - 1]}" for n in range(a, b + 1))
+        teile.append(f"### {titel} (Zeilen {a}–{b})" + (f" – {zweck.strip()}" if zweck else "") +
+                     f"\n\n```{SPRACHE.get(ziel.suffix, '')}\n{code}\n```\n")
+    ziel_datei = PM / f"quellen_{d}_{kurztitel}.md"
+    ziel_datei.write_text("\n".join(teile), encoding="utf-8")
+    print(f"{len(eintraege)} Quellen -> {ziel_datei}" + (f"   {fehler} mit FEHLT/VERWEIGERT/ZU LANG" if fehler else ""))
+    return 1 if fehler else 0
+
+
 # ---------------------------------------------------------------- prompt
 
 def prompt(schritt: str, kurztitel: str, datum: str | None, commit: str | None) -> int:
@@ -481,7 +574,8 @@ def prompt(schritt: str, kurztitel: str, datum: str | None, commit: str | None) 
             .replace("{kurztitel}", kurztitel)
             .replace("{datum}", datum)
             .replace("{commit}", commit)
-            .replace("{anforderung}", anf_pfad))
+            .replace("{anforderung}", anf_pfad)
+            .replace("{quellen}", f"docs/projekt_management/quellen_{datum}_{kurztitel}.md"))
     if anf:
         text = re.sub(r"<AUFGABE[^>]*>", lambda _m: aufgabe_lesen(anf), text)
     text = "\n".join(z for z in text.splitlines() if not z.startswith("<!--")).strip() + "\n"
@@ -498,6 +592,7 @@ def main(argv=None) -> int:
     sub = ap.add_subparsers(dest="cmd", required=True)
     p = sub.add_parser("prompt"); p.add_argument("schritt", choices=SCHRITTE); p.add_argument("kurztitel")
     p.add_argument("--datum"); p.add_argument("--commit")
+    q = sub.add_parser("quellen"); q.add_argument("kurztitel"); q.add_argument("--datum")
     n = sub.add_parser("anforderung"); n.add_argument("kurztitel")
     n.add_argument("--aufgabe"); n.add_argument("--antwort"); n.add_argument("--frage"); n.add_argument("--datum")
     a = sub.add_parser("abgleich"); a.add_argument("kurztitel"); a.add_argument("--datum")
@@ -508,6 +603,8 @@ def main(argv=None) -> int:
     args = ap.parse_args(argv)
     if args.cmd == "gegenprobe":
         return gegenprobe(args.kurztitel, args.commit, args.timeout)
+    if args.cmd == "quellen":
+        return quellen(args.kurztitel, args.datum)
     if args.cmd == "anforderung":
         return anforderung(args.kurztitel, args.aufgabe, args.antwort, args.frage, args.datum)
     if args.cmd == "prompt":

@@ -11,5 +11,6 @@ Pflicht dabei:
 - Abschnitt „Außenwirkung und Sperre": Was kann diese Aufgabe außerhalb des Repos auslösen (Mail, Netz, echte Daten, Schlüsselbund)? Welche technische Sperre verhindert das in Tests?
 - Fehlerpfad-Tabelle: jede Standardfrage aus der Vorlage für jede Anforderung durchspielen, nicht nur die naheliegenden.
 - Jede Designentscheidung, die die Anforderung in einem Fall nicht erfüllt (Verlust, Doppelversand, „akzeptiertes Restrisiko"), entscheidest du nicht selbst: Spiel durch, was dabei beim nächsten Lauf passiert, und stell sie unter „Offene Fragen" an mich.
+- Abschnitt „Quellen": jede Konstante, jedes Format, jede Schnittstelle oder Option, die die Umsetzung braucht, als Fundstelle im Repo (Pfad in Backticks + `Zeilen a–b` oder `def`/`class Name` + Zweck). Keine Werte aus dem Gedächtnis; was nicht im Repo steht, kommt unter „Offene Fragen".
 - Jeder Test hat eine ID (T1, T2 …), eine prüfbare Erwartung (Zahl, Datei, Exit-Code) und läuft ohne Außenwirkung.
 - Keine Zeilennummern, die du nicht in der Datei gelesen hast.

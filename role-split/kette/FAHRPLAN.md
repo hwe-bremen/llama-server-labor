@@ -33,9 +33,16 @@ Ohne Web-UI (Ausnahme): `python3 role-split/kette/kette.py anforderung $K --aufg
    - [ ] „Außenwirkung und Sperre": Kann die Aufgabe Mails, Netz, echte Daten oder den Schlüsselbund berühren? Ist eine **technische Sperre** genannt (z. B. `SCOUT_ALLOW_SEND`)? Fehlt sie → im Chat nachfordern, **vor** der Umsetzung einbauen.
    - [ ] „Offene Fragen": Stehen dort Einschränkungen gegenüber deiner Anforderung (Verlust, Doppelversand, „Restrisiko")? → Im selben Chat entscheiden (wird mitgeschrieben) und die Spec anpassen lassen.
    - [ ] Jeder Test hat ID, prüfbare Erwartung und keine Außenwirkung.
-7. Spec committen und **Rücksetzpunkt notieren**:
+   - [ ] „Quellen": Für Konstanten, Formate, Schnittstellen steht eine Fundstelle (Pfad + Zeilen/def), keine Werte aus dem Gedächtnis.
+7. **Quellen maschinell holen** (wörtlich, mit Zeilennummern):
    ```sh
-   git add docs/projekt_management/spec_*_$K.md docs/projekt_management/anforderung_*_$K.md
+   python3 role-split/kette/kette.py quellen $K
+   ```
+   Meldet es `FEHLT`/`ZU LANG`/`VERWEIGERT`: im Spec-Chat korrigieren lassen, dann erneut. Fehlt eine externe Quelle
+   (Doku eines Fremdformats), lege sie als Datei ins Repo (z. B. `docs/research/…`) und lass sie in der Spec nennen.
+8. Spec committen und **Rücksetzpunkt notieren**:
+   ```sh
+   git add docs/projekt_management/spec_*_$K.md docs/projekt_management/anforderung_*_$K.md docs/projekt_management/quellen_*_$K.md
    git commit -m "Spec $K"
    R=$(git rev-parse --short HEAD); echo "Rücksetzpunkt: $R"
    ```
@@ -138,6 +145,7 @@ git commit -m "Kette $K: Umsetzung + Handover + Verdikt"
 K=<kurztitel>
 bash start_rollen.command                                   # Spec: Qwen3.8, Reasoning aus
 # Web-UI: "@review Neue Aufgabe <kurztitel>: …" – Antworten im Chat werden mitgeschrieben – "Spec schreiben"
+python3 role-split/kette/kette.py quellen $K                # Auszüge wörtlich aus dem Repo
 git add docs/projekt_management/*_$K.md && git commit -m "Spec $K" && R=$(git rev-parse --short HEAD)
 python3 role-split/kette/kette.py prompt umsetzung $K --commit $R            # OpenCode, Qwen3.6, Agent umsetzung
 python3 role-split/kette/kette.py abgleich $K

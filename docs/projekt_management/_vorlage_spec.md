@@ -28,6 +28,17 @@ Anlass 18.10.: Ein relativer Import ließ den Scout bei jedem Lauf abstürzen; a
 |---|---|---|
 | `pfad/skript.py` | `python3 pfad/skript.py` aus `run_x.sh` | T… |
 
+## Quellen
+
+Jede Konstante, jedes Dateiformat, jede Schnittstelle oder Option, die die Umsetzung braucht, als Fundstelle im Repo –
+**nichts aus dem Gedächtnis**. Eine Zeile je Quelle, Pfad in Backticks, dann `Zeilen a–b` oder `def Name` / `class Name`
+(ohne Angabe: ganze Datei, max. 400 Zeilen), dann Zweck. `kette.py quellen <kurztitel>` holt die Auszüge danach
+maschinell und wörtlich nach `quellen_<JJJJMMTT>_<kurztitel>.md`. Was nicht im Repo steht (externe Doku, Format
+eines Fremdprogramms), kommt unter „Offene Fragen" – Hawe legt die Quelle dann als Datei ins Repo.
+
+- `pfad/datei.py` def funktion – wofür gebraucht
+- `pfad/datei.py` Zeilen 10–40 – wofür gebraucht
+
 ## Anforderungen
 
 ### A1: <Titel>
