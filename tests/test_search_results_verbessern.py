@@ -27,6 +27,74 @@ _SCOUT_SCRIPT = _SCOUT_DIR / "llm_scout.py"
 class TestSearchResultsVerbessern(unittest.TestCase):
     """Tests T1-T12 fuer search_results_verbessern."""
 
+    @staticmethod
+    def _run_main(tmp_dir: Path, sources_json: dict,
+                  hf_fetched: int = 0, hf_items: list = None,
+                  gh_fetched_items: dict = None,
+                  llm_response: str = "# LLM Scout Weekly\n\n## Hugging Face (neue Modelle)\n\nKeine neuen Modelle in den letzten 7 Tagen.\n\n## GitHub: ggml-org/llama.cpp\n\nKeine neuen Releases in den letzten 7 Tagen.\n\n## GitHub: ollama/ollama\n\nKeine neuen Releases in den letzten 7 Tagen.\n\n## Slipstream neueste Entwicklungen\n\nKeine neuen Entwicklungen in den letzten 7 Tagen.\n\n## Fazit\n\nNichts Neues.",
+                  db_path: Path = None) -> tuple:
+        """
+        Fuehrt main() aus mit gemockten Abhaengigkeiten.
+
+        Returns:
+            (exit_code, report_path, stderr_text)
+        """
+        import io
+        from agents.llm_scout import llm_scout
+
+        if hf_items is None:
+            hf_items = []
+        if gh_fetched_items is None:
+            gh_fetched_items = {}
+
+        sources_path = tmp_dir / "sources.json"
+        sources_path.write_text(json.dumps(sources_json))
+
+        report_dir = tmp_dir / "weekly-reports"
+        report_dir.mkdir(parents=True, exist_ok=True)
+
+        db = db_path or (tmp_dir / "test.db")
+
+        stderr_capture = io.StringIO()
+
+        def mock_fetch_hf():
+            return (hf_fetched, list(hf_items))
+
+        def mock_fetch_github(rss_url, repo_name):
+            source_key = llm_scout.get_source_key_for_repo(repo_name)
+            result = gh_fetched_items.get(source_key, (0, []))
+            return (result[0], list(result[1]))
+
+        def mock_call_llm(items, sources_config):
+            return llm_response
+
+        def mock_router_ready(timeout=5.0):
+            return True
+
+        # Patch module-level Konstanten und Funktionen
+        with patch.object(llm_scout, '_SOURCES_JSON_PATH', sources_path), \
+             patch.object(llm_scout, 'DB_PATH', db), \
+             patch.object(llm_scout, 'BASE_DIR', tmp_dir), \
+             patch.object(llm_scout, 'REPORT_DIR', report_dir), \
+             patch.object(llm_scout, 'fetch_hf_trending', mock_fetch_hf), \
+             patch.object(llm_scout, 'fetch_github_releases_for_repo', mock_fetch_github), \
+             patch.object(llm_scout, 'call_llm_for_evaluation', mock_call_llm), \
+             patch.object(llm_scout, 'router_ready', mock_router_ready), \
+             patch("sys.stderr", stderr_capture):
+
+            exit_code = 0
+            try:
+                llm_scout.main()
+            except SystemExit as e:
+                exit_code = e.code if e.code is not None else 0
+
+            # Berichtspfad ermitteln
+            iso_year, iso_week, _ = datetime.now().isocalendar()
+            report_filename = f"llm_scout_kw{iso_week}_{iso_year}.md"
+            report_path = report_dir / report_filename
+
+            return (exit_code, report_path, stderr_capture.getvalue())
+
     # ======================== T1 ========================
     def test_t1_feed_404_prookol_zeigt_fetched_0(self):
         """T1: Feed-Fehler (404) -> Quelle im Protokoll mit fetched: 0, Scout bricht nicht ab."""
@@ -340,16 +408,69 @@ class TestSearchResultsVerbessern(unittest.TestCase):
             self.assertEqual(len(report_files), 0, "Kein Bericht darf geschrieben werden")
 
     # ======================== T8 ========================
-    def test_t8_sources_json_leer_exit_0(self):
-        """T8: sources.json leer ({}) -> Exit 0, Protokoll mit leeren Quellen."""
-        from agents.llm_scout.llm_scout import load_sources
-
+    def test_t8_leere_sources_bericht_mit_hf_und_slipstream(self):
+        """T8: leere sources.json {} -> Exit 0, Bericht mit Hugging-Face- und Slipstream-Sektion (via main())."""
         with tempfile.TemporaryDirectory() as tmp_dir:
-            sources_path = Path(tmp_dir) / "sources.json"
-            sources_path.write_text("{}")
+            tmp_path = Path(tmp_dir)
+            # LLM-Antwort ohne Sektionen (secure_report_sections muss sie nachtragen)
+            llm_response = "# LLM Scout Weekly\n\n## Fazit\n\nNichts Neues."
 
-            sources = load_sources(sources_path)
-            self.assertEqual(sources, {}, "Leere sources.json muss {} ergeben")
+            exit_code, report_path, stderr_text = self._run_main(
+                tmp_path,
+                sources_json={},
+                llm_response=llm_response
+            )
+
+            self.assertEqual(exit_code, 0, f"Exit-Code sollte 0 sein, ist {exit_code}")
+            self.assertTrue(report_path.exists(), "Bericht muss existieren")
+
+            content = report_path.read_text()
+            self.assertIn("## Hugging Face (neue Modelle)", content,
+                          "Bericht muss Hugging-Face-Sektion enthalten")
+            self.assertIn("## Slipstream neueste Entwicklungen", content,
+                          "Bericht muss Slipstream-Sektion enthalten")
+            # Slipstream ist nicht konfiguriert -> "nicht konfiguriert"
+            self.assertIn("nicht konfiguriert", content,
+                          "Slipstream muss als 'nicht konfiguriert' markiert sein")
+
+    # ======================== T9b (neu) ========================
+    def test_t9b_alte_eintraege_kein_bericht_alle_sektionen(self):
+        """Neuer Test: alle Feeds nur mit alten Eintraegen, noch kein Wochenbericht -> Bericht mit allen Sektionen (via main())."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir)
+            sources_json = {
+                "github": [
+                    {"repo": "ggml-org/llama.cpp", "rss": "https://github.com/ggml-org/llama.cpp/releases.atom"},
+                    {"repo": "ollama/ollama", "rss": "https://github.com/ollama/ollama/releases.atom"},
+                ]
+            }
+            # LLM-Antwort mit allen Sektionen (da keine neuen Items, aber erster Lauf)
+            llm_response = "# LLM Scout Weekly\n\n## Fazit\n\nNichts Neues."
+
+            exit_code, report_path, stderr_text = self._run_main(
+                tmp_path,
+                sources_json=sources_json,
+                hf_fetched=5,
+                hf_items=[],  # keine neuen HF-Items
+                gh_fetched_items={
+                    "github:ggml-org/llama.cpp": (3, []),
+                    "github:ollama/ollama": (2, []),
+                },
+                llm_response=llm_response
+            )
+
+            self.assertEqual(exit_code, 0, f"Exit-Code sollte 0 sein, ist {exit_code}")
+            self.assertTrue(report_path.exists(), "Bericht muss existieren (erster Lauf der Woche)")
+
+            content = report_path.read_text()
+            self.assertIn("## Hugging Face (neue Modelle)", content,
+                          "Bericht muss Hugging-Face-Sektion enthalten")
+            self.assertIn("## GitHub: ggml-org/llama.cpp", content,
+                          "Bericht muss llama.cpp-Sektion enthalten")
+            self.assertIn("## GitHub: ollama/ollama", content,
+                          "Bericht muss ollama-Sektion enthalten")
+            self.assertIn("## Slipstream neueste Entwicklungen", content,
+                          "Bericht muss Slipstream-Sektion enthalten")
 
     # ======================== T9 ========================
     def test_t9_zweitlauf_bericht_angehangen(self):
@@ -378,6 +499,56 @@ class TestSearchResultsVerbessern(unittest.TestCase):
                           "Zweiter Bericht muss angehangen sein")
             self.assertIn("Nachtrag", content_after_second,
                           "Nachtrag-Kennzeichnung muss vorhanden sein")
+
+    # ======================== T9c (neu) ========================
+    def test_t9c_llm_antwort_ohne_ollama_sektion(self):
+        """Neuer Test: Modell-Antwort ohne die Ollama-Sektion -> Ollama-Sektion steht trotzdem im Bericht (via main())."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir)
+            sources_json = {
+                "github": [
+                    {"repo": "ggml-org/llama.cpp", "rss": "https://github.com/ggml-org/llama.cpp/releases.atom"},
+                    {"repo": "ollama/ollama", "rss": "https://github.com/ollama/ollama/releases.atom"},
+                ]
+            }
+            # LLM-Antwort ohne Ollama-Sektion
+            llm_response = """# LLM Scout Weekly
+
+## Hugging Face (neue Modelle)
+
+Keine neuen Modelle in den letzten 7 Tagen.
+
+## GitHub: ggml-org/llama.cpp
+
+- **b650**: Neue Features.
+
+## Slipstream neueste Entwicklungen
+
+Keine neuen Entwicklungen in den letzten 7 Tagen.
+
+## Fazit
+
+Nur llama.cpp hat Updates."""
+
+            exit_code, report_path, stderr_text = self._run_main(
+                tmp_path,
+                sources_json=sources_json,
+                llm_response=llm_response
+            )
+
+            self.assertEqual(exit_code, 0, f"Exit-Code sollte 0 sein, ist {exit_code}")
+            self.assertTrue(report_path.exists(), "Bericht muss existieren")
+
+            content = report_path.read_text()
+            # Ollama-Sektion fehlt im LLM-Output, muss von secure_report_sections nachgetragen werden
+            self.assertIn("## GitHub: ollama/ollama", content,
+                          "Ollama-Sektion muss trotz fehlendem LLM-Output im Bericht stehen")
+            self.assertIn("## Hugging Face (neue Modelle)", content,
+                          "Hugging-Face-Sektion muss vorhanden sein")
+            self.assertIn("## GitHub: ggml-org/llama.cpp", content,
+                          "llama.cpp-Sektion muss vorhanden sein")
+            self.assertIn("## Slipstream neueste Entwicklungen", content,
+                          "Slipstream-Sektion muss vorhanden sein")
 
     # ======================== T10 ========================
     def test_t10_slipstream_feed_leer_keine_entwicklungen(self):
@@ -569,57 +740,308 @@ class TestSearchResultsVerbessern(unittest.TestCase):
 
     # ======================== T15 ========================
     def test_t15_warnung_ab_8_github_repos(self):
-        """T15: Warnung auf stderr ab 8 GitHub-Repos, Skript laeuft weiter."""
-        import io
-        from agents.llm_scout.llm_scout import load_sources
-
+        """T15: Warnung auf stderr ab 8 GitHub-Repos ueber main() pruefen, Skript laeuft weiter."""
         with tempfile.TemporaryDirectory() as tmp_dir:
-            lab_dir = Path(tmp_dir)
-            sources_path = lab_dir / "sources.json"
+            tmp_path = Path(tmp_dir)
             # 8 Repos
             repos = [{"repo": f"test/repo{i}", "rss": f"https://github.com/test/repo{i}/releases.atom"}
                      for i in range(8)]
-            sources_path.write_text(json.dumps({"github": repos}))
+            sources_json = {"github": repos}
 
-            sources = load_sources(sources_path)
-            self.assertEqual(len(sources["github"]), 8, "Alle 8 Repos mussen gelesen werden")
+            exit_code, report_path, stderr_text = self._run_main(
+                tmp_path,
+                sources_json=sources_json,
+                llm_response="# LLM Scout Weekly\n\n## Fazit\n\nTest."
+            )
 
-            # Die Warnung wird in main() ausgegeben, nicht in load_sources.
-            # Wir testen hier nur, dass load_sources alle 8 Repos liest.
-            # Die eigentliche Warnung wird in T15b getestet (main-Integration).
+            self.assertEqual(exit_code, 0, f"Exit-Code sollte 0 sein, ist {exit_code}")
+            self.assertTrue(report_path.exists(), "Bericht muss existieren")
+            # Warnung auf stderr
+            self.assertIn("8", stderr_text,
+                          f"stderr sollte '8' enthalten: {stderr_text}")
+            self.assertIn("WARN", stderr_text.upper(),
+                          f"stderr sollte 'WARN' enthalten: {stderr_text}")
+            self.assertIn("GitHub-Repos", stderr_text,
+                          f"stderr sollte 'GitHub-Repos' enthalten: {stderr_text}")
 
     # ======================== T16 ========================
     def test_t16_zweitlauf_woche_keine_neuen_eintraege_kein_nachtrag(self):
-        """T16: Zweiter Lauf in derselben Woche ohne neue Eintraege -> kein Anhaengen, Bericht unveraendert."""
-        from agents.llm_scout.llm_scout import save_report
-        from datetime import datetime
-
+        """T16: zwei main()-Laufe in derselben Woche, der zweite ohne Neues -> Bericht byte-gleich."""
         with tempfile.TemporaryDirectory() as tmp_dir:
-            report_dir = Path(tmp_dir) / "weekly-reports"
-            report_dir.mkdir()
-            filepath = report_dir / "llm_scout_kw42_2026.md"
-            now = datetime(2026, 10, 20, 10, 0)
+            tmp_path = Path(tmp_dir)
+            sources_json = {
+                "github": [
+                    {"repo": "ggml-org/llama.cpp", "rss": "https://github.com/ggml-org/llama.cpp/releases.atom"},
+                ]
+            }
+            llm_response = "# LLM Scout Weekly\n\n## Hugging Face (neue Modelle)\n\nKeine neuen Modelle.\n\n## GitHub: ggml-org/llama.cpp\n\nKeine neuen Releases.\n\n## Slipstream neueste Entwicklungen\n\nKeine neuen Entwicklungen.\n\n## Fazit\n\nNichts Neues."
 
-            # Erster Lauf: Bericht schreiben
-            save_report(filepath, "# Wochenbericht KW42\n\nErster Inhalt.", now)
-            content_after_first = filepath.read_text()
-            self.assertIn("Erster Inhalt", content_after_first)
+            # Erster Lauf: Erstellt den Bericht
+            exit_code1, report_path, stderr1 = self._run_main(
+                tmp_path,
+                sources_json=sources_json,
+                llm_response=llm_response
+            )
+            self.assertEqual(exit_code1, 0, f"Erster Lauf: Exit-Code sollte 0 sein, ist {exit_code1}")
+            self.assertTrue(report_path.exists(), "Bericht muss nach erstem Lauf existieren")
 
-            # Zweiter Lauf: Keine neuen Eintraege, also kein Anhaengen
-            # In der Praxis wird main() sys.exit(0) aufrufen, bevor save_report erreicht wird.
-            # Wir simulieren hier das Verhalten: Wenn kein new_items und report existiert,
-            # wird nichts angehaengt.
-            # Der Test stellt sicher, dass save_report beim zweiten Aufruf anhaengt (wie bisher).
-            # Die Logik "nichts tun" liegt in main() und wird durch die Bedingung
-            # `if not new_items and report_exists: sys.exit(0)` abgedeckt.
+            content_after_first = report_path.read_text()
+            first_bytes = report_path.read_bytes()
 
-            # Wir testen hier, dass der erste Bericht intakt bleibt, wenn kein zweiter
-            # save_report-Aufruf erfolgt (was main() verhindert).
-            content_after_second = filepath.read_text()
-            self.assertIn("Erster Inhalt", content_after_second)
-            # Kein "Nachtrag" im Bericht, da kein zweiter save_report-Aufruf
-            self.assertNotIn("Nachtrag", content_after_second,
-                              "Bei keinem neuen save_report darf kein Nachtrag erscheinen")
+            # Zweiter Lauf: Keine neuen Items, Bericht soll byte-gleich bleiben
+            exit_code2, report_path2, stderr2 = self._run_main(
+                tmp_path,
+                sources_json=sources_json,
+                llm_response=llm_response  # LLM wird nicht aufgerufen, da keine neuen Items
+            )
+            self.assertEqual(exit_code2, 0, f"Zweiter Lauf: Exit-Code sollte 0 sein, ist {exit_code2}")
+
+            second_bytes = report_path.read_bytes()
+            self.assertEqual(first_bytes, second_bytes,
+                             "Bericht muss nach zweitem Lauf byte-gleich sein (kein Anhaengen)")
+
+    # ======================== T17 ========================
+    def test_t17_llm_laesst_item_weg_nicht_bewertet(self):
+        """T17: LLM-Mock liefert alle Ueberschriften, laesst aber ein Item weg -> dessen URL steht im Bericht unter '## Nicht vom Modell bewertet'."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir)
+            sources_json = {
+                "github": [
+                    {"repo": "ggml-org/llama.cpp", "rss": "https://github.com/ggml-org/llama.cpp/releases.atom"},
+                ]
+            }
+            # Zwei Items an das LLM, aber nur eines in der Antwort
+            item1_url = "https://github.com/ggml-org/llama.cpp/releases/tag/b650"
+            item2_url = "https://github.com/ggml-org/llama.cpp/releases/tag/b651"
+            llm_response = f"""# LLM Scout Weekly
+
+## Hugging Face (neue Modelle)
+
+Keine neuen Modelle in den letzten 7 Tagen.
+
+## GitHub: ggml-org/llama.cpp
+
+- **b650**({item1_url}): Wichtige neue Features.
+
+## Slipstream neueste Entwicklungen
+
+Keine neuen Entwicklungen in den letzten 7 Tagen.
+
+## Fazit
+
+Nur b650 ist relevant."""
+
+            gh_items = [
+                {"source": "github:ggml-org/llama.cpp", "title": "b650", "url": item1_url, "summary": "Features"},
+                {"source": "github:ggml-org/llama.cpp", "title": "b651", "url": item2_url, "summary": "Bugfix"},
+            ]
+
+            exit_code, report_path, stderr_text = self._run_main(
+                tmp_path,
+                sources_json=sources_json,
+                gh_fetched_items={"github:ggml-org/llama.cpp": (2, gh_items)},
+                llm_response=llm_response
+            )
+
+            self.assertEqual(exit_code, 0, f"Exit-Code sollte 0 sein, ist {exit_code}")
+            self.assertTrue(report_path.exists(), "Bericht muss existieren")
+
+            content = report_path.read_text()
+            self.assertIn("## Nicht vom Modell bewertet", content,
+                          "Bericht muss 'Nicht vom Modell bewertet'-Sektion enthalten")
+            self.assertIn(item2_url, content,
+                          f"Fehlende Item-URL ({item2_url}) muss im Bericht stehen")
+            self.assertIn("b651", content,
+                          "Fehlender Titel 'b651' muss im Bericht stehen")
+
+    # ======================== T18 ========================
+    def test_t18_llm_fazit_und_fehlende_sektion_vor_fazit(self):
+        """T18: LLM-Mock mit '## Fazit' und fehlender ollama-Sektion -> ollama-Sektion steht vor '## Fazit'."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir)
+            sources_json = {
+                "github": [
+                    {"repo": "ggml-org/llama.cpp", "rss": "https://github.com/ggml-org/llama.cpp/releases.atom"},
+                    {"repo": "ollama/ollama", "rss": "https://github.com/ollama/ollama/releases.atom"},
+                ]
+            }
+            # LLM-Antwort ohne ollama-Sektion, aber mit Fazit
+            llm_response = """# LLM Scout Weekly
+
+## Hugging Face (neue Modelle)
+
+Keine neuen Modelle in den letzten 7 Tagen.
+
+## GitHub: ggml-org/llama.cpp
+
+Keine neuen Releases in den letzten 7 Tagen.
+
+## Slipstream neueste Entwicklungen
+
+Keine neuen Entwicklungen in den letzten 7 Tagen.
+
+## Fazit
+
+Nichts Neues."""
+
+            exit_code, report_path, stderr_text = self._run_main(
+                tmp_path,
+                sources_json=sources_json,
+                llm_response=llm_response
+            )
+
+            self.assertEqual(exit_code, 0, f"Exit-Code sollte 0 sein, ist {exit_code}")
+            self.assertTrue(report_path.exists(), "Bericht muss existieren")
+
+            content = report_path.read_text()
+            self.assertIn("## GitHub: ollama/ollama", content,
+                          "Ollama-Sektion muss im Bericht stehen")
+            self.assertIn("## Fazit", content,
+                          "Fazit-Sektion muss vorhanden sein")
+            # Ollama-Sektion muss VOR Fazit stehen
+            ollama_pos = content.index("## GitHub: ollama/ollama")
+            fazit_pos = content.index("## Fazit")
+            self.assertLess(ollama_pos, fazit_pos,
+                            "Ollama-Sektion muss vor '## Fazit' eingefuegt werden")
+
+    # ======================== T19 ========================
+    def test_t19_system_prompt_enthalt_nicht_ignoriere_oder_top35(self):
+        """T19: System-Prompt enthaelt nicht 'ignoriere sie' und nicht 'Top 3-5'."""
+        from agents.llm_scout.llm_scout import call_llm_for_evaluation
+        import re
+
+        # call_llm_for_evaluation bauen den system_prompt intern.
+        # Wir pruefen den Source-Code der Funktion auf die verbotenen Phrasen.
+        import inspect
+        source = inspect.getsource(call_llm_for_evaluation)
+
+        self.assertNotIn("ignoriere sie", source.lower(),
+                         "System-Prompt darf 'ignoriere sie' nicht enthalten")
+        self.assertNotIn("Top 3-5", source,
+                         "System-Prompt darf 'Top 3-5' nicht enthalten")
+        self.assertNotIn("top 3-5", source.lower(),
+                         "System-Prompt darf 'top 3-5' nicht enthalten")
+        # Stattdessen muss die JEDES-Item-Regel da sein
+        self.assertIn("JEDES", source,
+                      "System-Prompt muss 'JEDES' enthalten")
+        self.assertIn("verworfen", source,
+                      "System-Prompt muss 'verworfen' enthalten")
+
+    # ======================== T20 ========================
+    def test_t20_fazit_variante_regex_einfuegepunkt(self):
+        """T20: Ueberschriften '## Fazit und Empfehlung', '## Fazit: lohnt sich nicht' und
+        '## Fazit' als letzte Zeile ohne Zeilenumbruch -> in allen drei Faellen stehen
+        fehlende Sektion UND fehlender Item-Link im Ergebnis, vor der Fazit-Zeile."""
+        from agents.llm_scout.llm_scout import secure_report_sections
+
+        sources_config = {
+            "github": [
+                {"repo": "ggml-org/llama.cpp", "rss": "https://github.com/ggml-org/llama.cpp/releases.atom"},
+                {"repo": "ollama/ollama", "rss": "https://github.com/ollama/ollama/releases.atom"},
+            ]
+        }
+        evaluated = [
+            {"source": "github:ggml-org/llama.cpp", "title": "b650",
+             "url": "https://github.com/ggml-org/llama.cpp/releases/tag/b650", "summary": "Features"},
+            {"source": "github:ggml-org/llama.cpp", "title": "b651",
+             "url": "https://github.com/ggml-org/llama.cpp/releases/tag/b651", "summary": "Bugfix"},
+        ]
+
+        # Drei verschiedene Fazit-Varianten testen
+        fazit_variants = [
+            "## Fazit und Empfehlung\n\nDas ist das Fazit.",
+            "## Fazit: lohnt sich nicht\n\nKein Update notwendig.",
+            "## Fazit",  # letzte Zeile ohne Zeilenumbruch
+        ]
+
+        for fazit_heading in fazit_variants:
+            with self.subTest(fazit_heading=fazit_heading):
+                llm_report = f"""# LLM Scout Weekly
+
+## Hugging Face (neue Modelle)
+
+Keine neuen Modelle in den letzten 7 Tagen.
+
+## GitHub: ggml-org/llama.cpp
+
+- **b650**(https://github.com/ggml-org/llama.cpp/releases/tag/b650): Features.
+
+## Slipstream neueste Entwicklungen
+
+Keine neuen Entwicklungen in den letzten 7 Tagen.
+
+{fazit_heading}"""
+
+                result = secure_report_sections(llm_report, evaluated, sources_config)
+
+                # Fehlende ollama-Sektion muss im Ergebnis sein
+                self.assertIn("## GitHub: ollama/ollama", result,
+                              f"Fehlende Sektion muss im Ergebnis sein (Fazit: {fazit_heading!r})")
+                # Fehlendes Item b651 muss unter "Nicht bewertet" stehen
+                self.assertIn("## Nicht vom Modell bewertet", result,
+                              f"'Nicht bewertet'-Sektion muss im Ergebnis sein (Fazit: {fazit_heading!r})")
+                self.assertIn("b651", result,
+                              f"Fehlender Titel 'b651' muss im Ergebnis sein (Fazit: {fazit_heading!r})")
+                # Beide Ergaenzungen mussen VOR der Fazit-Zeile stehen
+                ollama_pos = result.index("## GitHub: ollama/ollama")
+                fazit_pos = result.index("## Fazit")
+                self.assertLess(ollama_pos, fazit_pos,
+                                f"Ollama-Sektion muss vor Fazit stehen (Fazit: {fazit_heading!r})")
+                nicht_bewertet_pos = result.index("## Nicht vom Modell bewertet")
+                self.assertLess(nicht_bewertet_pos, fazit_pos,
+                                f"'Nicht bewertet' muss vor Fazit stehen (Fazit: {fazit_heading!r})")
+
+    # ======================== T21 ========================
+    def test_t21_url_pruefung_exakt_kein_prefix_treffer(self):
+        """T21: Bericht enthaelt nur '.../tag/b11724', evaluated hat '.../tag/b1172' ->
+        b1172 steht unter '## Nicht vom Modell bewertet' (kein Prefix-False-Positive)."""
+        from agents.llm_scout.llm_scout import secure_report_sections
+
+        sources_config = {
+            "github": [
+                {"repo": "ggml-org/llama.cpp", "rss": "https://github.com/ggml-org/llama.cpp/releases.atom"},
+            ]
+        }
+        # evaluated hat die kuerzere URL b1172
+        evaluated = [
+            {"source": "github:ggml-org/llama.cpp", "title": "b1172",
+             "url": "https://github.com/ggml-org/llama.cpp/releases/tag/b1172", "summary": "Release"},
+        ]
+        # Bericht enthaelt nur die laengere URL b11724 (kein Treffer fuer b1172)
+        llm_report = """# LLM Scout Weekly
+
+## Hugging Face (neue Modelle)
+
+Keine neuen Modelle in den letzten 7 Tagen.
+
+## GitHub: ggml-org/llama.cpp
+
+- **b11724**(https://github.com/ggml-org/llama.cpp/releases/tag/b11724): Anderes Release.
+
+## Slipstream neueste Entwicklungen
+
+Keine neuen Entwicklungen in den letzten 7 Tagen.
+
+## Fazit
+
+b11724 ist relevant."""
+
+        result = secure_report_sections(llm_report, evaluated, sources_config)
+
+        # b1172 muss unter "Nicht bewertet" stehen (kein False-Positive durch b11724)
+        self.assertIn("## Nicht vom Modell bewertet", result,
+                      "'Nicht bewertet'-Sektion muss im Ergebnis sein")
+        self.assertIn("b1172", result,
+                      "Titel 'b1172' muss im Ergebnis sein")
+        # Die spezifische URL muss im "Nicht bewertet"-Teil stehen
+        nicht_bewertet_pos = result.index("## Nicht vom Modell bewertet")
+        fazit_pos = result.index("## Fazit")
+        self.assertLess(nicht_bewertet_pos, fazit_pos,
+                        "'Nicht bewertet' muss vor Fazit stehen")
+        # Der Abschnitt zwischen "Nicht bewertet" und "Fazit" muss die URL enthalten
+        zwischen = result[nicht_bewertet_pos:fazit_pos]
+        self.assertIn("https://github.com/ggml-org/llama.cpp/releases/tag/b1172", zwischen,
+                      "URL von b1172 muss im 'Nicht bewertet'-Teil stehen")
 
 
 if __name__ == "__main__":

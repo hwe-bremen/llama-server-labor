@@ -9,6 +9,7 @@ Slipstream als eigene Quelle, und pro-Quellen-Prompt-Präsentation.
 
 import json
 import os
+import re
 import sqlite3
 import sys
 import time
@@ -396,14 +397,19 @@ def build_prompt_sections(items: List[Dict[str, Any]], sources_config: Dict[str,
             sections.append("Keine neuen Releases in den letzten 7 Tagen.")
         sections.append("")
 
-    # Slipstream-Sektion (immer vorhanden)
+    # Slipstream-Sektion (immer vorhanden, auch wenn nicht in sources.json)
+    slipstream_configured = any(
+        r.get("repo") == SLIPSTREAM_REPO for r in github_repos
+    )
     slip_items = by_source.get("slipstream", [])
     sections.append("## Slipstream neueste Entwicklungen")
     if slip_items:
         for it in slip_items[:ITEMS_PER_SOURCE]:
             sections.append(f"- [{it['title']}]({it['url']}): {it['summary']}")
-    else:
+    elif slipstream_configured:
         sections.append("Keine neuen Entwicklungen in den letzten 7 Tagen.")
+    else:
+        sections.append("nicht konfiguriert")
 
     return "\n".join(sections)
 
@@ -428,23 +434,20 @@ def call_llm_for_evaluation(items: List[Dict[str, Any]],
 
     Bewerte jede Quelle getrennt. Für jede Quelle, die keine neuen Items hat,
     schreibe explizit 'Keine neuen Entwicklungen in den letzten 7 Tagen.'
-    Verwerfe kein Item ohne eine einzeilige Begründung.
 
-    Kriterien für Relevanz:
-    1. Modellgröße: Ideal < 15GB in Q4_K_M Quantisierung (passend für M4 Mac mit 48GB RAM).
-    2. Kompatibilität: Muss GGUF unterstützen oder für llama.cpp/Ollama tauglich sein.
-    3. Leistung: Zeigt es signifikante Verbesserungen in Benchmarks (MMLU, GPQA, etc.)?
-    4. Lizenz: Open Source (Apache 2.0, MIT, etc.) bevorzugt.
-    5. Sprache: Deutsch-Unterstützung ist ein Bonus.
+    Fuehre JEDES uebergebene Item in seiner Quellen-Sektion auf: relevant mit
+    kurzer Begründung, oder 'verworfen: <einzeiliger Grund>'.
 
-    Gib die Top 3-5 interessantesten Entwicklungen zurück.
-    Wenn es nur kleine Bugfixes sind, ignoriere sie.
+    Kriterien fuer Tool-Releases (llama.cpp, Ollama, etc.):
+    - Relevanz fuer Apple Silicon / Metal-Unterstuetzung
+    - Neue Features (z. B. neue Quantisierungen, Backends, Modellformate)
+    - Breaking Changes oder API-Änderungen
 
     Ausgabeformat:
     # LLM Scout Weekly
 
     ## Hugging Face (neue Modelle)
-    - **[Modellname](Link)**: Kurze Begründung (Größe, Leistung, Sprache).
+    - **[Modellname](Link)**: Kurze Begründung.
     (oder: „Keine neuen Modelle in den letzten 7 Tagen.")
 
     ## GitHub: ggml-org/llama.cpp
@@ -508,6 +511,133 @@ def call_llm_for_evaluation(items: List[Dict[str, Any]],
     if not content:
         raise RuntimeError("Modell lieferte leeren Inhalt")
     return content
+
+
+def secure_report_sections(report_content: str,
+                            evaluated_items: List[Dict[str, Any]],
+                            sources_config: Dict[str, Any]) -> str:
+    """
+    Prueft, ob jede erwartete Sektion als Ueberschrift im Bericht steht und
+    ob die URL jedes Items aus evaluated im Bericht vorkommt.
+
+    Fehlende Sektionen werden nachgetragen – mit den an das Modell gegebenen
+    Eintraegen dieser Quelle als Liste oder mit „Keine neuen … in den letzten 7 Tagen.".
+
+    Fehlende Items werden in einer Sektion "## Nicht vom Modell bewertet"
+    als "- [Titel](URL)" aufgelistet.
+
+    Fehlende Sektionen und die Liste stehen VOR "## Fazit", falls vorhanden,
+    sonst am Ende des Berichts.
+
+    Slipstream bleibt immer im Bericht, auch wenn Schero94/slipstream nicht
+    in sources.json steht (Inhalt dann „nicht konfiguriert").
+
+    Args:
+        report_content: Roh-Bericht vom LLM.
+        evaluated_items: Items die an das LLM gesendet wurden (nach select_items).
+        sources_config: Die sources.json-Konfiguration.
+
+    Returns:
+        Bericht mit allen Sektionen und Items (unverändert oder um fehlende ergänzt).
+    """
+    # Items nach source gruppieren
+    by_source: Dict[str, List[Dict[str, Any]]] = {}
+    for item in evaluated_items:
+        src = item.get("source", "unknown")
+        by_source.setdefault(src, []).append(item)
+
+    # Erwartete Sektionen zusammenstellen
+    expected_sections = []
+
+    # Hugging Face (immer)
+    expected_sections.append(("## Hugging Face (neue Modelle)", "huggingface",
+                               "Keine neuen Modelle in den letzten 7 Tagen."))
+
+    # GitHub-Repos aus sources.json (außer Slipstream)
+    github_repos = sources_config.get("github", [])
+    for repo_config in github_repos:
+        repo_name = repo_config["repo"]
+        if repo_name == SLIPSTREAM_REPO:
+            continue
+        source_key = get_source_key_for_repo(repo_name)
+        expected_sections.append((f"## GitHub: {repo_name}", source_key,
+                                   "Keine neuen Releases in den letzten 7 Tagen."))
+
+    # Slipstream (immer, auch wenn nicht konfiguriert)
+    slipstream_configured = any(
+        r.get("repo") == SLIPSTREAM_REPO for r in github_repos
+    )
+    if slipstream_configured:
+        expected_sections.append(("## Slipstream neueste Entwicklungen", "slipstream",
+                                   "Keine neuen Entwicklungen in den letzten 7 Tagen."))
+    else:
+        expected_sections.append(("## Slipstream neueste Entwicklungen", "slipstream",
+                                   "nicht konfiguriert"))
+
+    # Fehlende Sektionen sammeln
+    missing_sections = []
+    for heading, source_key, empty_text in expected_sections:
+        if heading not in report_content:
+            items = by_source.get(source_key, [])
+            section_lines = [heading]
+            if items:
+                for it in items[:ITEMS_PER_SOURCE]:
+                    section_lines.append(f"- [{it['title']}]({it['url']}): {it['summary']}")
+            else:
+                section_lines.append(empty_text)
+            section_lines.append("")  # Leerzeile am Ende
+            missing_sections.append("\n".join(section_lines))
+
+    # Fehlende Items sammeln (URL nicht exakt im Bericht)
+    # Ein Item gilt nur als vorhanden, wenn "(" + url + ")" oder url gefolgt
+    # von Leerzeichen/Zeilenende/")" im Bericht steht.
+    missing_items = []
+    for item in evaluated_items:
+        url = item.get("url", "")
+        if not url:
+            missing_items.append(f"- [{item['title']}]({url})")
+            continue
+        escaped_url = re.escape(url)
+        # Entweder (url) oder url gefolgt von Whitespace, ), ], oder Zeilenende
+        url_pattern = rf"\({escaped_url}\)|{escaped_url}(?=[\s)\]]|$)"
+        if not re.search(url_pattern, report_content, re.MULTILINE):
+            missing_items.append(f"- [{item['title']}]({url})")
+
+    # Nicht-vom-Modell-bewertet-Sektion bauen (falls nötig)
+    unreviewed_section = None
+    if missing_items:
+        unreviewed_lines = ["## Nicht vom Modell bewertet"] + missing_items + [""]
+        unreviewed_section = "\n".join(unreviewed_lines)
+
+    # Einfügepunkt bestimmen: VOR "## Fazit" (Regex) falls vorhanden, sonst am Ende
+    secured = report_content
+    insertion_text = "\n\n".join(missing_sections)
+    if unreviewed_section:
+        if insertion_text:
+            insertion_text += "\n\n" + unreviewed_section
+        else:
+            insertion_text = unreviewed_section
+
+    if not insertion_text:
+        return secured
+
+    # Regex fuer Fazit-Ueberschrift: "## Fazit" optional gefolgt von Text bis Zeilenende
+    m = re.search(r"^##\s*Fazit\b.*$", secured, re.MULTILINE)
+    if m:
+        # Direkt vor m.start() einfuegen (mit Leerzeile davor, falls nötig)
+        prefix = secured[:m.start()]
+        suffix = secured[m.start():]
+        # Sicherstellen, dass vor der Einfuegung eine Leerzeile steht
+        if not prefix.endswith("\n\n"):
+            prefix += "\n"
+        secured = prefix + insertion_text + "\n\n" + suffix
+    else:
+        # Am Ende anhaengen
+        if not secured.endswith("\n\n"):
+            secured += "\n"
+        secured += insertion_text
+
+    return secured
 
 
 def save_report(filepath: Path, report_content: str, now: datetime) -> None:
@@ -670,6 +800,9 @@ def main():
         # LLM aufrufen (mit allen Sektionen, auch wenn leer)
         print(f"Bewerte Items ({len(new_items)} neue, {len(evaluated)} fuer LLM)...")
         report_content = call_llm_for_evaluation(new_items, sources_config)
+
+        # Bericht absichern: Jede erwartete Sektion muss im Bericht stehen
+        report_content = secure_report_sections(report_content, evaluated, sources_config)
 
         # Bericht speichern
         save_report(filepath, report_content, now)
