@@ -536,6 +536,39 @@ def _testliste(skript: Path) -> str:
     return "\n".join(raus) or "(keine Testmethoden)"
 
 
+def _auffaellige_tests(pruefung: str) -> set[str]:
+    """Test-IDs/Methoden, die die Pruefung als GRUEN, LADEN oder ANDERS markiert (kleingeschrieben)."""
+    treffer = set()
+    for m in re.finditer(r"^\s*(?:GRUEN|LADEN)\s+(test_\w+)", pruefung, re.M):
+        treffer.add(m.group(1).lower())
+    for m in re.finditer(r"^\s*ANDERS\s+(T\w+)", pruefung, re.M):
+        treffer.add(m.group(1).lower())
+    return treffer
+
+
+def _testcode(skript: Path, auffaellig: set[str], grenze: int = 60) -> str:
+    """Quelltext der auffaelligen Testmethoden (je hoechstens grenze Zeilen), damit das Review
+    beurteilen kann, was sie wirklich pruefen (Probe 22.10.: ohne Testcode 0/4 Testbefunde)."""
+    if not skript.is_file() or not auffaellig:
+        return ""
+    text = skript.read_text(encoding="utf-8")
+    try:
+        baum = ast.parse(text)
+    except SyntaxError:
+        return ""
+    zeilen, teile = text.splitlines(), []
+    for k in ast.walk(baum):
+        if not isinstance(k, (ast.FunctionDef, ast.AsyncFunctionDef)) or not k.name.startswith("test"):
+            continue
+        name = k.name.lower()
+        kennung = re.match(r"test_(t\w*?\d+[a-z]?)(?:_|$)", name)
+        if name in auffaellig or (kennung and kennung.group(1) in auffaellig):
+            ende = min(k.end_lineno or k.lineno, k.lineno + grenze - 1)
+            code = "\n".join(f"{i:4d}  {zeilen[i - 1]}" for i in range(k.lineno, ende + 1))
+            teile.append(f"#### {k.name}\n\n```\n{code}\n```")
+    return "\n\n".join(teile)
+
+
 def _diff(commit: str, nur: set[str] | None = None) -> tuple[str, list[str]]:
     """Code-Aenderungen gegen commit. Nie Werkzeug-/Doku-/Testordner (PAKET_NIE).
     nur: wenn gesetzt (aus dem Handover), nur diese Dateien.
@@ -627,11 +660,15 @@ def paket(kurztitel: str, commit: str | None = None, datum: str | None = None, s
         "## 1. Anforderung (verbindlich, woertlich)\n\n"
         + (anf_p.read_text(encoding="utf-8").strip() if anf_p else "(keine Anforderungsdatei – nur Spec als Massstab)"),
         f"## 2. Spec (Auszug aus `{spec_p.name}`)\n\n### Ziel\n{abschnitt(spec, 'Ziel').strip()}\n\n"
+        f"### Nicht-Ziele (bewusst ausgeschlossen – kein Befund)\n{abschnitt(spec, 'Nicht-Ziele').strip() or '(keine)'}\n\n"
         f"### Anforderungen\n{abschnitt(spec, 'Anforderungen').strip()}\n\n"
         f"### Testplan (nur Titel und Erwartungen)\n{_testplan_kurz(spec)}\n\n"
         f"### Offene Fragen\n{abschnitt(spec, 'Offene Fragen').strip() or '(keine)'}",
         f"## 3. Code-Aenderungen gegen `{commit}`\n\n{diff}",
-        f"## 4. Testskript `tests/test_{kurztitel}.py` (Methoden)\n\n{_testliste(ROOT / 'tests' / f'test_{kurztitel}.py')}",
+        f"## 4. Testskript `tests/test_{kurztitel}.py` (Methoden)\n\n{_testliste(ROOT / 'tests' / f'test_{kurztitel}.py')}"
+        + (f"\n\n### Code der auffaelligen Tests (GRUEN/ANDERS in der Pruefung)\n\n{tc}" if (tc := _testcode(
+            ROOT / "tests" / f"test_{kurztitel}.py",
+            _auffaellige_tests(pr_p.read_text(encoding="utf-8")) if pr_p else set())) else ""),
         "## 5. Handover – nur Abweichungen, Annahmen, offene und nicht getestete Punkte\n\n"
         + ((_bloecke(ho_p.read_text(encoding="utf-8"), r"abweich|annahm|offen|nicht getestet|schw[aä]chen")
             or "(keine solchen Abschnitte)") if ho_p else "(kein Handover)"),

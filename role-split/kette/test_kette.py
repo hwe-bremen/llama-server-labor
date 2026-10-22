@@ -223,7 +223,7 @@ class PruefenTests(unittest.TestCase):
     def _paket_vorbereiten(self):
         pm = kette.PM
         (pm / "spec_20261022_g.md").write_text(
-            "# Spec\n\n## Ziel\nZIELTEXT\n\n## Quellen\nQUELLTEXT\n\n## Anforderungen\n### A1: Eins\nANFTEXT\n\n"
+            "# Spec\n\n## Ziel\nZIELTEXT\n\n## Nicht-Ziele\nNZTEXT\n\n## Quellen\nQUELLTEXT\n\n## Anforderungen\n### A1: Eins\nANFTEXT\n\n"
             "## Fehlerpfade\nFEHLERTABELLE\n\n## Testplan\n### T1: Erster\n- **Prüft:** A1\n- **Aufbau:** AUFBAUTEXT\n"
             "- **Erwartung:** ERWARTET1\n\n## Offene Fragen\nOQTEXT\n", encoding="utf-8")
         (pm / "anforderung_20261022_g.md").write_text("HAWE WILL X\n", encoding="utf-8")
@@ -233,7 +233,7 @@ class PruefenTests(unittest.TestCase):
             "### Abweichungen bei Nachbesserung 2\nABWEICHUNG2\n", encoding="utf-8")
         (pm / "pruefung_20261022_g.md").write_text(
             "# Pruefung g\n\n- Kurz: abgleich: ok | unittest: ok\n\n## abgleich  (Exit 0)\nABGL\n"
-            "## unittest  (Exit 0)\ntest_x ... ok\nRan 1 test in 0.1s\nOK\n## gegenprobe gegen x  (Exit 0)\nGEGEN\n",
+            "## unittest  (Exit 0)\ntest_x ... ok\nRan 1 test in 0.1s\nOK\n## gegenprobe gegen x  (Exit 1)\nGEGEN\n  GRUEN test_t1_neu  (wird mit keiner alten Datei rot)\n",
             encoding="utf-8")
         (self.root / "neu_modul.py").write_text("Y = 1\n")
 
@@ -245,7 +245,8 @@ class PruefenTests(unittest.TestCase):
         for soll in ("HAWE WILL X", "ZIELTEXT", "ANFTEXT", "### T1: Erster", "ERWARTET1", "OQTEXT",
                      "### mod.py (stark umgebaut", "   2      return 2", "### neu_modul.py (neue Datei", "   1  Y = 1",
                      "`test_t1_neu` (Zeile", "ABWEICHUNG1", "DETAIL1", "ABWEICHUNG2",
-                     "- Kurz: abgleich: ok", "ABGL", "GEGEN", "Ran 1 test", self.erster):
+                     "- Kurz: abgleich: ok", "ABGL", "GEGEN", "Ran 1 test", self.erster,
+                     "NZTEXT", "#### test_t1_neu", "self.assertEqual(mod.f(), 2)"):
             self.assertIn(soll, text, soll)
         for nicht in ("QUELLTEXT", "FEHLERTABELLE", "AUFBAUTEXT", "LANGE AUSGABE", "UMGESETZT", "test_x ... ok"):
             self.assertNotIn(nicht, text, nicht)
@@ -303,6 +304,22 @@ class PruefenTests(unittest.TestCase):
     def test_kurztitel_mit_pfad_abgelehnt(self):
         code, out = lauf(kette.pruefen, "../x")
         self.assertEqual(code, 2); self.assertIn("ungueltig", out)
+
+
+class TestcodeTests(unittest.TestCase):
+    def test_auffaellige_ids(self):
+        txt = "  GRUEN test_t12_x  (..)\n  LADEN test_t3_y (..)\n  ANDERS    T8    Spec: …\n  rot   test_t1_z <- a.py\n"
+        self.assertEqual(kette._auffaellige_tests(txt), {"test_t12_x", "test_t3_y", "t8"})
+
+    def test_code_nach_id_und_name(self):
+        d = tempfile.TemporaryDirectory(); self.addCleanup(d.cleanup)
+        p = Path(d.name) / "t.py"
+        p.write_text("class T:\n    def test_t8_leer(self):\n        assert 1\n"
+                     "    def test_t16_zweit(self):\n        assert 2\n    def test_t1_ok(self):\n        assert 3\n")
+        out = kette._testcode(p, {"t8", "test_t16_zweit"})
+        self.assertIn("#### test_t8_leer", out); self.assertIn("#### test_t16_zweit", out)
+        self.assertNotIn("test_t1_ok", out)
+        self.assertEqual(kette._testcode(p, set()), "")
 
 
 class PromptTests(unittest.TestCase):
