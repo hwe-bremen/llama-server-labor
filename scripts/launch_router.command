@@ -35,6 +35,25 @@ PORT=8080
 # oft an CORS. Konsistent die IP nutzen (fuer open UND curl).
 URL="http://127.0.0.1:${PORT}"
 MCP_PORT="${MCP_PORT:-8787}"
+# Welche Adresse der Browser oeffnet. Default: der Router selbst. Die Rollen-Laeufe
+# (launch_lab_roles) setzen LAB_OPEN_URL auf den Rollen-Proxy 8092, damit @review/@research greifen.
+OPEN_URL="${LAB_OPEN_URL:-$URL}"
+
+# Browser erst oeffnen, wenn OPEN_URL antwortet (8092 haengt im Rollen-Lauf an 8091, der
+# nach dem Router startet). Laeuft im Hintergrund, blockiert den Router nicht; max. 120 s.
+open_browser() {
+  if [ "${OPEN_URL}" = "${URL}" ]; then
+    echo "Oeffne ${OPEN_URL}"; open "${OPEN_URL}"; return
+  fi
+  (
+    for i in $(seq 1 120); do
+      code="$(curl -s -o /dev/null -w '%{http_code}' "${OPEN_URL}/v1/models" 2>/dev/null)"
+      if [ "$code" = "200" ]; then echo "Oeffne ${OPEN_URL}"; open "${OPEN_URL}"; exit 0; fi
+      sleep 1
+    done
+    echo "HINWEIS: ${OPEN_URL} antwortet nach 120 s nicht – Browser von Hand oeffnen (Router: ${URL})."
+  ) &
+}
 
 # --- Modell-Limit (Default 2, siehe Kopf) ---
 MODELS_MAX="${LAB_MODELS_MAX:-2}"
@@ -83,7 +102,7 @@ echo "=================================================="
 # obwohl auf der neuen Adresse gar nichts lauscht.
 if curl -s -o /dev/null "${URL}/v1/models" 2>/dev/null; then
   echo "Router antwortet bereits auf ${URL} — oeffne nur den Browser."
-  open "${URL}"
+  open_browser; wait
   echo "Fenster kann geschlossen werden."
   exit 0
 fi
@@ -138,8 +157,7 @@ if [ "${READY}" -eq 1 ]; then
   curl -s "${URL}/v1/models" \
     | tr ',' '\n' | grep '"id"' | sed 's/.*"id":"\([^"]*\)".*/  - \1/'
   echo
-  echo "Oeffne ${URL}"
-  open "${URL}"
+  open_browser
 else
   echo "Router hat nach Wartezeit nicht geantwortet. Bitte Ausgabe pruefen."
 fi

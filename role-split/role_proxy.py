@@ -53,6 +53,9 @@ DEFAULT_MODEL = os.environ.get("ROLE_DEFAULT_MODEL", "").strip() or None
 RESET_WORDS = {"aus", "off"}
 # "@review …" und "@review: …"; "@reviewer" oder "@review/x" zählen nicht.
 TRIGGER_RE = re.compile(r"^\s*@([A-Za-z0-9_-]+):?(?=\s|$)")
+# Lange Einfuegungen packt die llama.cpp-Web-UI als Anhang ein ("--- File: Pasted ---\n…"). Dann steht
+# der Trigger nicht mehr am Anfang und die Rolle griff nicht (Probe 22.10., Prompt v2 ohne Review-Rolle).
+PASTE_HEAD_RE = re.compile(r"^\s*---\s*File:[^\n]*---[ \t]*\n")
 # Bekannte Modellfamilien für das Kürzel im Dateinamen (Reihenfolge = Priorität).
 MODEL_FAMILIES = ("qwen", "gemma", "mellum", "apertus", "devstral", "llama", "mistral", "phi", "deepseek", "gpt-oss")
 # "Neue Aufgabe scout_feeds_pruefen: Text …" (Kurztitel: Kleinbuchstaben, Ziffern, _)
@@ -145,6 +148,9 @@ def model_line(model: str | None) -> str:
 # ------------------------------------------------------------------ Nachrichten
 
 def _strip_trigger_text(text: str, roles: dict[str, str]) -> tuple[str | None, str]:
+    kopf = PASTE_HEAD_RE.match(text)
+    if kopf and TRIGGER_RE.match(text[kopf.end():]):
+        text = text[kopf.end():]          # Anhang-Kopf weg, Trigger steht jetzt vorn
     m = TRIGGER_RE.match(text)
     if not m:
         return None, text

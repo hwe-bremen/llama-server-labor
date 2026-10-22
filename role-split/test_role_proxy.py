@@ -83,6 +83,18 @@ class TriggerTests(unittest.TestCase):
         self.assertIsNone(role)
         self.assertEqual(out["messages"][0]["content"], "@niemand hallo")
 
+    def test_trigger_nach_anhang_kopf_der_web_ui(self):
+        text = "\n\n--- File: Pasted ---\n@review Prüf die Umsetzung\nmehr Text"
+        out, role = rp.apply_roles({"messages": [u(text)]}, ROLES, TODAY)
+        self.assertEqual(role, "review")
+        self.assertEqual(out["messages"][1]["content"], "Prüf die Umsetzung\nmehr Text")
+
+    def test_anhang_ohne_trigger_bleibt_unveraendert(self):
+        text = "--- File: Pasted ---\nNur ein Text, @review mittendrin"
+        out, role = rp.apply_roles({"messages": [u(text)]}, ROLES, TODAY)
+        self.assertIsNone(role)
+        self.assertEqual(out["messages"][0]["content"], text)
+
     def test_trigger_mitten_im_text_zaehlt_nicht(self):
         _, role = rp.apply_roles({"messages": [u("bitte @review machen")]}, ROLES, TODAY)
         self.assertIsNone(role)

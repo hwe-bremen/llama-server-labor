@@ -30,6 +30,7 @@ MCP_PORT="${MCP_PORT:-8787}"
 ROLE_PORT="${ROLE_PORT:-8092}"
 export ROLE_PORT
 export LAB_SERVE_PORT="${LAB_SERVE_PORT:-$ROLE_PORT}"   # wirkt nur mit LAB_BIND=serve
+export LAB_OPEN_URL="${LAB_OPEN_URL:-http://127.0.0.1:${ROLE_PORT}}"   # Browser auf den Rollen-Proxy, nicht 8080
 
 # --- Fail-loud: vorhandenen MCP-Server prüfen ---
 MCP_PID="$(lsof -ti ":${MCP_PORT}" -sTCP:LISTEN 2>/dev/null | head -n1)"
