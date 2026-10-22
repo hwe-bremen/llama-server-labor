@@ -830,7 +830,7 @@ def quellen(kurztitel: str, datum: str | None = None) -> int:
 
 # ---------------------------------------------------------------- prompt
 
-def prompt(schritt: str, kurztitel: str, datum: str | None, commit: str | None) -> int:
+def prompt(schritt: str, kurztitel: str, datum: str | None, commit: str | None, lauf: int | None = None) -> int:
     vorlage = PROMPTS / f"{schritt}.md"
     if not vorlage.is_file():
         print(f"Keine Vorlage: {vorlage}"); return 2
@@ -873,6 +873,11 @@ def prompt(schritt: str, kurztitel: str, datum: str | None, commit: str | None) 
     if anf:
         text = re.sub(r"<AUFGABE[^>]*>", lambda _m: aufgabe_lesen(anf), text)
     text = "\n".join(z for z in text.splitlines() if not z.startswith("<!--")).strip() + "\n"
+    if lauf:
+        # Eigener Dateiname je Review-Lauf: sonst findet Lauf 2 das Verdikt von Lauf 1 (geschuetzt),
+        # liest es und haengt an (Probe K4, 22.10.) -> Laeufe nicht mehr unabhaengig.
+        text = text.replace("_<modellkürzel>.md", f"_<modellkürzel>_lauf{lauf}.md")
+        text += "Verdikte anderer Läufe liest du nicht.\n"
     print(text)
     if shutil.which("pbcopy"):
         subprocess.run(["pbcopy"], input=text, text=True)
@@ -886,6 +891,7 @@ def main(argv=None) -> int:
     sub = ap.add_subparsers(dest="cmd", required=True)
     p = sub.add_parser("prompt"); p.add_argument("schritt", choices=SCHRITTE); p.add_argument("kurztitel")
     p.add_argument("--datum"); p.add_argument("--commit")
+    p.add_argument("--lauf", type=int, help="Review-Lauf-Nummer (eigener Verdikt-Dateiname je Lauf)")
     q = sub.add_parser("quellen"); q.add_argument("kurztitel"); q.add_argument("--datum")
     n = sub.add_parser("anforderung"); n.add_argument("kurztitel")
     n.add_argument("--aufgabe"); n.add_argument("--antwort"); n.add_argument("--frage"); n.add_argument("--datum")
@@ -910,7 +916,7 @@ def main(argv=None) -> int:
     if args.cmd == "anforderung":
         return anforderung(args.kurztitel, args.aufgabe, args.antwort, args.frage, args.datum)
     if args.cmd == "prompt":
-        return prompt(args.schritt, args.kurztitel, args.datum, args.commit)
+        return prompt(args.schritt, args.kurztitel, args.datum, args.commit, args.lauf)
     if args.cmd == "abgleich":
         return abgleich(args.kurztitel, args.datum)
     pfad = Path(args.verdikt)

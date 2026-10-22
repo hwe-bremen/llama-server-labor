@@ -45,13 +45,13 @@ Settings → Tools zeigt nur eingebaute Tools („Browser"); die für Eval-Läuf
 
 ## 3. Rollen im Chat (Web-UI)
 
-**Modell zuerst wählen** (Dropdown, vor der ersten Nachricht): Kettenstart/Spec = **Qwen3.8**, Review/Verdikt = **Qwen3.6**
+**Modell zuerst wählen** (Dropdown, vor der ersten Nachricht): Kettenstart/Spec = **Qwen3.8**, Review/Verdikt = **Qwen3.6-35B-A3B**
 (eigener, neuer Chat im Eval-Lauf). Bei beiden Reasoning **aus**.
 
 | Am Anfang der Nachricht | Wirkung |
 |---|---|
 | `@review Neue Aufgabe <kurztitel>: <Text>` | **neue Kette starten** – Modell **Qwen3.8**, Reasoning aus. Proxy schreibt deinen Text wörtlich nach `anforderung_<datum>_<kurztitel>.md`, jede spätere Antwort im Chat wird mitgeschrieben, Spec-Anweisungen kommen automatisch mit |
-| `@review …` | prüft, widerspricht begründet, schreibt Specs/Verdikte nach `docs/projekt_management/` (Review einer Kette: Qwen3.6) |
+| `@review …` | prüft, widerspricht begründet, schreibt Specs/Verdikte nach `docs/projekt_management/` (Review einer Kette: Qwen3.6-35B-A3B) |
 | `@research …` | recherchiert, markiert belegt / Wissensstand / Vermutung |
 | `@aus …` | Rolle ab |
 | ohne Trigger | zuletzt gesetzte Rolle gilt weiter |
@@ -110,7 +110,7 @@ python3 role-split/kette/kette.py prompt umsetzung <kurztitel>        # → Open
 python3 role-split/kette/kette.py pruefen <kurztitel>
 #   = abgleich + unittest + gegenprobe; Rücksetzpunkt findet es selbst (Commit "Spec <kurztitel>");
 #   Ausgabe landet in docs/projekt_management/pruefung_<datum>_<kurztitel>.md → Claude nur Bescheid sagen
-# 3 Review: start_eval, NEUER Chat, Modell Qwen3.6 (Reasoning aus)
+# 3 Review: start_eval, NEUER Chat, Modell Qwen3.6-35B-A3B (Reasoning aus); optional 2. Lauf: prompt review <kurztitel> --lauf 2
 python3 role-split/kette/kette.py prompt review <kurztitel>
 python3 role-split/kette/kette.py urteil docs/projekt_management/verdict_<…>.md --anhaengen
 # dann externe Gegenprüfung (Claude) → PASS: commit | NACHBESSERN: Befunde an OpenCode, dann wieder 2
@@ -132,7 +132,7 @@ Hat die Aufgabe Außenwirkung (Mail, Netz, echte Daten): **Sperre vor der Umsetz
 python3 role-split/eval/halluzination/probe.py --modelle "<id>"     # Halluzinations-Vortest, Lab läuft
 ```
 Review-Eval mit `start_eval.command`, Ablauf in `role-split/eval/README.md`. Welches Modell für welche Rolle:
-Projektdokument `modellwahl-tabelle.md` (Kettenstart/Spec Qwen3.8, Umsetzung + Review Qwen3.6).
+Projektdokument `modellwahl-tabelle.md` (Kettenstart/Spec Qwen3.8, Umsetzung Qwen3.6-27B, Review Qwen3.6-35B-A3B).
 
 Qwen3-Coder-Next 80B (Slipstream, ruht): `bash scripts/launch_qwen3next.command` (Port 8083, Lab vorher beenden,
 bei Speichermangel `sudo purge`). Stand: Projektdokument `slipstream-stand.md`.
@@ -142,7 +142,7 @@ bei Speichermangel `sudo purge`). Stand: Projektdokument `slipstream-stand.md`.
 - Jeder Befehlsblock beginnt mit `cd …` – auf den Ordner im Prompt achten.
 - Zwei Fenster: 1 = Launcher (nichts eintippen), 2 = Befehle.
 - Codeblöcke über das Kopier-Symbol kopieren (sonst landet z. B. `sh` mit im Terminal).
-- Modell: Kettenstart/Spec **Qwen3.8**, Umsetzung und Review **Qwen3.6** – vor der ersten Nachricht im Dropdown wählen.
+- Modell: Kettenstart/Spec **Qwen3.8**, Umsetzung **Qwen3.6-27B**, Review **Qwen3.6-35B-A3B** – vor der ersten Nachricht im Dropdown wählen.
 - Die Web-UI-Modelle schreiben nur Dokumente (`docs/projekt_management/`, `docs/research/`), keinen Code.
 - Antworten ohne Beleg (Datei, URL, Testausgabe) gelten als **ungeprüft** – nachfragen: „Woher? Zeig die Stelle."
 - Nach MCP-Neustart: MCP-Eintrag aus/an, Seite neu laden, **neuen Chat**.

@@ -322,6 +322,16 @@ class TestcodeTests(unittest.TestCase):
         self.assertEqual(kette._testcode(p, set()), "")
 
 
+class LaufTests(unittest.TestCase):
+    def test_lauf_nummer_im_verdiktnamen(self):
+        code, out = lauf(kette.prompt, "review", "mein_thema", "20261018", "abc1234", 2)
+        self.assertEqual(code, 0)
+        self.assertIn("_<modellkürzel>_lauf2.md", out)
+        self.assertIn("Verdikte anderer Läufe liest du nicht.", out)
+        code, out = lauf(kette.prompt, "review", "mein_thema", "20261018", "abc1234")
+        self.assertNotIn("_lauf", out)
+
+
 class PromptTests(unittest.TestCase):
     def test_alle_vorlagen_fuellbar(self):
         for s in kette.SCHRITTE:

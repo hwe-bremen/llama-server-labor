@@ -14,7 +14,7 @@ Du beschreibst eine Aufgabe im Chat. Danach arbeiten nacheinander:
 | A Aufgabe + Spec | **Du** + Qwen3.8 (Web-UI) | `anforderung_…`, `spec_…`, `quellen_…` | 30–60 min |
 | B Umsetzung | Qwen3.6 in OpenCode | Code, Tests, `handover_…` | 30–60 min |
 | C Prüfen | **Maschine** (`kette.py pruefen`) | `pruefung_…` | 2 min |
-| D Review | Qwen3.6 (Web-UI, neuer Chat) | `verdict_…` | 15–30 min |
+| D Review | Qwen3.6-35B-A3B (Web-UI, neuer Chat) | `verdict_…` | 15–25 min |
 | E Gegenprüfung | Claude (Projekt-Chat) | Befunde oder Freigabe | 5–15 min |
 | F Entscheidung | **Du** | Commit, Nachbesserung oder Verwerfen | 2 min |
 
@@ -124,8 +124,10 @@ Achtung: `gegenprobe` verändert Dateien für Sekunden – nicht laufen lassen, 
    python3 role-split/kette/kette.py prompt review <kurztitel>
    ```
    Steht dort `WARNUNG: Paket > 80000 Zeichen`: Claude fragen, ob das Review in Teilen laufen soll.
-3. Browser **neuer Chat**, Modell **Qwen3.6**, Reasoning **aus**, Prompt einfügen, abschicken. Der Prompt enthält die
-   vier Pflichtfragen und verlangt ein knappes Verdikt, das **abschnittsweise** gespeichert wird (`write_file`, dann `append_file`).
+3. Browser **neuer Chat**, Modell **Qwen3.6-35B-A3B** (schneller und in den Proben genauer als 27B), Reasoning **aus**,
+   Prompt einfügen, abschicken. Optional ein zweiter, unabhängiger Lauf: neuer Chat mit
+   `kette.py prompt review <kurztitel> --lauf 2` (eigener Verdikt-Name, liest Lauf 1 nicht). Der Prompt enthält die
+   sechs Pflichtfragen und verlangt ein knappes Verdikt, das **abschnittsweise** gespeichert wird (`write_file`, dann `append_file`).
 4. **Kontextanzeige beobachten.** Ab **80 %** die Notbremse schicken (Abschnitt 5). Durch das abschnittsweise Speichern
    ist dann meist schon ein Teil des Verdikts in der Datei.
 5. Urteil mechanisch nachrechnen (Dateinamen aus dem Chat übernehmen):
@@ -209,7 +211,7 @@ git add docs/projekt_management/*_<kurztitel>.md && git commit -m "Spec <kurztit
 python3 role-split/kette/kette.py prompt umsetzung <kurztitel>     # → opencode, Qwen3.6, Agent umsetzung
 # C
 python3 role-split/kette/kette.py pruefen <kurztitel>
-# D  Ctrl+C, start_eval | neuer Chat | Qwen3.6, Reasoning aus | ab 80 % Notbremse
+# D  Ctrl+C, start_eval | neuer Chat | Qwen3.6-35B-A3B, Reasoning aus | ab 80 % Notbremse | optional --lauf 2
 python3 role-split/kette/kette.py prompt review <kurztitel>
 python3 role-split/kette/kette.py urteil docs/projekt_management/verdict_<…>.md --anhaengen
 # E  Projekt-Chat: "Kette <kurztitel> fertig, bitte gegenprüfen."
@@ -227,7 +229,7 @@ Start/Ende je Phase, Modelle, deine Eingriffe, welche Befunde das Review fand un
 **Ziel (entschieden 22.10.):** Die Kette soll ohne externe Prüfung verlässlich werden.
 **Schwelle:** 3 Ketten in Folge, in denen kein kritischer Fehler am lokalen Review vorbei bis vor den Commit rutscht.
 **Stand:** 0/3 (K4, K5 verfehlt). Seit 22.10. im Review: Review-Paket statt vieler Dateien, abschnittsweises Speichern
-(`append_file`), vier Pflichtfragen (erzwungen oder nur verlangt? leerer/abweichender Fall? markiert, aber nie gezeigt?
-läuft die Absicherung selbst ins Leere?). **Ab K6 wird neu gezählt;** nach 3 Ketten ohne 3/3 gilt
+(`append_file`), sechs Pflichtfragen (erzwungen oder nur verlangt? leerer/abweichender Fall? markiert, aber nie gezeigt?
+läuft die Absicherung selbst ins Leere? widersprüchliche Anweisungen? stimmt jeder Satz der Anforderung?). **Ab K6 wird neu gezählt;** nach 3 Ketten ohne 3/3 gilt
 „lokal bauen, extern prüfen" als Ergebnis.
 Details: Projektdokument `standort-kette.md`.
