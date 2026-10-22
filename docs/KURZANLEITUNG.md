@@ -96,30 +96,33 @@ OpenCode darf im ganzen Projekt Dateien ändern. Committen nach Review und Gegen
 
 ## 6b. Kette mit Prüfbefehlen (Spickzettel – Details im FAHRPLAN)
 
-Spitze Klammern sind Platzhalter, nie mit eintippen. `K` und `R` gelten nur im aktuellen Terminal-Fenster (`echo $K` prüft).
+Spitze Klammern sind Platzhalter, nie mit eintippen. Den Kurztitel schreibst du immer **ausgeschrieben** hin
+(z. B. `search_results_verbessern`) – keine `$K`/`$R`-Variablen mehr nötig.
 
 ```bash
-K=<kurztitel>
-# Spec: start_rollen, Modell Qwen3.8 (Reasoning aus), Web-UI "@review Neue Aufgabe <kurztitel>: …",
-#       Rückfragen beantworten, "Spec schreiben"
-python3 role-split/kette/kette.py quellen $K                 # Fundstellen der Spec wörtlich + Zeilennummern holen
-git add docs/projekt_management/*_$K.md && git commit -m "Spec $K"
-R=$(git rev-parse --short HEAD)                              # Rücksetzpunkt
-python3 role-split/kette/kette.py prompt umsetzung $K --commit $R    # → OpenCode (Qwen3.6)
-python3 role-split/kette/kette.py abgleich $K                # Spec-Tests vs. Handover/Testskript
-python3 -m unittest -v tests/test_$K.py
-python3 role-split/kette/kette.py gegenprobe $K --commit $R  # rot = Test misst die Änderung, GRUEN = prüfen
-# Review: start_eval, NEUER Chat, Modell Qwen3.6 (Reasoning aus)
-python3 role-split/kette/kette.py prompt review $K --commit $R       # Ergebnisse von abgleich/gegenprobe ans Ende anhängen
+cd ~/PycharmProjects/llama-server
+# 1 Spec: start_rollen, Modell Qwen3.8 (Reasoning aus), Web-UI "@review Neue Aufgabe <kurztitel>: …",
+#         Rückfragen beantworten, "Spec schreiben"
+python3 role-split/kette/kette.py quellen <kurztitel>                 # Fundstellen der Spec wörtlich holen
+git add docs/projekt_management/*_<kurztitel>.md && git commit -m "Spec <kurztitel>"   # = Rücksetzpunkt
+python3 role-split/kette/kette.py prompt umsetzung <kurztitel>        # → OpenCode (Qwen3.6)
+# 2 Nach jeder Umsetzung/Nachbesserung – EIN Befehl statt drei:
+python3 role-split/kette/kette.py pruefen <kurztitel>
+#   = abgleich + unittest + gegenprobe; Rücksetzpunkt findet es selbst (Commit "Spec <kurztitel>");
+#   Ausgabe landet in docs/projekt_management/pruefung_<datum>_<kurztitel>.md → Claude nur Bescheid sagen
+# 3 Review: start_eval, NEUER Chat, Modell Qwen3.6 (Reasoning aus)
+python3 role-split/kette/kette.py prompt review <kurztitel>
 python3 role-split/kette/kette.py urteil docs/projekt_management/verdict_<…>.md --anhaengen
-# dann externe Gegenprüfung (Claude) → PASS: commit | NACHBESSERN: Befunde an OpenCode, 2b + neues Review
+# dann externe Gegenprüfung (Claude) → PASS: commit | NACHBESSERN: Befunde an OpenCode, dann wieder 2
 ```
 
+Wichtig: Die Commit-Nachricht muss genau `Spec <kurztitel>` lauten, sonst findet `pruefen` den Rücksetzpunkt nicht
+(dann: `pruefen <kurztitel> --commit <hash>`, Hash aus `git log --oneline -10`).
+
 Weitere Befehle:
-- `kette.py anforderung $K --aufgabe "…"` / `--antwort "…" --frage "…"` – Anforderung ohne Web-UI anlegen bzw. ergänzen.
-- `kette.py prompt spec $K` – Spec-Prompt ohne Web-UI-Mitschrift (dann ebenfalls mit Qwen3.8).
-- Rücksetzpunkt vergessen: `git log --oneline -5` (Commit „Spec <kurztitel>").
-- Bei Nachbesserungen bleibt `R` der Spec-Commit, auch wenn zwischendurch committet wurde.
+- `kette.py anforderung <kurztitel> --aufgabe "…"` / `--antwort "…" --frage "…"` – Anforderung ohne Web-UI anlegen bzw. ergänzen.
+- `kette.py prompt spec <kurztitel>` – Spec-Prompt ohne Web-UI-Mitschrift (dann ebenfalls mit Qwen3.8).
+- Einzeln weiterhin möglich: `kette.py abgleich <kurztitel>`, `kette.py gegenprobe <kurztitel> --commit <hash>`.
 
 Hat die Aufgabe Außenwirkung (Mail, Netz, echte Daten): **Sperre vor der Umsetzung**. Ablauf: `role-split/kette/README.md`.
 

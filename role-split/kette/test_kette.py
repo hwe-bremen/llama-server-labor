@@ -171,6 +171,60 @@ class GegenprobeTests(unittest.TestCase):
         self.assertTrue((root / "neu.py").exists())
 
 
+class PruefenTests(unittest.TestCase):
+    def setUp(self):
+        import subprocess
+        d = tempfile.TemporaryDirectory(); self.addCleanup(d.cleanup)
+        self.root = root = Path(d.name)
+        def git(*a):
+            subprocess.run(["git", "-C", str(root), "-c", "user.name=t", "-c", "user.email=t@t", *a],
+                           check=True, capture_output=True)
+        self.git = git
+        git("init", "-q")
+        (root / "docs/projekt_management").mkdir(parents=True)
+        (root / "mod.py").write_text("def f():\n    return 1\n")
+        git("add", "."); git("commit", "-qm", "Spec g")
+        self.erster = subprocess.run(["git", "-C", str(root), "rev-parse", "--short", "HEAD"],
+                                     capture_output=True, text=True).stdout.strip()
+        (root / "mod.py").write_text("def f():\n    return 2\n")
+        git("add", "."); git("commit", "-qm", "Spec g")          # spaeterer gleichnamiger Commit
+        (root / "tests").mkdir()
+        (root / "tests" / "test_g.py").write_text(
+            "import sys, unittest\nfrom pathlib import Path\nsys.path.insert(0, str(Path(__file__).parent.parent))\n"
+            "class T(unittest.TestCase):\n"
+            "    def test_t1_neu(self):\n        import mod\n        self.assertEqual(mod.f(), 2)\n")
+        for name, wert in (("ROOT", root), ("PM", root / "docs/projekt_management")):
+            alt = getattr(kette, name); setattr(kette, name, wert)
+            self.addCleanup(setattr, kette, name, alt)
+
+    def test_aeltester_spec_commit_und_datei(self):
+        self.assertEqual(kette.spec_commit("g"), self.erster)
+        code, out = lauf(kette.pruefen, "g")
+        dateien = list((self.root / "docs/projekt_management").glob("pruefung_*_g.md"))
+        self.assertEqual(len(dateien), 1, out)
+        text = dateien[0].read_text(encoding="utf-8")
+        for teil in ("## abgleich", "## unittest", f"## gegenprobe gegen {self.erster}", "Ran 1 test", "rot   test_t1_neu"):
+            self.assertIn(teil, text)
+        self.assertEqual(code, 2)                                  # abgleich: keine Spec -> 2, sichtbar
+        self.assertIn("abgleich: FEHLER", out)
+
+    def test_ohne_spec_commit_abbruch(self):
+        self.assertIsNone(kette.spec_commit("anders"))
+        code, out = lauf(kette.pruefen, "anders")
+        self.assertEqual(code, 2); self.assertIn("Kein Commit 'Spec anders'", out)
+        self.assertEqual(list((self.root / "docs/projekt_management").glob("pruefung_*")), [])
+
+    def test_prompt_review_nimmt_spec_commit_statt_head(self):
+        (kette.PM / "spec_20261022_g.md").write_text("# Spec\n", encoding="utf-8")
+        code, out = lauf(kette.prompt, "review", "g", None, None)
+        self.assertEqual(code, 0)
+        self.assertIn(self.erster, out)
+
+    def test_kurztitel_mit_pfad_abgelehnt(self):
+        code, out = lauf(kette.pruefen, "../x")
+        self.assertEqual(code, 2); self.assertIn("ungueltig", out)
+
+
 class PromptTests(unittest.TestCase):
     def test_alle_vorlagen_fuellbar(self):
         for s in kette.SCHRITTE:

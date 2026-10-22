@@ -31,6 +31,12 @@ Befehle, nur Standardbibliothek, liest/schreibt nur im Projekt:
         zurueck, laesst das Testskript laufen und stellt danach alles wieder her.
         Jeder Test, der dabei gruen bleibt, prueft die Aenderung nicht.
 
+  python3 role-split/kette/kette.py pruefen <kurztitel> [--commit HASH]
+        Alles in einem: abgleich + unittest -v + gegenprobe. Ruecksetzpunkt ohne --commit
+        automatisch = aeltester Commit mit Nachricht "Spec <kurztitel>" (kein $K/$R noetig).
+        Schreibt die komplette Ausgabe nach docs/projekt_management/pruefung_<datum>_<kurztitel>.md
+        (Gegenpruefer liest sie dort, kein Kopieren) und zeigt am Ende eine Kurzzeile.
+
   python3 role-split/kette/kette.py urteil <verdikt.md> [--anhaengen]
         Leitet das Urteil mechanisch aus dem Verdikt ab: Ein Befund mit "ja" bei
         Datenverlust / Unbemerkt / Harte Vorgabe ist "hoch"; ein offener Befund "hoch"
@@ -413,6 +419,65 @@ def gegenprobe(kurztitel: str, commit: str, timeout: int = 300) -> int:
               "dann wird die Gegenprobe je Test aussagekraeftig.")
     return 0 if not gruen else 1
 
+# ---------------------------------------------------------------- pruefen (alles in einem)
+
+def spec_commit(kurztitel: str) -> str | None:
+    """Aeltester Commit, dessen Betreffzeile genau "Spec <kurztitel>" ist (= Ruecksetzpunkt)."""
+    r = subprocess.run(["git", "-C", str(ROOT), "log", "--format=%h%x09%s"],
+                       capture_output=True, text=True)
+    if r.returncode != 0:
+        return None
+    treffer = [z.split("\t", 1)[0] for z in r.stdout.splitlines()
+               if "\t" in z and z.split("\t", 1)[1].strip() == f"Spec {kurztitel}"]
+    return treffer[-1] if treffer else None
+
+
+def pruefen(kurztitel: str, commit: str | None = None, timeout: int = 300) -> int:
+    import contextlib
+    import io
+    if not re.fullmatch(r"[a-z0-9_]+", kurztitel):
+        print(f"Kurztitel '{kurztitel}' ungueltig (nur a-z, 0-9, _)."); return 2
+    commit = commit or spec_commit(kurztitel)
+    if not commit:
+        print(f"Kein Commit 'Spec {kurztitel}' gefunden. Ruecksetzpunkt mit --commit angeben "
+              f"(git log --oneline -10)."); return 2
+    datum = _datum_aus(datei_suchen("spec", kurztitel, None)) or dt.date.today().strftime("%Y%m%d")
+    skript = ROOT / "tests" / f"test_{kurztitel}.py"
+    teile, codes = [], {}
+
+    def schritt(titel: str, fn) -> None:
+        puffer = io.StringIO()
+        with contextlib.redirect_stdout(puffer):
+            try:
+                codes[titel] = fn()
+            except Exception as e:                       # Werkzeugfehler sichtbar machen, nicht verschlucken
+                print(f"!!! Werkzeugfehler: {type(e).__name__}: {e}")
+                codes[titel] = 2
+        teile.append(f"## {titel}  (Exit {codes[titel]})\n\n```\n{puffer.getvalue().rstrip()}\n```\n")
+
+    def unittest_lauf() -> int:
+        if not skript.is_file():
+            print(f"Kein Testskript {skript.relative_to(ROOT)}"); return 2
+        r = subprocess.run([sys.executable, "-m", "unittest", "-v", f"tests/test_{kurztitel}.py"],
+                           cwd=ROOT, capture_output=True, text=True, timeout=timeout)
+        print((r.stdout + r.stderr).rstrip())
+        return 0 if r.returncode == 0 else 1
+
+    schritt("abgleich", lambda: abgleich(kurztitel))
+    schritt("unittest", unittest_lauf)
+    schritt(f"gegenprobe gegen {commit}", lambda: gegenprobe(kurztitel, commit, timeout))
+
+    kurz = " | ".join(f"{k.split()[0]}: {'ok' if v == 0 else ('Abweichung' if v == 1 else 'FEHLER')}"
+                      for k, v in codes.items())
+    kopf = (f"# Pruefung {kurztitel}\n\n- Zeit: {dt.datetime.now():%Y-%m-%d %H:%M}\n"
+            f"- Ruecksetzpunkt: {commit}\n- Kurz: {kurz}\n\n")
+    ziel = PM / f"pruefung_{datum}_{kurztitel}.md"
+    ziel.write_text(kopf + "\n".join(teile), encoding="utf-8")
+    print("\n".join(teile))
+    print(f"\n==> {kurz}")
+    print(f"==> Ausgabe gespeichert: {ziel.relative_to(ROOT)}  (dem Gegenpruefer nur noch Bescheid sagen)")
+    return max(codes.values())
+
 # ---------------------------------------------------------------- anforderung
 
 def _datum_aus(pfad: Path | None) -> str | None:
@@ -567,6 +632,10 @@ def prompt(schritt: str, kurztitel: str, datum: str | None, commit: str | None) 
         datum = _datum_aus(datei_suchen("spec", kurztitel, None)) or _datum_aus(anf) \
             or dt.date.today().strftime("%Y%m%d")
         anf = anf or datei_suchen("anforderung", kurztitel, datum)
+    if not commit and schritt != "spec":
+        commit = spec_commit(kurztitel)          # Ruecksetzpunkt = Commit "Spec <kurztitel>" (22.10.)
+        if commit:
+            print(f"Ruecksetzpunkt = Commit 'Spec {kurztitel}' ({commit}).", file=sys.stderr)
     if not commit:
         try:
             commit = subprocess.run(["git", "-C", str(ROOT), "rev-parse", "--short", "HEAD"],
@@ -611,7 +680,11 @@ def main(argv=None) -> int:
     g = sub.add_parser("gegenprobe"); g.add_argument("kurztitel")
     g.add_argument("--commit", required=True, help="Ruecksetzpunkt vor der Umsetzung")
     g.add_argument("--timeout", type=int, default=300)
+    pr = sub.add_parser("pruefen", help="abgleich + unittest + gegenprobe, Ausgabe in Datei")
+    pr.add_argument("kurztitel"); pr.add_argument("--commit"); pr.add_argument("--timeout", type=int, default=300)
     args = ap.parse_args(argv)
+    if args.cmd == "pruefen":
+        return pruefen(args.kurztitel, args.commit, args.timeout)
     if args.cmd == "gegenprobe":
         return gegenprobe(args.kurztitel, args.commit, args.timeout)
     if args.cmd == "quellen":
