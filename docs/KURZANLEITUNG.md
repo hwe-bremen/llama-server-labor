@@ -45,17 +45,20 @@ Settings → Tools zeigt nur eingebaute Tools („Browser"); die für Eval-Läuf
 
 ## 3. Rollen im Chat (Web-UI)
 
+**Modell zuerst wählen** (Dropdown, vor der ersten Nachricht): Kettenstart/Spec = **Qwen3.8**, Review/Verdikt = **Qwen3.6**
+(eigener, neuer Chat im Eval-Lauf). Bei beiden Reasoning **aus**.
+
 | Am Anfang der Nachricht | Wirkung |
 |---|---|
-| `@review Neue Aufgabe <kurztitel>: <Text>` | **neue Kette starten**: Proxy schreibt deinen Text wörtlich nach `anforderung_<datum>_<kurztitel>.md`, jede spätere Antwort im Chat wird mitgeschrieben, Spec-Anweisungen kommen automatisch mit |
-| `@review …` | prüft, widerspricht begründet, schreibt Specs/Verdikte nach `docs/projekt_management/` |
+| `@review Neue Aufgabe <kurztitel>: <Text>` | **neue Kette starten** – Modell **Qwen3.8**, Reasoning aus. Proxy schreibt deinen Text wörtlich nach `anforderung_<datum>_<kurztitel>.md`, jede spätere Antwort im Chat wird mitgeschrieben, Spec-Anweisungen kommen automatisch mit |
+| `@review …` | prüft, widerspricht begründet, schreibt Specs/Verdikte nach `docs/projekt_management/` (Review einer Kette: Qwen3.6) |
 | `@research …` | recherchiert, markiert belegt / Wissensstand / Vermutung |
 | `@aus …` | Rolle ab |
 | ohne Trigger | zuletzt gesetzte Rolle gilt weiter |
 
 Kurztitel: nur Kleinbuchstaben, Ziffern, `_`, danach Doppelpunkt – sonst wird nichts mitgeschrieben.
 Neuer Vorgang = **neuer Chat**. Die Rollen schreiben **nie** Code; das macht OpenCode (Abschnitt 6).
-Lange Aufgaben: Reasoning **aus** (Qwen3.8 Spec, Qwen3.6 Review), sonst läuft der 64K-Kontext beim Speichern über.
+Reasoning an lässt den 64K-Kontext beim Speichern langer Specs/Verdikte überlaufen.
 
 ## 4. Prüfen (Fenster 2, ⌘N)
 
@@ -81,7 +84,7 @@ Etwa monatlich aufräumen: `bash lm.command review`, dann `pending`.
 
 ## 6. Code ändern lassen (OpenCode)
 
-`opencode` im Projektordner, mit **Tab** den Agenten wählen:
+`opencode` im Projektordner, mit **Tab** den Agenten wählen (Modell: **Qwen3.6**):
 
 | Agent | Wann |
 |---|---|
@@ -97,15 +100,16 @@ Spitze Klammern sind Platzhalter, nie mit eintippen. `K` und `R` gelten nur im a
 
 ```bash
 K=<kurztitel>
-# Spec: start_rollen, Web-UI "@review Neue Aufgabe <kurztitel>: …", Rückfragen beantworten, "Spec schreiben"
+# Spec: start_rollen, Modell Qwen3.8 (Reasoning aus), Web-UI "@review Neue Aufgabe <kurztitel>: …",
+#       Rückfragen beantworten, "Spec schreiben"
 python3 role-split/kette/kette.py quellen $K                 # Fundstellen der Spec wörtlich + Zeilennummern holen
 git add docs/projekt_management/*_$K.md && git commit -m "Spec $K"
 R=$(git rev-parse --short HEAD)                              # Rücksetzpunkt
-python3 role-split/kette/kette.py prompt umsetzung $K --commit $R    # → OpenCode
+python3 role-split/kette/kette.py prompt umsetzung $K --commit $R    # → OpenCode (Qwen3.6)
 python3 role-split/kette/kette.py abgleich $K                # Spec-Tests vs. Handover/Testskript
 python3 -m unittest -v tests/test_$K.py
 python3 role-split/kette/kette.py gegenprobe $K --commit $R  # rot = Test misst die Änderung, GRUEN = prüfen
-# Review: start_eval, NEUER Chat, Qwen3.6
+# Review: start_eval, NEUER Chat, Modell Qwen3.6 (Reasoning aus)
 python3 role-split/kette/kette.py prompt review $K --commit $R       # Ergebnisse von abgleich/gegenprobe ans Ende anhängen
 python3 role-split/kette/kette.py urteil docs/projekt_management/verdict_<…>.md --anhaengen
 # dann externe Gegenprüfung (Claude) → PASS: commit | NACHBESSERN: Befunde an OpenCode, 2b + neues Review
@@ -113,7 +117,7 @@ python3 role-split/kette/kette.py urteil docs/projekt_management/verdict_<…>.m
 
 Weitere Befehle:
 - `kette.py anforderung $K --aufgabe "…"` / `--antwort "…" --frage "…"` – Anforderung ohne Web-UI anlegen bzw. ergänzen.
-- `kette.py prompt spec $K` – Spec-Prompt ohne Web-UI-Mitschrift.
+- `kette.py prompt spec $K` – Spec-Prompt ohne Web-UI-Mitschrift (dann ebenfalls mit Qwen3.8).
 - Rücksetzpunkt vergessen: `git log --oneline -5` (Commit „Spec <kurztitel>").
 - Bei Nachbesserungen bleibt `R` der Spec-Commit, auch wenn zwischendurch committet wurde.
 
@@ -125,7 +129,7 @@ Hat die Aufgabe Außenwirkung (Mail, Netz, echte Daten): **Sperre vor der Umsetz
 python3 role-split/eval/halluzination/probe.py --modelle "<id>"     # Halluzinations-Vortest, Lab läuft
 ```
 Review-Eval mit `start_eval.command`, Ablauf in `role-split/eval/README.md`. Welches Modell für welche Rolle:
-Projektdokument `modellwahl-tabelle.md` (Spec Qwen3.8, Umsetzung + Review Qwen3.6).
+Projektdokument `modellwahl-tabelle.md` (Kettenstart/Spec Qwen3.8, Umsetzung + Review Qwen3.6).
 
 Qwen3-Coder-Next 80B (Slipstream, ruht): `bash scripts/launch_qwen3next.command` (Port 8083, Lab vorher beenden,
 bei Speichermangel `sudo purge`). Stand: Projektdokument `slipstream-stand.md`.
@@ -135,6 +139,7 @@ bei Speichermangel `sudo purge`). Stand: Projektdokument `slipstream-stand.md`.
 - Jeder Befehlsblock beginnt mit `cd …` – auf den Ordner im Prompt achten.
 - Zwei Fenster: 1 = Launcher (nichts eintippen), 2 = Befehle.
 - Codeblöcke über das Kopier-Symbol kopieren (sonst landet z. B. `sh` mit im Terminal).
+- Modell: Kettenstart/Spec **Qwen3.8**, Umsetzung und Review **Qwen3.6** – vor der ersten Nachricht im Dropdown wählen.
 - Die Web-UI-Modelle schreiben nur Dokumente (`docs/projekt_management/`, `docs/research/`), keinen Code.
 - Antworten ohne Beleg (Datei, URL, Testausgabe) gelten als **ungeprüft** – nachfragen: „Woher? Zeig die Stelle."
 - Nach MCP-Neustart: MCP-Eintrag aus/an, Seite neu laden, **neuen Chat**.
