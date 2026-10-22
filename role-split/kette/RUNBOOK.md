@@ -117,14 +117,17 @@ Achtung: `gegenprobe` verändert Dateien für Sekunden – nicht laufen lassen, 
 ## Phase D – Review (lokales Modell)
 
 1. Lab umschalten: Fenster 1 **Ctrl+C**, dann `bash start_eval.command` (ohne Gedächtnis, fairer Vergleich).
-2. Prompt holen:
+2. Prompt holen – baut dabei automatisch das **Review-Paket** `review_paket_<datum>_<kurztitel>.md`
+   (Anforderung, Spec-Auszug, Code-Diff, Testliste, Handover-Abweichungen, Kurzfassung der Prüfung – eine Datei
+   statt sechs) und zeigt dessen Größe:
    ```bash
    python3 role-split/kette/kette.py prompt review <kurztitel>
    ```
-3. Browser **neuer Chat**, Modell **Qwen3.6**, Reasoning **aus**, Prompt einfügen. Ans Ende schreiben:
-   `Ergebnisse der maschinellen Prüfung: docs/projekt_management/pruefung_<datum>_<kurztitel>.md`
-4. **Kontextanzeige beobachten.** Ab **80 %** sofort die Notbremse schicken (Abschnitt 5) – sonst geht beim
-   Speichern alles verloren.
+   Steht dort `WARNUNG: Paket > 80000 Zeichen`: Claude fragen, ob das Review in Teilen laufen soll.
+3. Browser **neuer Chat**, Modell **Qwen3.6**, Reasoning **aus**, Prompt einfügen, abschicken. Der Prompt enthält die
+   vier Pflichtfragen und verlangt ein knappes Verdikt, das **abschnittsweise** gespeichert wird (`write_file`, dann `append_file`).
+4. **Kontextanzeige beobachten.** Ab **80 %** die Notbremse schicken (Abschnitt 5). Durch das abschnittsweise Speichern
+   ist dann meist schon ein Teil des Verdikts in der Datei.
 5. Urteil mechanisch nachrechnen (Dateinamen aus dem Chat übernehmen):
    ```bash
    python3 role-split/kette/kette.py urteil docs/projekt_management/verdict_<…>.md --anhaengen
@@ -185,7 +188,9 @@ Die Antwort an Claude geben (Phase E).
 | Web-UI: keine Datei-Tools | MCP-Eintrag fehlt / alter Chat | `+` → MCP servers → `http://127.0.0.1:8787/mcp`, Proxy-Toggle an; Seite neu laden, neuer Chat |
 | `502 Upstream nicht erreichbar` direkt nach Start | Gedächtnis-Proxy startet noch | 30 s warten, neu laden |
 | Modell schreibt endlos dieselbe Datei | Schleife | Esc, Stand notieren, neuer Anlauf |
-| Leere `verdict_…md` und daneben `…_2.md` | MCP-Verdiktschutz | `_2` ist das echte Verdikt |
+| Leere `verdict_…md` und daneben `…_2.md` | MCP-Verdiktschutz | `_2` ist das echte Verdikt; seit `append_file` sollte das nicht mehr nötig sein |
+| Modell meldet „ist eine Vorgabe der Kette … nie geschrieben" | will Vorlage/Anforderung/Quellen ändern | richtig so – im Chat sagen, es soll die Spec bzw. das Verdikt ändern |
+| Modell kennt `append_file` nicht | MCP-Server läuft noch mit altem Stand | Lab neu starten, in der Web-UI MCP-Eintrag aus/an, Seite neu laden, neuer Chat |
 | `git status` zeigt `_vorlage_*.md` geändert | Modell hat Vorlage überschrieben | `git restore docs/projekt_management/_vorlage_*.md` |
 | Speicher voll / Modell lädt nicht | zwei große Modelle / Qwen3-Next parallel | Lab beenden, `sudo purge`, neu starten |
 | Montag 08:00 | Scout-Lauf braucht den Router | keine Langläufe über Montagmorgen |
@@ -221,8 +226,8 @@ Start/Ende je Phase, Modelle, deine Eingriffe, welche Befunde das Review fand un
 
 **Ziel (entschieden 22.10.):** Die Kette soll ohne externe Prüfung verlässlich werden.
 **Schwelle:** 3 Ketten in Folge, in denen kein kritischer Fehler am lokalen Review vorbei bis vor den Commit rutscht.
-**Stand:** 0/3 (K4, K5 verfehlt). Nächste Verbesserungen am Review: ein Review-Paket statt vieler Dateien,
-abschnittsweises Speichern, Pflichtfragen („nur im Prompt verlangt oder im Code erzwungen?", „leerer/abweichender Fall?",
-„kann die Absicherung selbst ins Leere laufen?"). Danach wird neu gezählt; nach 3 weiteren Ketten ohne 3/3 gilt
+**Stand:** 0/3 (K4, K5 verfehlt). Seit 22.10. im Review: Review-Paket statt vieler Dateien, abschnittsweises Speichern
+(`append_file`), vier Pflichtfragen (erzwungen oder nur verlangt? leerer/abweichender Fall? markiert, aber nie gezeigt?
+läuft die Absicherung selbst ins Leere?). **Ab K6 wird neu gezählt;** nach 3 Ketten ohne 3/3 gilt
 „lokal bauen, extern prüfen" als Ergebnis.
 Details: Projektdokument `standort-kette.md`.

@@ -37,6 +37,13 @@ Befehle, nur Standardbibliothek, liest/schreibt nur im Projekt:
         Schreibt die komplette Ausgabe nach docs/projekt_management/pruefung_<datum>_<kurztitel>.md
         (Gegenpruefer liest sie dort, kein Kopieren) und zeigt am Ende eine Kurzzeile.
 
+  python3 role-split/kette/kette.py paket <kurztitel> [--commit HASH]
+        Baut docs/projekt_management/review_paket_<datum>_<kurztitel>.md: Anforderung wörtlich,
+        aus der Spec nur Ziel/Anforderungen/Testplan-Erwartungen/Offene Fragen, Diff gegen den
+        Ruecksetzpunkt, Testliste, Abweichungen aus dem Handover, Kurzfassung der Pruefung.
+        Das Review liest nur diese eine Datei (22.10.: Reviews liefen bei 64K Kontext voll).
+        `prompt review` baut das Paket automatisch.
+
   python3 role-split/kette/kette.py urteil <verdikt.md> [--anhaengen]
         Leitet das Urteil mechanisch aus dem Verdikt ab: Ein Befund mit "ja" bei
         Datenverlust / Unbemerkt / Harte Vorgabe ist "hoch"; ein offener Befund "hoch"
@@ -478,6 +485,170 @@ def pruefen(kurztitel: str, commit: str | None = None, timeout: int = 300) -> in
     print(f"==> Ausgabe gespeichert: {ziel.relative_to(ROOT)}  (dem Gegenpruefer nur noch Bescheid sagen)")
     return max(codes.values())
 
+# ---------------------------------------------------------------- Review-Paket
+
+PAKET_DIFF_ZEILEN = 700        # je Datei; Rest liest das Review gezielt nach
+PAKET_DATEI_ZEILEN = 900       # bei Umbau: ganze aktuelle Datei statt Diff, hoechstens so viele Zeilen
+PAKET_WARNUNG_ZEICHEN = 80000  # ~23k Token: darueber wird es fuer 64K Kontext eng
+# Werkzeug-/Infrastruktur-Ordner gehoeren nie zur Aufgabe (sonst landen spaetere Werkzeug-Commits im Diff).
+PAKET_NIE = ("docs/", "tests/", "role-split/", "mcp-server/", "experiments/")
+
+
+def _bloecke(text: str, muster: str) -> str:
+    """Alle Abschnitte (## oder ###), deren Ueberschrift auf muster passt, samt Inhalt
+    bis zur naechsten Ueberschrift gleicher oder hoeherer Ebene."""
+    zeilen, raus, ebene = text.splitlines(), [], 0
+    for z in zeilen:
+        m = re.match(r"^(#{2,3})\s+(.*)", z)
+        if m:
+            neu = len(m.group(1))
+            if ebene and neu <= ebene:
+                ebene = 0
+            if not ebene and re.search(muster, m.group(2), re.I):
+                ebene = neu
+        if ebene:
+            raus.append(z)
+    return "\n".join(raus).strip()
+
+
+def _testplan_kurz(spec: str) -> str:
+    """Aus dem Testplan nur die Test-Ueberschriften und die Erwartungs-Zeilen."""
+    block = abschnitt(spec, "Testplan")
+    raus = []
+    for z in block.splitlines():
+        if z.startswith("### ") or re.match(r"^\s*-\s*\*\*Erwartung", z):
+            raus.append(z)
+    return "\n".join(raus).strip()
+
+
+def _testliste(skript: Path) -> str:
+    if not skript.is_file():
+        return "(kein Testskript gefunden)"
+    try:
+        baum = ast.parse(skript.read_text(encoding="utf-8"))
+    except SyntaxError as e:
+        return f"(Testskript nicht lesbar: {e})"
+    raus = []
+    for knoten in ast.walk(baum):
+        if isinstance(knoten, (ast.FunctionDef, ast.AsyncFunctionDef)) and knoten.name.startswith("test"):
+            doc = (ast.get_docstring(knoten) or "").strip().splitlines()
+            raus.append(f"- `{knoten.name}` (Zeile {knoten.lineno})" + (f": {doc[0]}" if doc else ""))
+    return "\n".join(raus) or "(keine Testmethoden)"
+
+
+def _diff(commit: str, nur: set[str] | None = None) -> tuple[str, list[str]]:
+    """Code-Aenderungen gegen commit. Nie Werkzeug-/Doku-/Testordner (PAKET_NIE).
+    nur: wenn gesetzt (aus dem Handover), nur diese Dateien.
+    Kleine Aenderung -> Diff; Umbau (Diff laenger als die Datei) oder neue Datei -> aktuelle Datei mit
+    Zeilennummern (kuerzer und lesbarer)."""
+    def git(*a):
+        return subprocess.run(["git", "-C", str(ROOT), *a], capture_output=True, text=True, check=True).stdout
+    geaendert = git("diff", "--name-only", commit).split()
+    neu = git("ls-files", "--others", "--exclude-standard").split()
+    def code(d):
+        return (not d.startswith(PAKET_NIE) and not d.endswith(".md") and (ROOT / d).is_file()
+                and (nur is None or d in nur))
+    teile, dateien = [], []
+    for d in sorted({x for x in geaendert + neu if code(x)}):
+        aktuell = (ROOT / d).read_text(encoding="utf-8", errors="replace").splitlines()
+        nummeriert = [f"{i:4d}  {z}" for i, z in enumerate(aktuell, 1)]
+        if d in neu and d not in geaendert:
+            teile.append(_kappen(d, nummeriert, "neu", PAKET_DATEI_ZEILEN))
+        else:
+            diff = git("diff", "-U3", commit, "--", d).splitlines()
+            if len(diff) > len(aktuell):
+                teile.append(_kappen(d, nummeriert, "umbau", PAKET_DATEI_ZEILEN))
+            else:
+                teile.append(_kappen(d, diff, "diff", PAKET_DIFF_ZEILEN))
+        dateien.append(d)
+    return "\n\n".join(teile) or "(keine Code-Aenderungen gegen den Ruecksetzpunkt)", dateien
+
+
+def _kappen(datei: str, zeilen: list[str], art: str, grenze: int) -> str:
+    was = {"neu": "neue Datei, mit Zeilennummern", "umbau": "stark umgebaut – aktuelle Datei mit Zeilennummern",
+           "diff": "Diff"}[art]
+    kopf = f"### {datei} ({was}, {len(zeilen)} Zeilen)"
+    rest = ""
+    if len(zeilen) > grenze:
+        rest = (f"\n[... {len(zeilen) - grenze} weitere Zeilen gekuerzt – bei Bedarf gezielt "
+                f"mit read_file/search_files in {datei} nachlesen]")
+        zeilen = zeilen[:grenze]
+    return f"{kopf}\n\n```{'diff' if art == 'diff' else ''}\n" + "\n".join(zeilen) + f"\n```{rest}"
+
+
+def _handover_dateien(text: str) -> set[str] | None:
+    """Pfade in Backticks aus dem Handover (Abschnitte 'Geaenderte … Dateien'). None, wenn keine."""
+    bloecke = _bloecke(text, r"ge[aä]nderte|neue dateien")
+    pfade = {m for m in re.findall(r"`([\w./-]+\.\w+)`", bloecke) if "/" in m or "." in m}
+    return pfade or None
+
+
+def _pruefung_kurz(pfad: Path | None) -> str:
+    if not pfad:
+        return "(keine Pruefung gefunden – vorher `kette.py pruefen <kurztitel>` laufen lassen)"
+    text = pfad.read_text(encoding="utf-8")
+    kurz = re.search(r"^- Kurz:.*$", text, re.M)
+    teile = [kurz.group(0) if kurz else ""]
+    for titel in ("abgleich", "gegenprobe"):
+        teile.append(f"#### {titel}\n{abschnitt(text, titel).strip()}")
+    ut = abschnitt(text, "unittest")
+    zus = [z for z in ut.splitlines() if re.match(r"^(Ran |OK|FAILED|FAIL:|ERROR:)", z)]
+    teile.append("#### unittest (Zusammenfassung)\n" + ("\n".join(zus) or "(keine Zusammenfassung)"))
+    return "\n\n".join(t for t in teile if t)
+
+
+def paket(kurztitel: str, commit: str | None = None, datum: str | None = None, still: bool = False) -> int:
+    """Schreibt review_paket_<datum>_<kurztitel>.md. Rueckgabe 0 = geschrieben, 2 = Voraussetzung fehlt."""
+    say = (lambda *a: None) if still else print
+    if not re.fullmatch(r"[a-z0-9_]+", kurztitel):
+        say(f"Kurztitel '{kurztitel}' ungueltig (nur a-z, 0-9, _)."); return 2
+    spec_p = datei_suchen("spec", kurztitel, datum)
+    if not spec_p:
+        say(f"Keine Spec spec_*_{kurztitel}.md – kein Review-Paket."); return 2
+    datum = datum or _datum_aus(spec_p)
+    commit = commit or spec_commit(kurztitel)
+    if not commit:
+        say(f"Kein Commit 'Spec {kurztitel}' – Ruecksetzpunkt mit --commit angeben."); return 2
+    anf_p = datei_suchen("anforderung", kurztitel, None)
+    ho_p = datei_suchen("handover", kurztitel, None)
+    pr_p = datei_suchen("pruefung", kurztitel, None)
+    spec = spec_p.read_text(encoding="utf-8")
+    nur = _handover_dateien(ho_p.read_text(encoding="utf-8")) if ho_p else None
+    try:
+        diff, dateien = _diff(commit, nur)
+    except subprocess.CalledProcessError as e:
+        say(f"git-Fehler: {(e.stderr.strip().splitlines() or ['?'])[0]}"); return 2
+    teile = [
+        f"# Review-Paket: {kurztitel}\n",
+        f"Erzeugt {dt.datetime.now():%Y-%m-%d %H:%M} von `kette.py paket`. Ruecksetzpunkt: `{commit}`. "
+        f"Geaenderte Code-Dateien: {', '.join(f'`{d}`' for d in dateien) or 'keine'}.\n"
+        "Alles Noetige steht hier. Ganze Dateien nur lesen, wenn eine Frage anders nicht zu klaeren ist – "
+        "dann gezielt (search_files, Zeilenbereich), nicht komplett.\n",
+        "## 1. Anforderung (verbindlich, woertlich)\n\n"
+        + (anf_p.read_text(encoding="utf-8").strip() if anf_p else "(keine Anforderungsdatei – nur Spec als Massstab)"),
+        f"## 2. Spec (Auszug aus `{spec_p.name}`)\n\n### Ziel\n{abschnitt(spec, 'Ziel').strip()}\n\n"
+        f"### Anforderungen\n{abschnitt(spec, 'Anforderungen').strip()}\n\n"
+        f"### Testplan (nur Titel und Erwartungen)\n{_testplan_kurz(spec)}\n\n"
+        f"### Offene Fragen\n{abschnitt(spec, 'Offene Fragen').strip() or '(keine)'}",
+        f"## 3. Code-Aenderungen gegen `{commit}`\n\n{diff}",
+        f"## 4. Testskript `tests/test_{kurztitel}.py` (Methoden)\n\n{_testliste(ROOT / 'tests' / f'test_{kurztitel}.py')}",
+        "## 5. Handover – nur Abweichungen, Annahmen, offene und nicht getestete Punkte\n\n"
+        + ((_bloecke(ho_p.read_text(encoding="utf-8"), r"abweich|annahm|offen|nicht getestet|schw[aä]chen")
+            or "(keine solchen Abschnitte)") if ho_p else "(kein Handover)"),
+        f"## 6. Maschinelle Pruefung (Kurzfassung)\n\n{_pruefung_kurz(pr_p)}",
+    ]
+    text = "\n\n".join(teile).rstrip() + "\n"
+    ziel = PM / f"review_paket_{datum}_{kurztitel}.md"
+    ziel.write_text(text, encoding="utf-8")
+    groesse = len(text)
+    say(f"Review-Paket: {ziel.relative_to(ROOT)}  ({groesse} Zeichen, ca. {groesse // 3500}k Token)")
+    if groesse > PAKET_WARNUNG_ZEICHEN:
+        say(f"WARNUNG: Paket > {PAKET_WARNUNG_ZEICHEN} Zeichen – fuer 64K Kontext eng. "
+            "Review dann eher in Teilen (z. B. erst Anforderungen A1–A3).")
+    if not pr_p:
+        say("Hinweis: keine pruefung_*-Datei – erst `kette.py pruefen <kurztitel>` laufen lassen.")
+    return 0
+
 # ---------------------------------------------------------------- anforderung
 
 def _datum_aus(pfad: Path | None) -> str | None:
@@ -645,6 +816,11 @@ def prompt(schritt: str, kurztitel: str, datum: str | None, commit: str | None) 
         if schritt != "spec":
             print(f"Hinweis: Ruecksetzpunkt = HEAD von {ROOT} ({commit}). Stimmt das (Worktree?)? "
                   "Sonst --commit angeben.", file=sys.stderr)
+    paket_pfad = f"docs/projekt_management/review_paket_{datum}_{kurztitel}.md"
+    if schritt in ("review", "tief"):
+        if paket(kurztitel, commit if commit != "<HASH>" else None, None, still=False) != 0:
+            print("Hinweis: Review-Paket nicht gebaut (siehe oben) – Prompt verweist trotzdem darauf.",
+                  file=sys.stderr)
     anf_pfad = f"docs/projekt_management/{anf.name}" if anf else \
         f"docs/projekt_management/anforderung_{datum}_{kurztitel}.md"
     if not anf:
@@ -655,7 +831,8 @@ def prompt(schritt: str, kurztitel: str, datum: str | None, commit: str | None) 
             .replace("{datum}", datum)
             .replace("{commit}", commit)
             .replace("{anforderung}", anf_pfad)
-            .replace("{quellen}", f"docs/projekt_management/quellen_{datum}_{kurztitel}.md"))
+            .replace("{quellen}", f"docs/projekt_management/quellen_{datum}_{kurztitel}.md")
+            .replace("{paket}", paket_pfad))
     if anf:
         text = re.sub(r"<AUFGABE[^>]*>", lambda _m: aufgabe_lesen(anf), text)
     text = "\n".join(z for z in text.splitlines() if not z.startswith("<!--")).strip() + "\n"
@@ -680,9 +857,13 @@ def main(argv=None) -> int:
     g = sub.add_parser("gegenprobe"); g.add_argument("kurztitel")
     g.add_argument("--commit", required=True, help="Ruecksetzpunkt vor der Umsetzung")
     g.add_argument("--timeout", type=int, default=300)
+    pk = sub.add_parser("paket", help="Review-Paket bauen (eine Datei fuers Review)")
+    pk.add_argument("kurztitel"); pk.add_argument("--commit"); pk.add_argument("--datum")
     pr = sub.add_parser("pruefen", help="abgleich + unittest + gegenprobe, Ausgabe in Datei")
     pr.add_argument("kurztitel"); pr.add_argument("--commit"); pr.add_argument("--timeout", type=int, default=300)
     args = ap.parse_args(argv)
+    if args.cmd == "paket":
+        return paket(args.kurztitel, args.commit, args.datum)
     if args.cmd == "pruefen":
         return pruefen(args.kurztitel, args.commit, args.timeout)
     if args.cmd == "gegenprobe":

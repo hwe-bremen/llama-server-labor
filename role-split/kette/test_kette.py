@@ -220,6 +220,86 @@ class PruefenTests(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertIn(self.erster, out)
 
+    def _paket_vorbereiten(self):
+        pm = kette.PM
+        (pm / "spec_20261022_g.md").write_text(
+            "# Spec\n\n## Ziel\nZIELTEXT\n\n## Quellen\nQUELLTEXT\n\n## Anforderungen\n### A1: Eins\nANFTEXT\n\n"
+            "## Fehlerpfade\nFEHLERTABELLE\n\n## Testplan\n### T1: Erster\n- **Prüft:** A1\n- **Aufbau:** AUFBAUTEXT\n"
+            "- **Erwartung:** ERWARTET1\n\n## Offene Fragen\nOQTEXT\n", encoding="utf-8")
+        (pm / "anforderung_20261022_g.md").write_text("HAWE WILL X\n", encoding="utf-8")
+        (pm / "handover_20261022_g.md").write_text(
+            "# HO\n## Umgesetzt\nUMGESETZT\n## Getestet (mit echter Ausgabe)\nLANGE AUSGABE\n"
+            "## Abweichungen von der Spec\nABWEICHUNG1\n### Detail\nDETAIL1\n## Nachbesserung 2\nNB2\n"
+            "### Abweichungen bei Nachbesserung 2\nABWEICHUNG2\n", encoding="utf-8")
+        (pm / "pruefung_20261022_g.md").write_text(
+            "# Pruefung g\n\n- Kurz: abgleich: ok | unittest: ok\n\n## abgleich  (Exit 0)\nABGL\n"
+            "## unittest  (Exit 0)\ntest_x ... ok\nRan 1 test in 0.1s\nOK\n## gegenprobe gegen x  (Exit 0)\nGEGEN\n",
+            encoding="utf-8")
+        (self.root / "neu_modul.py").write_text("Y = 1\n")
+
+    def test_paket_inhalt(self):
+        self._paket_vorbereiten()
+        code, out = lauf(kette.paket, "g")
+        self.assertEqual(code, 0, out)
+        text = (kette.PM / "review_paket_20261022_g.md").read_text(encoding="utf-8")
+        for soll in ("HAWE WILL X", "ZIELTEXT", "ANFTEXT", "### T1: Erster", "ERWARTET1", "OQTEXT",
+                     "### mod.py (stark umgebaut", "   2      return 2", "### neu_modul.py (neue Datei", "   1  Y = 1",
+                     "`test_t1_neu` (Zeile", "ABWEICHUNG1", "DETAIL1", "ABWEICHUNG2",
+                     "- Kurz: abgleich: ok", "ABGL", "GEGEN", "Ran 1 test", self.erster):
+            self.assertIn(soll, text, soll)
+        for nicht in ("QUELLTEXT", "FEHLERTABELLE", "AUFBAUTEXT", "LANGE AUSGABE", "UMGESETZT", "test_x ... ok"):
+            self.assertNotIn(nicht, text, nicht)
+        self.assertIn("Zeichen, ca.", out)
+
+    def test_paket_nur_dateien_aus_handover_und_nie_werkzeug(self):
+        self._paket_vorbereiten()
+        (self.root / "role-split").mkdir()
+        (self.root / "role-split" / "werkzeug.py").write_text("W = 1\n")
+        ho = kette.PM / "handover_20261022_g.md"
+        ho.write_text(ho.read_text(encoding="utf-8") + "\n## Geänderte und neue Dateien\n- `neu_modul.py` – neu\n",
+                      encoding="utf-8")
+        lauf(kette.paket, "g")
+        text = (kette.PM / "review_paket_20261022_g.md").read_text(encoding="utf-8")
+        self.assertIn("### neu_modul.py", text)
+        self.assertNotIn("### mod.py", text)
+        self.assertNotIn("werkzeug.py", text.split("## 3.")[1].split("## 4.")[0])
+
+    def test_paket_kleine_aenderung_als_diff(self):
+        self._paket_vorbereiten()
+        groß = "".join(f"def f{i}():\n    return {i}\n" for i in range(40))
+        (self.root / "gross.py").write_text(groß)
+        self.git("add", "gross.py"); self.git("commit", "-qm", "gross")
+        import subprocess
+        alt_commit = subprocess.run(["git", "-C", str(self.root), "rev-parse", "--short", "HEAD"],
+                                    capture_output=True, text=True).stdout.strip()
+        (self.root / "gross.py").write_text(groß.replace("return 7\n", "return 70\n"))
+        lauf(kette.paket, "g", alt_commit)
+        text = (kette.PM / "review_paket_20261022_g.md").read_text(encoding="utf-8")
+        self.assertIn("### gross.py (Diff", text)
+        self.assertIn("+    return 70", text)
+
+    def test_paket_kappt_lange_dateien(self):
+        self._paket_vorbereiten()
+        (self.root / "neu_modul.py").write_text("".join(f"Z{i} = {i}\n" for i in range(50)))
+        alt = kette.PAKET_DATEI_ZEILEN; kette.PAKET_DATEI_ZEILEN = 10
+        self.addCleanup(setattr, kette, "PAKET_DATEI_ZEILEN", alt)
+        lauf(kette.paket, "g")
+        text = (kette.PM / "review_paket_20261022_g.md").read_text(encoding="utf-8")
+        self.assertIn("40 weitere Zeilen gekuerzt", text)
+        self.assertNotIn("Z45 = 45", text)
+
+    def test_paket_ohne_spec_schreibt_nichts(self):
+        code, out = lauf(kette.paket, "g")
+        self.assertEqual(code, 2); self.assertIn("Keine Spec", out)
+        self.assertEqual(list(kette.PM.glob("review_paket_*")), [])
+
+    def test_prompt_review_baut_paket_und_nennt_es(self):
+        self._paket_vorbereiten()
+        code, out = lauf(kette.prompt, "review", "g", None, None)
+        self.assertEqual(code, 0)
+        self.assertTrue((kette.PM / "review_paket_20261022_g.md").exists())
+        self.assertIn("review_paket_20261022_g.md", out)
+
     def test_kurztitel_mit_pfad_abgelehnt(self):
         code, out = lauf(kette.pruefen, "../x")
         self.assertEqual(code, 2); self.assertIn("ungueltig", out)

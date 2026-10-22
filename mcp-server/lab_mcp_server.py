@@ -25,6 +25,7 @@ Konfiguration über Umgebungsvariablen (alle optional):
                      ganzen Scope erlaubt. Default: leer (ganzer Scope).
                      Default: 0 (aus).
     MCP_MAX_READ     Max. Lese-Bytes pro Datei. Default: 2_000_000.
+    MCP_MAX_APPEND   Max. Zeichen je append_file-Aufruf. Default: 20000.
 
 Start (lokal, für Claude-Connector über Tailscale):
     MCP_TRANSPORT=streamable-http python lab_mcp_server.py
@@ -147,10 +148,34 @@ def _check_writable(p: Path, rel_path: str) -> None:
 # Verdikte sind Messergebnisse: nie ueberschreiben oder loeschen (Befund 17.10.:
 # Tiefenpruefung hat das Verdikt aus Lauf 1 unter gleichem Namen ersetzt).
 PROTECTED_PATTERNS = ("verdict_*.md",)
+# Vorgaben der Kette: Modelle lesen sie, aendern sie aber nie (Befund 18.10.: Qwen3-Next hat die
+# Verdikt-Vorlage ueberschrieben). Anforderung (Proxy) und Quellen (kette.py) schreibt die Maschine.
+READONLY_PATTERNS = ("_vorlage_*.md", "anforderung_*.md", "quellen_*.md")
+# Anhaengen braucht eine Obergrenze je Aufruf, damit ein Modell in einer Schleife die Datei
+# nicht unbegrenzt aufblaeht.
+MAX_APPEND = int(os.environ.get("MCP_MAX_APPEND", "20000"))
 
 
 def _protected(p: Path) -> bool:
     return any(p.match(pat) for pat in PROTECTED_PATTERNS)
+
+
+def _readonly(p: Path) -> bool:
+    return any(p.match(pat) for pat in READONLY_PATTERNS)
+
+
+def _decode(content: str, content_b64: str) -> str:
+    """Klartext oder Base64 (Vorrang) -> Text. Wirft ValueError mit lesbarer Meldung."""
+    if not content_b64:
+        return content
+    try:
+        raw = base64.b64decode(content_b64, validate=True)
+    except Exception as e:
+        raise ValueError(f"content_b64 ist kein gueltiges Base64: {e}") from e
+    try:
+        return raw.decode("utf-8")
+    except UnicodeDecodeError as e:
+        raise ValueError(f"content_b64 dekodiert nicht als UTF-8: {e}") from e
 
 
 def _rel(p: Path) -> str:
@@ -396,26 +421,60 @@ if not READONLY:
         _check_writable(target, path)
         if target.is_dir():
             return f"Ist ein Verzeichnis: {_rel(target)}"
+        if _readonly(target):
+            return (f"Verweigert: {_rel(target)} ist eine Vorgabe der Kette (Vorlage, Anforderung "
+                    f"oder Quellen) und wird von Modellen nie geschrieben.")
         if target.exists() and _protected(target):
             return (f"Verweigert: {_rel(target)} existiert bereits und ist geschuetzt "
-                    f"(Verdikte werden nie ueberschrieben). Neuen Dateinamen waehlen, "
-                    f"z. B. mit Endung _2.md.")
-
-        if content_b64:
-            try:
-                raw = base64.b64decode(content_b64, validate=True)
-            except Exception as e:
-                return f"Fehler: content_b64 ist kein gueltiges Base64: {e}"
-            try:
-                text = raw.decode("utf-8")
-            except UnicodeDecodeError as e:
-                return f"Fehler: content_b64 dekodiert nicht als UTF-8: {e}"
-        else:
-            text = content
+                    f"(Verdikte werden nie ueberschrieben). Weitere Abschnitte mit append_file "
+                    f"anhaengen; nur fuer ein ganz neues Verdikt einen neuen Namen (_2.md) waehlen.")
+        try:
+            text = _decode(content, content_b64)
+        except ValueError as e:
+            return f"Fehler: {e}"
 
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(text, encoding="utf-8")
         return f"Geschrieben: {_rel(target)} ({len(text)} Zeichen)"
+
+    @mcp.tool()
+    def append_file(path: str, content: str = "", content_b64: str = "") -> str:
+        """Text an eine Datei ANHAENGEN (legt sie an, falls sie fehlt). Bestehender Inhalt bleibt.
+
+        Zum abschnittsweisen Speichern langer Dokumente (Verdikt, Spec): erst mit write_file
+        oder append_file den ersten Abschnitt anlegen, dann jeden weiteren Abschnitt einzeln
+        anhaengen. Bricht ein Aufruf ab, sind die frueheren Abschnitte schon gespeichert.
+        Auch fuer bestehende Verdikte erlaubt (nur anhaengen, nie ersetzen).
+        Zwischen zwei Abschnitten wird ein Zeilenumbruch eingefuegt, falls keiner da ist.
+
+        Args:
+            path: Pfad relativ zum Scope-Root.
+            content: Anzuhaengender Text (Klartext), hoechstens MCP_MAX_APPEND Zeichen.
+            content_b64: Anzuhaengender Text, Base64-kodiert (Vorrang vor content).
+        """
+        target = _resolve_in_scope(path)
+        _check_writable(target, path)
+        if target.is_dir():
+            return f"Ist ein Verzeichnis: {_rel(target)}"
+        if _readonly(target):
+            return (f"Verweigert: {_rel(target)} ist eine Vorgabe der Kette (Vorlage, Anforderung "
+                    f"oder Quellen) und wird von Modellen nie geschrieben.")
+        try:
+            text = _decode(content, content_b64)
+        except ValueError as e:
+            return f"Fehler: {e}"
+        if not text:
+            return "Nichts angehaengt: Inhalt ist leer."
+        if len(text) > MAX_APPEND:
+            return (f"Verweigert: {len(text)} Zeichen > {MAX_APPEND} je Aufruf. "
+                    f"In kleinere Abschnitte teilen.")
+        target.parent.mkdir(parents=True, exist_ok=True)
+        vorher = target.read_text(encoding="utf-8") if target.exists() else ""
+        trenner = "\n" if vorher and not vorher.endswith("\n") else ""
+        with target.open("a", encoding="utf-8") as fh:
+            fh.write(trenner + text)
+        gesamt = len(vorher) + len(trenner) + len(text)
+        return f"Angehaengt: {_rel(target)} (+{len(text)} Zeichen, jetzt {gesamt})"
 
 
 if ALLOW_DELETE:
@@ -434,8 +493,8 @@ if ALLOW_DELETE:
             return f"Nicht gefunden: {_rel(target)}"
         if target.is_dir():
             return f"Verzeichnis — nicht geloescht: {_rel(target)}"
-        if _protected(target):
-            return f"Verweigert: {_rel(target)} ist geschuetzt (Verdikte werden nie geloescht)."
+        if _protected(target) or _readonly(target):
+            return f"Verweigert: {_rel(target)} ist geschuetzt (Verdikte und Vorgaben werden nie geloescht)."
         target.unlink()
         return f"Geloescht: {_rel(target)}"
 
