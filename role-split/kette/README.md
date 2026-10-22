@@ -8,7 +8,7 @@ und ein Test hat echt gesendet.
 
 ## Ablauf
 
-**Schritt-für-Schritt mit allen Befehlen: [FAHRPLAN.md](FAHRPLAN.md)**
+**Gebrauchsanweisung mit allen Befehlen, Entscheidungsregeln und Notbremsen: [RUNBOOK.md](RUNBOOK.md)**
 
 | Schritt | Wo | Prompt holen |
 |---|---|---|
