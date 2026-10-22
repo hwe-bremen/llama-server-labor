@@ -37,3 +37,5 @@ role-split/results/
 agents/llm_scout/data/*.db
 # llm_scout: Trockenlauf-Artefakte (.eml-Dateien)
 agents/llm_scout/data/outbox/
+# llm_scout: Quellenprotokoll pro Lauf
+agents/llm_scout/data/source_run_log_*.jsonl

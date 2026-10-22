@@ -1,0 +1,8 @@
+{
+  "github": [
+    {"repo": "ggml-org/llama.cpp", "rss": "https://github.com/ggml-org/llama.cpp/releases.atom"},
+    {"repo": "ollama/ollama", "rss": "https://github.com/ollama/ollama/releases.atom"},
+    {"repo": "huggingface/transformers", "rss": "https://github.com/huggingface/transformers/releases.atom"},
+    {"repo": "Schero94/slipstream", "rss": "https://github.com/Schero94/slipstream/releases.atom"}
+  ]
+}
