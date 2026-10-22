@@ -734,8 +734,90 @@ def anforderung(kurztitel: str, aufgabe: str | None, antwort: str | None, frage:
 
 QUELLE_RE = re.compile(
     r"^\s*[-*]\s*`([^`]+)`\s*"
-    r"(?:(?:Zeilen?|Z\.)\s*(\d+)\s*(?:[–-]\s*(\d+))?|`?(def|class)\s+([A-Za-z_]\w*)(?:\([^)`]*\))?`?)?"
-    r"\s*(?:[–-]\s*(.*))?$")
+    r"(?:(?:Zeilen?|Z\.)\s*(\d+)\s*(?:[–—-]\s*(\d+))?|`?(def|class)\s+([A-Za-z_]\w*)(?:\([^)`]*\))?`?)?"
+    r"\s*(?:[–—:-]\s*(.*))?$")
+# Toleranter Leser (22.10., K6): Gedankenstrich —, Name in Backticks ohne def/class, Klasse.methode,
+# Klammerzusatz „(Zeilen a–b)", Schluessel in Nicht-Python-Dateien (Textstelle mit Umgebung).
+_TRENNER = r"\s*(?:[–—:]|-(?=\s))\s*"
+_ZEILEN = r"(?:Zeilen?|Z\.)\s*(\d+)\s*(?:[–—-]\s*(\d+))?"
+
+
+def quelle_lesen(z: str) -> dict | None:
+    """Eine Zeile aus „## Quellen" -> {pfad, von, bis, art, name, text, zweck}; None, wenn keine Fundstelle."""
+    m = re.match(r"^\s*[-*]\s*`([^`]+)`(.*)$", z)
+    if not m or not re.search(r"[/.]", m.group(1)):
+        return None
+    pfad, rest = m.group(1).strip(), m.group(2)
+    q = {"pfad": pfad, "von": None, "bis": None, "art": None, "name": None, "text": None, "zweck": None}
+    rest = rest.strip()
+    # 1) Zeilen a–b (auch in Klammern)
+    zm = re.match(r"^\(?\s*" + _ZEILEN + r"\s*\)?", rest)
+    if zm:
+        q["von"], q["bis"] = int(zm.group(1)), int(zm.group(2) or zm.group(1))
+        rest = rest[zm.end():].strip()
+    else:
+        # 2) `def X` / `class X` / `X.Y` / `X` / def X (ohne Backticks) / Abschnitt „…"
+        nm = (re.match(r"^`?(def|class)\s+([A-Za-z_][\w.]*)(?:\([^)`]*\))?`?", rest)
+              or re.match(r"^`([^`]+)`", rest)
+              or re.match(r"^Abschnitt\s+[„\"']([^“\"']+)[“\"']", rest))
+        if nm:
+            if nm.lastindex == 2:
+                q["art"], q["name"] = nm.group(1), nm.group(2)
+            else:
+                wort = nm.group(1).strip()
+                if re.fullmatch(r"[A-Za-z_][\w]*(?:\.[A-Za-z_]\w*)?(?:\(\))?", wort):
+                    q["name"] = wort.rstrip("()")
+                else:
+                    q["text"] = wort
+            rest = rest[nm.end():].strip()
+            km = re.match(r"^\(\s*" + _ZEILEN + r"\s*\)", rest)   # Klammerzusatz ignorieren, def gewinnt
+            if km:
+                rest = rest[km.end():].strip()
+    tm = re.match(r"^" + _TRENNER + r"(.*)$", rest)
+    if rest and not tm:
+        return None          # unbekannte Angabe hinter dem Pfad -> UNKLAR melden statt ganze Datei holen
+    q["zweck"] = (tm.group(1) if tm else "").strip() or None
+    return q
+
+
+def _block_name(zeilen: list[str], name: str) -> tuple[tuple[int, int] | None, str]:
+    """Name ohne def/class: Klasse.methode, sonst def, sonst class. Rueckgabe (Bereich, Beschreibung)."""
+    if "." in name:
+        kl, me = name.split(".", 1)
+        aussen = _block(zeilen, "class", kl)
+        if aussen:
+            innen = _block(zeilen[aussen[0] - 1:aussen[1]], "def", me)
+            if innen:
+                return (aussen[0] + innen[0] - 1, aussen[0] + innen[1] - 1), f"def {name}"
+        return None, f"def {name}"
+    for art in ("def", "class"):
+        b = _block(zeilen, art, name)
+        if b:
+            return b, f"{art} {name}"
+    return None, name
+
+
+def _textstelle(zeilen: list[str], text: str, umfeld: int = 12) -> tuple[int, int] | None:
+    for i, z in enumerate(zeilen):
+        if text in z:
+            return max(1, i + 1 - 2), min(len(zeilen), i + 1 + umfeld)
+    return None
+
+
+def _passt(code_zeilen: list[str], zweck: str | None) -> list[str]:
+    """Namen aus `…` im Zweck, die im geholten Bereich NICHT vorkommen (Hinweis auf Zeilen aus dem Gedaechtnis)."""
+    if not zweck:
+        return []
+    namen = set()
+    for teil in re.findall(r"`([^`]+)`", zweck):
+        namen.update(w for w in re.findall(r"[A-Za-z_]\w{3,}", teil))
+    if not namen:
+        return []
+    inhalt = "\n".join(code_zeilen)
+    fehlen = sorted(n for n in namen if n not in inhalt)
+    return fehlen if len(fehlen) == len(namen) else []
+
+
 QUELLE_MAX = 400
 SPRACHE = {".py": "python", ".sh": "bash", ".command": "bash", ".json": "json", ".md": "markdown",
            ".ini": "ini", ".toml": "toml", ".yaml": "yaml", ".yml": "yaml", ".plist": "xml"}
@@ -771,9 +853,9 @@ def quellen(kurztitel: str, datum: str | None = None) -> int:
     block = abschnitt(spec.read_text(encoding="utf-8"), "Quellen")
     eintraege, unerkannt = [], []
     for z in block.splitlines():
-        m = QUELLE_RE.match(z)
-        if m:
-            eintraege.append(m)
+        q = quelle_lesen(z)
+        if q:
+            eintraege.append(q)
         elif re.match(r"^\s*[-*]\s*`[^`]+/[^`]*`", z):  # sieht nach Fundstelle aus, Form aber unklar
             unerkannt.append(z.strip())
     if not eintraege:
@@ -790,8 +872,8 @@ def quellen(kurztitel: str, datum: str | None = None) -> int:
              "Nicht von Hand aendern – bei Bedarf die Spec anpassen und neu erzeugen. "
              "Konstanten, Formate und Schnittstellen werden nur von hier oder aus dem Code genommen, nie aus dem Gedaechtnis.\n"]
     fehler = 0
-    for m in eintraege:
-        pfad, von, bis, art, name, zweck = m.groups()
+    for q in eintraege:
+        pfad, von, bis, art, name, text, zweck = (q[k] for k in ("pfad", "von", "bis", "art", "name", "text", "zweck"))
         ziel = (ROOT / pfad).resolve()
         titel = f"`{pfad}`"
         try:
@@ -801,13 +883,31 @@ def quellen(kurztitel: str, datum: str | None = None) -> int:
         if not ziel.is_file():
             teile.append(f"### {titel}\n\n**FEHLT:** Datei nicht gefunden.\n"); fehler += 1; continue
         zeilen = ziel.read_text(encoding="utf-8", errors="replace").splitlines()
+        hinweis = ""
         if art:
-            bereich = _block(zeilen, art, name)
+            bereich = _block(zeilen, art, name) if "." not in name else _block_name(zeilen, name)[0]
             if not bereich:
                 teile.append(f"### {titel} {art} {name}\n\n**FEHLT:** `{art} {name}` nicht gefunden.\n"); fehler += 1; continue
             a, b = bereich; titel += f" {art} {name}"
+        elif name:
+            bereich, was = _block_name(zeilen, name) if ziel.suffix == ".py" else (None, name)
+            if not bereich:
+                bereich = _textstelle(zeilen, name); was = f"Textstelle „{name}“"
+            if not bereich:
+                teile.append(f"### {titel} {name}\n\n**FEHLT:** `{name}` nicht gefunden.\n"); fehler += 1; continue
+            a, b = bereich; titel += f" {was}"
+        elif text:
+            bereich = _textstelle(zeilen, text, 25)
+            if not bereich:
+                teile.append(f"### {titel} „{text}“\n\n**FEHLT:** Textstelle nicht gefunden.\n"); fehler += 1; continue
+            a, b = bereich; titel += f" Textstelle „{text}“"
         elif von:
             a = max(1, int(von)); b = min(len(zeilen), int(bis or von))
+            fehlen = _passt(zeilen[a - 1:b], zweck)
+            if fehlen:
+                hinweis = (f"\n**PRÜFEN:** Keiner der im Zweck genannten Namen ({', '.join(fehlen)}) steht in diesen Zeilen – "
+                           f"Zeilenangabe vermutlich aus dem Gedächtnis. Besser `def`/`class`/Name angeben.\n")
+                fehler += 1
         else:
             a, b = 1, len(zeilen)
         if b - a + 1 > QUELLE_MAX:
@@ -815,14 +915,17 @@ def quellen(kurztitel: str, datum: str | None = None) -> int:
             fehler += 1; continue
         breite = len(str(b))
         code = "\n".join(f"{n:>{breite}}| {zeilen[n - 1]}" for n in range(a, b + 1))
-        teile.append(f"### {titel} (Zeilen {a}–{b})" + (f" – {zweck.strip()}" if zweck else "") +
+        teile.append(f"### {titel} (Zeilen {a}–{b})" + (f" – {zweck.strip()}" if zweck else "") + hinweis +
                      f"\n\n```{SPRACHE.get(ziel.suffix, '')}\n{code}\n```\n")
     for z in unerkannt:
-        teile.append(f"### Nicht erkannt\n\n**UNKLAR:** `{z[:200]}` – Form: `pfad` Zeilen a–b | def Name | class Name\n")
+        teile.append(f"### Nicht erkannt\n\n**UNKLAR:** `{z[:200]}` – Form: `pfad` Zeilen a–b | def Name | class Name | `Name` | Abschnitt „…“\n")
         fehler += 1
     ziel_datei = PM / f"quellen_{d}_{kurztitel}.md"
     ziel_datei.write_text("\n".join(teile), encoding="utf-8")
-    print(f"{len(eintraege)} Quellen -> {ziel_datei}" + (f"   {fehler} mit FEHLT/VERWEIGERT/ZU LANG/UNKLAR" if fehler else ""))
+    print(f"{len(eintraege)} Quellen -> {ziel_datei}" + (f"   {fehler} mit FEHLT/VERWEIGERT/ZU LANG/UNKLAR/PRÜFEN" if fehler else ""))
+    for t in teile:
+        if "**PRÜFEN:**" in t or "**FEHLT:**" in t:
+            print("  " + t.splitlines()[0].lstrip("# ") + "  -> " + ("PRÜFEN" if "PRÜFEN" in t else "FEHLT"))
     for z in unerkannt:
         print(f"  UNKLAR (nicht geholt): {z[:120]}")
     return 1 if fehler else 0

@@ -438,6 +438,48 @@ if not READONLY:
         return f"Geschrieben: {_rel(target)} ({len(text)} Zeichen)"
 
     @mcp.tool()
+    def replace_in_file(path: str, old_text: str, new_text: str = "") -> str:
+        """Eine Textstelle in einer Datei ersetzen, ohne die ganze Datei neu zu schreiben.
+
+        Fuer kleine Korrekturen an langen Dokumenten (Spec, Handover): old_text muss GENAU EINMAL
+        in der Datei vorkommen (inkl. Leerzeichen/Zeilenumbruechen), sonst wird nichts geaendert.
+        new_text leer = Stelle loeschen. Verdikte und Vorgaben der Kette sind ausgenommen.
+
+        Args:
+            path: Pfad relativ zum Scope-Root.
+            old_text: Exakt zu ersetzender Text (einmalig in der Datei).
+            new_text: Ersatztext.
+        """
+        target = _resolve_in_scope(path)
+        _check_writable(target, path)
+        if not target.is_file():
+            return f"Nicht gefunden: {_rel(target)}"
+        if _readonly(target):
+            return (f"Verweigert: {_rel(target)} ist eine Vorgabe der Kette (Vorlage, Anforderung "
+                    f"oder Quellen) und wird von Modellen nie geschrieben.")
+        if _protected(target):
+            return f"Verweigert: {_rel(target)} ist ein Verdikt – nur append_file erlaubt."
+        if not old_text:
+            return "Fehler: old_text ist leer."
+        if len(old_text) > MAX_APPEND or len(new_text) > MAX_APPEND:
+            return f"Verweigert: old_text/new_text > {MAX_APPEND} Zeichen. Kleinere Stellen ersetzen."
+        text = target.read_text(encoding="utf-8")
+        anzahl = text.count(old_text)
+        if anzahl != 1:
+            return (f"Nichts geaendert: old_text kommt {anzahl}-mal vor (muss genau 1-mal). "
+                    f"Mehr umgebenden Text mitgeben bzw. exakt aus der Datei kopieren.")
+        neu = text.replace(old_text, new_text, 1)
+        fd, tmp = tempfile.mkstemp(dir=str(target.parent), prefix=f".{target.name}.", suffix=".tmp")
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as fh:
+                fh.write(neu)
+            os.replace(tmp, target)
+        finally:
+            if os.path.exists(tmp):
+                os.unlink(tmp)
+        return f"Ersetzt in {_rel(target)}: {len(old_text)} -> {len(new_text)} Zeichen (jetzt {len(neu)})"
+
+    @mcp.tool()
     def append_file(path: str, content: str = "", content_b64: str = "") -> str:
         """Text an eine Datei ANHAENGEN (legt sie an, falls sie fehlt). Bestehender Inhalt bleibt.
 

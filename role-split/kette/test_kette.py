@@ -322,6 +322,50 @@ class TestcodeTests(unittest.TestCase):
         self.assertEqual(kette._testcode(p, set()), "")
 
 
+class QuelleLesenTests(unittest.TestCase):
+    """Zeilen aus der K6-Spec (22.10.), die vorher als UNKLAR verworfen wurden."""
+    def test_formen(self):
+        f = kette.quelle_lesen
+        q = f("- `a/b.py` `def init_db` — SQLite-Schema; Muster")
+        self.assertEqual((q["art"], q["name"]), ("def", "init_db")); self.assertTrue(q["zweck"].startswith("SQLite"))
+        q = f("- `a/b.py` `def record_sent_week` (Zeilen 340–390) — atomares Schreiben")
+        self.assertEqual((q["art"], q["name"], q["von"]), ("def", "record_sent_week", None))
+        q = f("- `t/x.py` `TestBase.setUp` — Mocking-Muster")
+        self.assertEqual((q["art"], q["name"]), (None, "TestBase.setUp"))
+        q = f("- `t/x.py` `T9_Pipeline` — E2E")
+        self.assertEqual(q["name"], "T9_Pipeline")
+        q = f("- `c/l.plist` `EnvironmentVariables` — LAB_DIR")
+        self.assertEqual(q["name"], "EnvironmentVariables")
+        q = f("- `a/b.py` Zeilen 30–33 — `BASE_DIR = Path(...)`")
+        self.assertEqual((q["von"], q["bis"]), (30, 33))
+        q = f("- `a/requirements.txt` — vorhandene Abhängigkeiten")
+        self.assertEqual((q["von"], q["name"], q["text"]), (None, None, None))
+        q = f("- `CLAUDE.md` Abschnitt „Key environment variables\u201c — LAB_BIND")
+        self.assertEqual(q["text"], "Key environment variables")
+        self.assertIsNone(f("- `nur ein wort` ohne Pfad"))
+
+    def test_quellen_holt_alles_und_meldet_gedaechtniszeilen(self):
+        d = tempfile.TemporaryDirectory(); self.addCleanup(d.cleanup)
+        root = Path(d.name); pm = root / "docs/projekt_management"; pm.mkdir(parents=True)
+        (root / "m.py").write_text("X = 1\n\nclass TestBase:\n    def setUp(self):\n        self.a = 1\n\n"
+                                   "    def tearDown(self):\n        pass\n\n\ndef init_db():\n    return 2\n")
+        (root / "l.plist").write_text("<dict>\n<key>EnvironmentVariables</key>\n<dict/>\n</dict>\n")
+        (pm / "spec_20261022_q.md").write_text(
+            "# S\n\n## Quellen\n\n- `m.py` `def init_db` — DB\n- `m.py` `TestBase.setUp` — Mock\n"
+            "- `l.plist` `EnvironmentVariables` — Env\n- `m.py` Zeilen 1–1 — `BASE_DIR = Path()`\n\n## Anforderungen\n",
+            encoding="utf-8")
+        for name, wert in (("ROOT", root), ("PM", pm)):
+            alt = getattr(kette, name); setattr(kette, name, wert); self.addCleanup(setattr, kette, name, alt)
+        code, out = lauf(kette.quellen, "q")
+        text = (pm / "quellen_20261022_q.md").read_text(encoding="utf-8")
+        self.assertIn("def init_db (Zeilen 11–12)", text)
+        self.assertIn("def TestBase.setUp (Zeilen 4–5)", text); self.assertNotIn("tearDown", text)
+        self.assertIn("Textstelle „EnvironmentVariables“", text)
+        self.assertIn("**PRÜFEN:**", text)                     # Zeilen 1–1 enthalten BASE_DIR nicht
+        self.assertNotIn("UNKLAR", text)
+        self.assertEqual(code, 1); self.assertIn("PRÜFEN", out)
+
+
 class LaufTests(unittest.TestCase):
     def test_lauf_nummer_im_verdiktnamen(self):
         code, out = lauf(kette.prompt, "review", "mein_thema", "20261018", "abc1234", 2)

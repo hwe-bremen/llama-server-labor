@@ -82,11 +82,50 @@ class AppendFileTests(unittest.TestCase):
         self.assertFalse((self.root / "docs/pm/anforderung_20261022_neu.md").exists())
 
 
+class ReplaceInFileTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name)
+        (self.root / "docs" / "pm").mkdir(parents=True)
+        (self.root / "code.py").write_text("x = 1\n")
+        self.m = load({"MCP_SCOPE_ROOT": str(self.root), "MCP_READONLY": "0",
+                       "MCP_WRITE_ROOTS": "docs/pm", "MCP_ALLOW_WEB": "0"})
+        self.spec = self.root / "docs/pm/spec_x.md"
+        self.spec.write_text("## Quellen\n- `a.py` Zeilen 1–2 — X\n- `b.py` Zeilen 3–4 — Y\n## Ende\n")
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_einmalig_ersetzen(self):
+        out = self.m.replace_in_file("docs/pm/spec_x.md", "`b.py` Zeilen 3–4", "`b.py` `def f`")
+        self.assertIn("Ersetzt", out)
+        self.assertEqual(self.spec.read_text(), "## Quellen\n- `a.py` Zeilen 1–2 — X\n- `b.py` `def f` — Y\n## Ende\n")
+
+    def test_mehrdeutig_oder_fehlend_aendert_nichts(self):
+        vorher = self.spec.read_text()
+        self.assertIn("2-mal", self.m.replace_in_file("docs/pm/spec_x.md", "Zeilen", "Z"))
+        self.assertIn("0-mal", self.m.replace_in_file("docs/pm/spec_x.md", "gibtsnicht", "Z"))
+        self.assertEqual(self.spec.read_text(), vorher)
+
+    def test_geschuetzt_und_grenzen(self):
+        (self.root / "docs/pm/verdict_x.md").write_text("PASS\n")
+        self.assertIn("Verweigert", self.m.replace_in_file("docs/pm/verdict_x.md", "PASS", "FAIL"))
+        (self.root / "docs/pm/anforderung_1_x.md").write_text("A\n")
+        self.assertIn("Verweigert", self.m.replace_in_file("docs/pm/anforderung_1_x.md", "A", "B"))
+        with self.assertRaises(Exception):
+            self.m.replace_in_file("code.py", "x = 1", "x = 2")
+        with self.assertRaises(Exception):
+            self.m.replace_in_file("docs/pm/../../code.py", "x = 1", "x = 2")
+        self.assertEqual((self.root / "code.py").read_text(), "x = 1\n")
+        self.assertEqual(list((self.root / "docs/pm").glob(".*.tmp")), [])
+
+
 class ReadonlyModusTests(unittest.TestCase):
     def test_kein_append_im_readonly(self):
         tmp = tempfile.TemporaryDirectory(); self.addCleanup(tmp.cleanup)
         m = load({"MCP_SCOPE_ROOT": tmp.name, "MCP_READONLY": "1", "MCP_ALLOW_WEB": "0"})
         self.assertNotIn("append_file", tool_names(m))
+        self.assertNotIn("replace_in_file", tool_names(m))
 
 
 if __name__ == "__main__":
