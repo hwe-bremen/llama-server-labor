@@ -111,13 +111,22 @@ Ein lesender Mail-Client (IMAP) holt neue Mails aus einem Postfach, lässt ein W
 - **Inhaltliche Validierung (Pflicht, nicht nur syntaktisch):** Das Werkzeug prüft das LLM-Ergebnis selbst: die Pflichtfelder (`projekt`, `aufgaben`, `termine`, `entscheidungen`, `offene_fragen`) sind vorhanden und die `termine`-Einträge tragen ein gültiges Datum. Ungültige Ergebnisse (fehlendes Feld, ungültiges Datum, nicht parsebares JSON) werden **nicht** eingetragen: kein Marker, Planungsdatei unverändert, Mail bleibt offen und wird beim nächsten Lauf wiederholt (siehe A6).
 - **Akzeptanz:** Der API-Call enthält keinen `tools`-Parameter. Die Antwort des LLMs wird als JSON geparst und inhaltlich validiert; bei syntaktisch ungültigem oder inhaltlich ungültigem JSON wird die Mail als fehlerhaft behandelt (kein Marker, nächster Lauf wiederholt — siehe A6).
 
+#### Nachbesserung 1 (23.10.)
+- **Marker-Prüfung:** Jeder Block erhält am Anfang `<!-- mail-id: <message_id> -->`. Diese Zeile (nicht mehr `## <datum>`) wird vor dem Setzen des DB-Markers in der Planungsdatei gesucht.
+- **Datum-Validierung in Terminen:** `datetime.strptime(..., "%Y-%m-%d")` statt Regex. Monat 13 oder Tag 32 sind ungültig.
+- **JSON-Cleaning in `evaluate_mail`:** Code-Zäune (` ```json ... ``` ` / ` ``` ... ``` `) und Text vor/nach dem äußersten JSON-Objekt werden entfernt, bevor `json.loads` aufgerufen wird.
+- **`enable_thinking: False`:** Der LLM-Request enthält `"chat_template_kwargs": {"enable_thinking": False}` (Muster aus `llm_scout.py`).
+- **Fehlerarten trennen:**
+  - Netzwerk/Timeout/HTTP-Fehler → Exit 1, kein Eintrag, kein Marker.
+  - Ungültiges JSON, fehlende Pflichtfelder, ungültiges Datum → Block mit Absender, Betreff, Datum und `> ⚠ Auswertung fehlgeschlagen — bitte selbst lesen (<Grund>)` schreiben, prüfen, Marker setzen.
+
 ### A6: Fehlerpfad — Mail wird erst nach erfolgreichem Schreiben markiert
 - **Anforderung:** Die Reihenfolge im Lauf ist: (1) Mail holen, (2) LLM-Auswertung, (3) Markdown-Block bauen, (4) atomares Schreiben der Planungsdatei, (4a) prüfen, dass der Eintrag tatsächlich in der Planungsdatei steht (String-Suche; das Werkzeug schreibt nur in seine eigene Datei, Hawe bearbeitet sie nicht), (5) DB-Marker setzen. Scheitert ein Schritt vor (5) — auch (4a) —, wird **kein** Marker gesetzt. Die Mail erscheint beim nächsten Lauf erneut.
 - **Stelle:** `agents/mail_planung/mail_planung.py`, `def main` (Reihenfolge analog zu `llm_scout.py`, Zeilen 580–602)
 - **Akzeptanz:** Bei simuliertem Fehler in Schritt (2), (4) oder (4a) (z. B. LLM liefert ungültiges JSON, `os.replace` wirft `OSError`, oder der Eintrag ist trotz Schreibvorgang nicht in der Datei auffindbar): DB enthält keine Zeile für diese `Message-ID`; Planungsdatei ist unverändert (bzw. alt); Exit-Code ≠ 0.
 
 ### A7: Trockenlauf
-- **Anforderung:** Mit `--dry-run` wird das komplette Verfahren bis zum Schritt (3) durchgeführt. Der Markdown-Block wird als Vorschau-Datei nach `MAIL_PLAN_DIR/outbox/preview_<message-id>.md` geschrieben. Die Planungsdatei wird **nicht** verändert, die DB wird **nicht** verändert, kein Schlüsselbund-Zugriff, keine IMAP-Write-Befehle.
+- **Anforderung:** Mit `--dry-run` wird das komplette Verfahren bis zum Schritt (3) durchgeführt. Der Markdown-Block wird als Vorschau-Datei nach `MAIL_PLAN_DIR/outbox/preview_<message-id>.md` geschrieben. Die Planungsdatei wird **nicht** verändert, die DB wird **nicht** verändert, Schlüsselbund nur lesend (Passwort wird geholt, um Mails per IMAP read-only zu lesen), keine IMAP-Write-Befehle.
 - **Stelle:** `agents/mail_planung/mail_planung.py`, `def run_dry` (Muster: `send_scout_email.py`, `def mode_dry_run`)
 - **Akzeptanz:** Nach `--dry-run`: Planungsdatei ist byte-identisch mit vorher; DB ist byte-identisch; `outbox/preview_*.md` existiert und enthält den Block. Exit-Code 0.
 

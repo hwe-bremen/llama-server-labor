@@ -254,7 +254,9 @@ def datei_suchen(typ: str, kurztitel: str, datum: str | None) -> Path | None:
     if datum:
         p = PM / f"{typ}_{datum}_{kurztitel}.md"
         return p if p.is_file() else None
-    treffer = sorted(PM.glob(f"{typ}_*_{kurztitel}.md"))
+    # Nur exakt <typ>_<JJJJMMTT>_<kurztitel>.md – sonst greift z. B. handover_..._nachbesserung2_<kt>.md (K6, 23.10.)
+    muster = re.compile(rf"^{re.escape(typ)}_\d{{8}}_{re.escape(kurztitel)}\.md$")
+    treffer = sorted(p for p in PM.glob(f"{typ}_*_{kurztitel}.md") if muster.match(p.name))
     return treffer[-1] if treffer else None
 
 

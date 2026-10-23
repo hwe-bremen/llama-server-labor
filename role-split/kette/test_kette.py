@@ -390,6 +390,15 @@ class ZusammenfuehrenTests(unittest.TestCase):
         self.assertEqual(code, 2)
 
 
+class DateiSuchenTests(unittest.TestCase):
+    def test_nur_exakter_name(self):
+        d = tempfile.TemporaryDirectory(); self.addCleanup(d.cleanup)
+        pm = Path(d.name); alt = kette.PM; kette.PM = pm; self.addCleanup(setattr, kette, "PM", alt)
+        (pm / "handover_20261022_mail_planung.md").write_text("a")
+        (pm / "handover_20261023_nachbesserung2_mail_planung.md").write_text("b")
+        self.assertEqual(kette.datei_suchen("handover", "mail_planung", None).name, "handover_20261022_mail_planung.md")
+
+
 class LaufTests(unittest.TestCase):
     def test_lauf_nummer_im_verdiktnamen(self):
         code, out = lauf(kette.prompt, "review", "mein_thema", "20261018", "abc1234", 2)
