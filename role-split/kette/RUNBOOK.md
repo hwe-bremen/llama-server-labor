@@ -124,18 +124,25 @@ Achtung: `gegenprobe` verändert Dateien für Sekunden – nicht laufen lassen, 
    python3 role-split/kette/kette.py prompt review <kurztitel>
    ```
    Steht dort `WARNUNG: Paket > 80000 Zeichen`: Claude fragen, ob das Review in Teilen laufen soll.
-3. Browser **neuer Chat**, Modell **Qwen3.6-35B-A3B** (schneller und in den Proben genauer als 27B), Reasoning **aus**,
-   Prompt einfügen, abschicken. Optional ein zweiter, unabhängiger Lauf: neuer Chat mit
-   `kette.py prompt review <kurztitel> --lauf 2` (eigener Verdikt-Name, liest Lauf 1 nicht). Der Prompt enthält die
-   sechs Pflichtfragen und verlangt ein knappes Verdikt, das **abschnittsweise** gespeichert wird (`write_file`, dann `append_file`).
-4. **Kontextanzeige beobachten.** Ab **80 %** die Notbremse schicken (Abschnitt 5). Durch das abschnittsweise Speichern
-   ist dann meist schon ein Teil des Verdikts in der Datei.
-5. Urteil mechanisch nachrechnen (Dateinamen aus dem Chat übernehmen):
+3. **Lauf 1 (Anforderung):** Browser **neuer Chat**, Modell **Qwen3.6-35B-A3B**, Reasoning **aus**, Prompt einfügen,
+   abschicken. Der Prompt enthält die sechs Pflichtfragen und verlangt ein knappes Verdikt, das **abschnittsweise**
+   gespeichert wird (`write_file`, dann `append_file`).
+4. **Lauf 2 (Betrieb, anderer Blickwinkel):** neuer Chat, gleiches Modell, Prompt holen mit
    ```bash
-   python3 role-split/kette/kette.py urteil docs/projekt_management/verdict_<…>.md --anhaengen
+   python3 role-split/kette/kette.py prompt review2 <kurztitel>
    ```
+   Lauf 2 sucht gezielt, was Lauf 1 typischerweise übersieht: Test-Attrappen statt echter Abhängigkeiten (LLM, Netz,
+   Postfach), Eingaben, die bei jedem Lauf erneut scheitern, Widersprüche zwischen Sätzen der Anforderung, ersten echten
+   Einsatz. Er liest Lauf 1 nicht. (Einführung 23.10. nach K6: beide Läufe zusammen fanden alle hohen Befunde.)
+5. **Kontextanzeige beobachten.** Ab **80 %** die Notbremse schicken (Abschnitt 5).
+6. **Zusammenführen – mechanisch, kein dritter Modell-Lauf:**
+   ```bash
+   python3 role-split/kette/kette.py zusammenfuehren docs/projekt_management/verdict_<…>.md docs/projekt_management/verdict_<…>_betrieb.md
+   ```
+   Schreibt `gesamt_<datum>_<kurztitel>.md` mit allen Befunden beider Läufe; ein hoher Befund in irgendeinem Lauf
+   (oder „ja" bei Datenverlust/Unbemerkt/Harte Vorgabe) ergibt NACHBESSERN.
 
-**Fertig, wenn:** Verdikt-Datei existiert (oder das Kurzverdikt im Chat steht).
+**Fertig, wenn:** `gesamt_…`-Datei existiert (oder ein Kurzverdikt im Chat steht).
 
 ---
 
@@ -211,9 +218,9 @@ git add docs/projekt_management/*_<kurztitel>.md && git commit -m "Spec <kurztit
 python3 role-split/kette/kette.py prompt umsetzung <kurztitel>     # → opencode, Qwen3.6, Agent umsetzung
 # C
 python3 role-split/kette/kette.py pruefen <kurztitel>
-# D  Ctrl+C, start_eval | neuer Chat | Qwen3.6-35B-A3B, Reasoning aus | ab 80 % Notbremse | optional --lauf 2
+# D  Ctrl+C, start_eval | Qwen3.6-35B-A3B, Reasoning aus | Lauf 1: prompt review | Lauf 2 (neuer Chat): prompt review2
 python3 role-split/kette/kette.py prompt review <kurztitel>
-python3 role-split/kette/kette.py urteil docs/projekt_management/verdict_<…>.md --anhaengen
+python3 role-split/kette/kette.py zusammenfuehren docs/projekt_management/verdict_<…>.md docs/projekt_management/verdict_<…>_betrieb.md
 # E  Projekt-Chat: "Kette <kurztitel> fertig, bitte gegenprüfen."
 # F  Freigabe → git add -A && git commit -m "Kette <kurztitel>: …"
 #    Nachbessern → Claude-Prompt in OpenCode → zurück zu C → E
