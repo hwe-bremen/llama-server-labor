@@ -1,6 +1,6 @@
 # Quellen: mail_planung
 
-Maschinell und woertlich aus dem Repo geholt mit `kette.py quellen mail_planung` (2026-10-22 20:17, Stand `83a424d`), nach dem Abschnitt „Quellen“ in `spec_20261022_mail_planung.md`.
+Maschinell und woertlich aus dem Repo geholt mit `kette.py quellen mail_planung` (2026-10-23 08:38, Stand `207d7a9`), nach dem Abschnitt „Quellen“ in `spec_20261022_mail_planung.md`.
 Nicht von Hand aendern – bei Bedarf die Spec anpassen und neu erzeugen. Konstanten, Formate und Schnittstellen werden nur von hier oder aus dem Code genommen, nie aus dem Gedaechtnis.
 
 ### `agents/llm_scout/llm_scout.py` (Zeilen 30–33) – `BASE_DIR = Path(os.getenv("LAB_DIR", Path.home() / "lab"))`; `DB_PATH = BASE_DIR / "llm_scout.db"` — Muster für `MAIL_PLAN_DIR` und `DB_PATH`
