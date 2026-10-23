@@ -366,6 +366,30 @@ class QuelleLesenTests(unittest.TestCase):
         self.assertEqual(code, 1); self.assertIn("PRÜFEN", out)
 
 
+class ZusammenfuehrenTests(unittest.TestCase):
+    def test_vereinigung_und_regel(self):
+        d = tempfile.TemporaryDirectory(); self.addCleanup(d.cleanup)
+        pm = Path(d.name); alt = kette.PM; kette.PM = pm; self.addCleanup(setattr, kette, "PM", alt)
+        kopf = "| # | Datenverlust | Unbemerkt | Harte Vorgabe | Schwere | Datei:Zeile | Befund | Loesungsweg |\n|---|---|---|---|---|---|---|---|\n"
+        (pm / "verdict_20261023_k_qwen36-35b.md").write_text(
+            "# V\n\n## Ergebnis\n\n**PASS** – gut.\n\n## Befunde\n\n" + kopf +
+            "| 1 | nein | nein | nein | niedrig | a.py:1 | Stil | – |\n", encoding="utf-8")
+        (pm / "verdict_20261023_k_qwen36-35b_betrieb.md").write_text(
+            "# V\n\n## Ergebnis\n\n**PASS** – auch gut.\n\n## Befunde\n\n" + kopf +
+            "| 1 | nein | ja | nein | mittel | b.py:9 | Giftmail haengt ewig | Fallback |\n", encoding="utf-8")
+        code, out = lauf(kette.zusammenfuehren, [pm / "verdict_20261023_k_qwen36-35b.md",
+                                                pm / "verdict_20261023_k_qwen36-35b_betrieb.md"])
+        self.assertEqual(code, 1)                       # Unbemerkt: ja -> hoch -> NACHBESSERN, obwohl beide PASS sagten
+        text = (pm / "gesamt_20261023_k.md").read_text(encoding="utf-8")
+        self.assertIn("**NACHBESSERN**", text)
+        self.assertIn("Giftmail haengt ewig", text); self.assertIn("Stil", text)
+        self.assertIn("| ja |", text)
+
+    def test_zu_wenig_verdikte(self):
+        code, out = lauf(kette.zusammenfuehren, [Path("x.md")])
+        self.assertEqual(code, 2)
+
+
 class LaufTests(unittest.TestCase):
     def test_lauf_nummer_im_verdiktnamen(self):
         code, out = lauf(kette.prompt, "review", "mein_thema", "20261018", "abc1234", 2)

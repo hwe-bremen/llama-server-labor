@@ -44,6 +44,11 @@ Befehle, nur Standardbibliothek, liest/schreibt nur im Projekt:
         Das Review liest nur diese eine Datei (22.10.: Reviews liefen bei 64K Kontext voll).
         `prompt review` baut das Paket automatisch.
 
+  python3 role-split/kette/kette.py zusammenfuehren <verdikt1.md> <verdikt2.md> [...]
+        Fuehrt die Befundtabellen mehrerer Review-Laeufe MECHANISCH zusammen (kein LLM, nichts geht
+        verloren): eine Tabelle mit Spalte „Lauf", Urteil nach der Regel „ein hoher Befund in einem Lauf
+        = NACHBESSERN". Schreibt docs/projekt_management/gesamt_<datum>_<kurztitel>.md.
+
   python3 role-split/kette/kette.py urteil <verdikt.md> [--anhaengen]
         Leitet das Urteil mechanisch aus dem Verdikt ab: Ein Befund mit "ja" bei
         Datenverlust / Unbemerkt / Harte Vorgabe ist "hoch"; ein offener Befund "hoch"
@@ -72,7 +77,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent.parent
 PM = ROOT / "docs" / "projekt_management"
 PROMPTS = HERE / "prompts"
-SCHRITTE = ("spec", "umsetzung", "review", "tief")
+SCHRITTE = ("spec", "umsetzung", "review", "review2", "tief")
 
 # ---------------------------------------------------------------- Markdown-Helfer
 
@@ -686,6 +691,65 @@ def paket(kurztitel: str, commit: str | None = None, datum: str | None = None, s
         say("Hinweis: keine pruefung_*-Datei – erst `kette.py pruefen <kurztitel>` laufen lassen.")
     return 0
 
+# ---------------------------------------------------------------- zusammenfuehren
+
+def _befunde(text: str) -> list[dict]:
+    return tabelle(abschnitt(text, "Befunde"))
+
+
+def _ist_hoch(zeile: dict) -> bool:
+    schwere = (spalte(zeile, "schwere") or "").lower()
+    return "hoch" in schwere or any(ja(spalte(zeile, n)) for n in ("datenverl", "unbemerkt", "harte"))
+
+
+def zusammenfuehren(pfade: list[Path]) -> int:
+    if len(pfade) < 2:
+        print("Mindestens zwei Verdikte angeben."); return 2
+    zeilen, ergebnisse, fehlt = [], [], []
+    for p in pfade:
+        if not p.is_file():
+            fehlt.append(str(p)); continue
+        text = p.read_text(encoding="utf-8")
+        m = re.search(r"\b(PASS|NACHBESSERN|FAIL)\b", abschnitt(text, "Ergebnis") or text)
+        ergebnisse.append((p.name, m.group(1) if m else "?"))
+        befunde = _befunde(text)
+        if not befunde:
+            zeilen.append((p.name, "?", "(keine Befundtabelle erkannt – Verdikt von Hand lesen)", "", False))
+        for b in befunde:
+            schwere = spalte(b, "schwere") or "?"
+            text_b = spalte(b, "befund", "begründung", "begruendung") or " | ".join(v for v in b.values() if v)
+            ort = spalte(b, "datei", "zeile", "anfor") or ""
+            zeilen.append((p.name, schwere, text_b, ort, _ist_hoch(b)))
+    if fehlt:
+        print("Fehlt: " + ", ".join(fehlt)); return 2
+    hoch = [z for z in zeilen if z[4]]
+    if hoch or any(e == "NACHBESSERN" for _, e in ergebnisse):
+        urteil_ = "NACHBESSERN"
+    elif any(e == "FAIL" for _, e in ergebnisse):
+        urteil_ = "FAIL"
+    elif all(e == "PASS" for _, e in ergebnisse):
+        urteil_ = "PASS"
+    else:
+        urteil_ = "UNKLAR"
+    if any(e == "FAIL" for _, e in ergebnisse):
+        urteil_ = "FAIL"
+    m = re.match(r"verdict_(\d{8})_(.+?)_[^_]+(?:_[^_]+)*\.md$", pfade[0].name)
+    datum = m.group(1) if m else dt.date.today().strftime("%Y%m%d")
+    kt = re.match(r"verdict_\d{8}_([a-z0-9_]+?)_(?:qwen|gemma|mellum|apertus|claude|hawe)", pfade[0].name)
+    kurz = kt.group(1) if kt else "review"
+    teile = [f"# Gesamtbefund: {kurz}\n",
+             f"Mechanisch zusammengeführt mit `kette.py zusammenfuehren` ({dt.datetime.now():%Y-%m-%d %H:%M}). Kein Befund wurde weggelassen oder umformuliert.\n",
+             "## Ergebnis\n", f"**{urteil_}** – Regel: ein hoher Befund in irgendeinem Lauf ergibt NACHBESSERN.\n",
+             "| Lauf | Ergebnis des Laufs |", "|---|---|"] + [f"| `{n}` | {e} |" for n, e in ergebnisse] + [
+             "", "## Befunde (alle Läufe)\n", "| Lauf | Schwere | hoch nach Regel | Fundstelle | Befund |", "|---|---|---|---|---|"]
+    for n, s_, t, o, h in zeilen:
+        teile.append(f"| `{n}` | {s_} | {'ja' if h else 'nein'} | {o.replace('|', '/')} | {t.replace('|', '/')} |")
+    ziel = PM / f"gesamt_{datum}_{kurz}.md"
+    ziel.write_text("\n".join(teile) + "\n", encoding="utf-8")
+    print(f"{len(zeilen)} Befunde aus {len(ergebnisse)} Läufen, davon {len(hoch)} hoch -> {urteil_}")
+    print(f"Geschrieben: {ziel.relative_to(ROOT) if ziel.is_relative_to(ROOT) else ziel}")
+    return 0 if urteil_ == "PASS" else 1
+
 # ---------------------------------------------------------------- anforderung
 
 def _datum_aus(pfad: Path | None) -> str | None:
@@ -957,7 +1021,7 @@ def prompt(schritt: str, kurztitel: str, datum: str | None, commit: str | None, 
             print(f"Hinweis: Ruecksetzpunkt = HEAD von {ROOT} ({commit}). Stimmt das (Worktree?)? "
                   "Sonst --commit angeben.", file=sys.stderr)
     paket_pfad = f"docs/projekt_management/review_paket_{datum}_{kurztitel}.md"
-    if schritt in ("review", "tief"):
+    if schritt in ("review", "review2", "tief"):
         if paket(kurztitel, commit if commit != "<HASH>" else None, None, still=False) != 0:
             print("Hinweis: Review-Paket nicht gebaut (siehe oben) – Prompt verweist trotzdem darauf.",
                   file=sys.stderr)
@@ -1003,11 +1067,16 @@ def main(argv=None) -> int:
     g = sub.add_parser("gegenprobe"); g.add_argument("kurztitel")
     g.add_argument("--commit", required=True, help="Ruecksetzpunkt vor der Umsetzung")
     g.add_argument("--timeout", type=int, default=300)
+    zf = sub.add_parser("zusammenfuehren", help="Befunde mehrerer Review-Laeufe mechanisch zusammenfuehren")
+    zf.add_argument("verdikte", nargs="+")
     pk = sub.add_parser("paket", help="Review-Paket bauen (eine Datei fuers Review)")
     pk.add_argument("kurztitel"); pk.add_argument("--commit"); pk.add_argument("--datum")
     pr = sub.add_parser("pruefen", help="abgleich + unittest + gegenprobe, Ausgabe in Datei")
     pr.add_argument("kurztitel"); pr.add_argument("--commit"); pr.add_argument("--timeout", type=int, default=300)
     args = ap.parse_args(argv)
+    if args.cmd == "zusammenfuehren":
+        return zusammenfuehren([Path(v) if Path(v).is_absolute() or Path(v).exists() else PM / Path(v).name
+                                for v in args.verdikte])
     if args.cmd == "paket":
         return paket(args.kurztitel, args.commit, args.datum)
     if args.cmd == "pruefen":
