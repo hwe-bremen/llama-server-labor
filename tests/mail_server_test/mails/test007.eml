@@ -1,0 +1,13 @@
+From: bob@example.com
+To: alice@lab.local
+Subject: Testmail 6: Fehlgeschlagener Build
+Date: Mon, 27 Oct 2025 09:30:00 +0000
+Message-ID: <test006@mail-planung.test>
+
+Hallo,
+
+der Build ist fehlgeschlagen. Fehler in test_unit.py Zeile 42.
+Bitte reparieren.
+
+Gruß
+CI-System

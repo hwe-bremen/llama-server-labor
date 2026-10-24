@@ -1,0 +1,98 @@
+[
+  {
+    "file": "test001.eml",
+    "message_id": "<test001@mail-planung.test>",
+    "expected_project": "ProjektX",
+    "expected_status": "neu"
+  },
+  {
+    "file": "test002.eml",
+    "message_id": "<test001@mail-planung.test>",
+    "expected_project": "ProjektX",
+    "expected_status": "bereits_verarbeitet"
+  },
+  {
+    "file": "test003.eml",
+    "message_id": "<test002@mail-planung.test>",
+    "expected_project": "ProjektX",
+    "expected_status": "neu"
+  },
+  {
+    "file": "test004.eml",
+    "message_id": "<test003@mail-planung.test>",
+    "expected_project": "Unzugeordnet",
+    "expected_status": "neu"
+  },
+  {
+    "file": "test005.eml",
+    "message_id": "<test004@mail-planung.test>",
+    "expected_project": "Unzugeordnet",
+    "expected_status": "neu"
+  },
+  {
+    "file": "test006.eml",
+    "message_id": "<test005@mail-planung.test>",
+    "expected_project": "ProjektX",
+    "expected_status": "neu"
+  },
+  {
+    "file": "test007.eml",
+    "message_id": "<test006@mail-planung.test>",
+    "expected_project": "Unzugeordnet",
+    "expected_status": "neu"
+  },
+  {
+    "file": "test008.eml",
+    "message_id": "<test007@mail-planung.test>",
+    "expected_project": "Unzugeordnet",
+    "expected_status": "neu"
+  },
+  {
+    "file": "test009.eml",
+    "message_id": "<test008@mail-planung.test>",
+    "expected_project": "Unzugeordnet",
+    "expected_status": "neu"
+  },
+  {
+    "file": "test010.eml",
+    "message_id": "<test009@mail-planung.test>",
+    "expected_project": "ProjektX",
+    "expected_status": "neu"
+  },
+  {
+    "file": "test011.eml",
+    "message_id": "<test010@mail-planung.test>",
+    "expected_project": "Unzugeordnet",
+    "expected_status": "neu_mit_duplikat"
+  },
+  {
+    "file": "test012.eml",
+    "message_id": "<test011@mail-planung.test>",
+    "expected_project": "Unzugeordnet",
+    "expected_status": "leer"
+  },
+  {
+    "file": "test013.eml",
+    "message_id": "<test012@mail-planung.test>",
+    "expected_project": "Unzugeordnet",
+    "expected_status": "neu"
+  },
+  {
+    "file": "test014.eml",
+    "message_id": null,
+    "expected_project": "Unzugeordnet",
+    "expected_status": "neu"
+  },
+  {
+    "file": "test015.eml",
+    "message_id": "<test014@mail-planung.test>",
+    "expected_project": "Unzugeordnet",
+    "expected_status": "neu"
+  },
+  {
+    "file": "test016.eml",
+    "message_id": "<test015@mail-planung.test>",
+    "expected_project": "Unzugeordnet",
+    "expected_status": "neu"
+  }
+]

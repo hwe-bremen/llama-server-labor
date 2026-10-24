@@ -1,0 +1,12 @@
+From: alice@example.com
+To: bob@lab.local
+Subject: Testmail 9: Release-Planung
+Date: Thu, 30 Oct 2025 15:30:00 +0000
+Message-ID: <test009@mail-planung.test>
+
+Hallo,
+
+wir planen das Release für 2025-11-10. Bitte bereitet die Release-Notes vor.
+
+Gruß
+Alice

@@ -1,0 +1,13 @@
+From: diana@example.com
+To: alice@lab.local
+Subject: Testmail 12: HTML-Mail
+Date: Tue, 4 Nov 2025 11:00:00 +0000
+Message-ID: <test012@mail-planung.test>
+
+<html>
+<body>
+<p>Hallo Alice,</p>
+<p>bitte prüfe die <strong>neuen Anforderungen</strong> bis 2025-11-07.</p>
+<p>Viele Grüße<br/>Diana</p>
+</body>
+</html>

@@ -55,7 +55,8 @@ PLAN_FILE = MAIL_PLAN_DIR / "planung.md"
 IMAP_HOST = os.getenv("IMAP_HOST", "localhost")
 IMAP_PORT = int(os.getenv("IMAP_PORT", "993"))
 IMAP_USER = os.getenv("IMAP_USER", "")
-KEYCHAIN_SERVICE = "lab-mail-imap"
+KEYCHAIN_SERVICE = os.getenv("MAIL_IMAP_KEYCHAIN_SERVICE", "lab-mail-imap")
+MAIL_IMAP_UNENCRYPTED = os.getenv("MAIL_IMAP_UNENCRYPTED")
 
 # LLM (eigene Variablen, gleiche Standardwerte wie Scout)
 # Muster: llm_scout.py Zeilen 39, 49
@@ -182,7 +183,15 @@ def fetch_mails(host: str, port: int, user: str, password: str) -> List[Dict[str
     Verbindet sich per IMAP, �ffnet INBOX read-only, listet alle Mails
     und schlie�t die Verbindung. Ver�ndert das Postfach nicht.
     """
-    imap = imaplib.IMAP4_SSL(host, port)
+    # A5: Unverschlüsseltes IMAP nur auf ausdrücklichen Wunsch und nur für localhost
+    if MAIL_IMAP_UNENCRYPTED:
+        if host not in ("127.0.0.1", "localhost"):
+            print("Unverschlüsseltes IMAP wird nur für localhost unterstützt", file=sys.stderr)
+            sys.exit(1)
+        imap = imaplib.IMAP4(host, port)
+    else:
+        # Normaler Betrieb: IMAP4_SSL mit Zertifikatsprüfung
+        imap = imaplib.IMAP4_SSL(host, port)
     imap.login(user, password)
     imap.select("INBOX", readonly=True)  # A2: read-only
     status, data = imap.search(None, "ALL")
