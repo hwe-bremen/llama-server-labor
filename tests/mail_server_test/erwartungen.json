@@ -4,7 +4,6 @@
     "block_exists": true,
     "has_aufgaben": true,
     "has_duplikat_warning": false,
-    "has_error_warning": false,
     "has_kein_inhalt": false,
     "has_kuerzungshinweis": false,
     "project": "Testprojekt"
@@ -14,7 +13,6 @@
     "block_exists": true,
     "has_aufgaben": false,
     "has_duplikat_warning": false,
-    "has_error_warning": false,
     "has_kein_inhalt": false,
     "has_kuerzungshinweis": false,
     "project": "Unzugeordnet"
@@ -24,8 +22,6 @@
     "block_exists": true,
     "has_aufgaben": false,
     "has_duplikat_warning": false,
-    "has_error_warning": false,
-    "has_kein_inhalt": true,
     "has_kuerzungshinweis": false,
     "project": "Unzugeordnet"
   },
@@ -34,7 +30,6 @@
     "block_exists": true,
     "has_aufgaben": false,
     "has_duplikat_warning": false,
-    "has_error_warning": false,
     "has_kein_inhalt": true,
     "has_kuerzungshinweis": false,
     "project": "Unzugeordnet"
@@ -44,7 +39,6 @@
     "block_exists": true,
     "has_aufgaben": false,
     "has_duplikat_warning": false,
-    "has_error_warning": false,
     "has_kein_inhalt": false,
     "has_kuerzungshinweis": false,
     "project": "Unzugeordnet"
@@ -54,27 +48,21 @@
     "block_exists": true,
     "has_aufgaben": false,
     "has_duplikat_warning": false,
-    "has_error_warning": false,
     "has_kein_inhalt": false,
     "has_kuerzungshinweis": false,
     "project": "Unzugeordnet"
   },
   "07": {
     "message_id": "<test-01@test.local>",
-    "block_exists": false,
-    "has_aufgaben": false,
     "has_duplikat_warning": false,
-    "has_error_warning": false,
-    "has_kein_inhalt": false,
-    "has_kuerzungshinweis": false,
-    "project": "Testprojekt"
+    "project": "Testprojekt",
+    "hinweis": "gleiche Message-ID wie 01: kein eigener Block; geprueft ueber 'jede mail-id genau einmal'"
   },
   "08": {
     "message_id": "<test-08@test.local>",
     "block_exists": true,
     "has_aufgaben": false,
     "has_duplikat_warning": false,
-    "has_error_warning": false,
     "has_kein_inhalt": false,
     "has_kuerzungshinweis": true,
     "project": "Unzugeordnet"
@@ -82,21 +70,11 @@
   "09": {
     "message_id": "<test-09@test.local>",
     "block_exists": true,
-    "has_aufgaben": false,
-    "has_duplikat_warning": false,
-    "has_error_warning": true,
-    "has_kein_inhalt": false,
-    "has_kuerzungshinweis": false,
     "project": "Unzugeordnet"
   },
   "10": {
     "message_id": "<test-10@test.local>",
     "block_exists": true,
-    "has_aufgaben": false,
-    "has_duplikat_warning": false,
-    "has_error_warning": true,
-    "has_kein_inhalt": false,
-    "has_kuerzungshinweis": false,
     "project": "Unzugeordnet"
   },
   "11": {
@@ -104,7 +82,6 @@
     "block_exists": true,
     "has_aufgaben": false,
     "has_duplikat_warning": false,
-    "has_error_warning": false,
     "has_kein_inhalt": false,
     "has_kuerzungshinweis": false,
     "project": "Unzugeordnet"
@@ -114,7 +91,6 @@
     "block_exists": true,
     "has_aufgaben": false,
     "has_duplikat_warning": false,
-    "has_error_warning": false,
     "has_kein_inhalt": false,
     "has_kuerzungshinweis": false,
     "project": "Unzugeordnet"
@@ -124,7 +100,6 @@
     "block_exists": true,
     "has_aufgaben": false,
     "has_duplikat_warning": false,
-    "has_error_warning": false,
     "has_kein_inhalt": false,
     "has_kuerzungshinweis": false,
     "project": "Unzugeordnet"
@@ -134,7 +109,6 @@
     "block_exists": true,
     "has_aufgaben": false,
     "has_duplikat_warning": false,
-    "has_error_warning": false,
     "has_kein_inhalt": false,
     "has_kuerzungshinweis": false,
     "project": "Unzugeordnet"
@@ -144,7 +118,6 @@
     "block_exists": true,
     "has_aufgaben": false,
     "has_duplikat_warning": false,
-    "has_error_warning": false,
     "has_kein_inhalt": false,
     "has_kuerzungshinweis": false,
     "project": "Unzugeordnet"
@@ -154,7 +127,6 @@
     "block_exists": true,
     "has_aufgaben": false,
     "has_duplikat_warning": true,
-    "has_error_warning": false,
     "has_kein_inhalt": false,
     "has_kuerzungshinweis": false,
     "project": "Testprojekt"

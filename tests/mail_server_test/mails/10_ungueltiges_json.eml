@@ -1,0 +1,19 @@
+From: charlie@example.com
+To: alice@lab.local
+Subject: Bitte um Analyse
+Date: Fri, 31 Oct 2025 08:00:00 +0000
+Message-ID: <test-10@test.local>
+
+Hallo Alice,
+
+bitte analysiere die folgenden Daten:
+
+{das ist kein gueltiges JSON
+  "foo": bar,
+  [1, 2, 3
+}
+
+Ich braeuchte eine Zusammenfassung der Ergebnisse.
+
+Gruss
+Charlie

@@ -1,0 +1,15 @@
+From: diana@example.com
+To: alice@lab.local
+Subject: Umlaute: äöü ß prüfen
+Date: Fri, 24 Oct 2025 08:00:00 +0000
+Message-ID: <test-05@test.local>
+
+Hallo,
+
+bitte pruefe die Umlaute: äöü ß.
+Die Sonderzeichen muessen korrekt verarbeitet werden.
+
+Datum: 2025-11-10.
+
+Gruss
+Diana

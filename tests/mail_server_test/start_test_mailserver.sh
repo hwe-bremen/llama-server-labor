@@ -114,6 +114,10 @@ python3 "$SCRIPT_DIR/einliefern.py" \
     --dir "$SCRIPT_DIR/mails"
 echo "Mails eingeliefert."
 
+echo "=== Schritt 5.5: mail_projects.json anlegen ==="
+echo '[{"keyword": "Testprojekt", "project": "Testprojekt"}]' > "$MAIL_PLAN_DIR/mail_projects.json"
+echo "mail_projects.json erstellt."
+
 echo "=== Schritt 6: Trockenlauf ==="
 python3 agents/mail_planung/mail_planung.py --dry-run
 echo "Trockenlauf abgeschlossen."

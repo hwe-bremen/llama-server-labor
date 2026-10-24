@@ -1,0 +1,12 @@
+From: unknown@external.com
+To: alice@lab.local
+Subject: Mail ohne Message-ID
+Date: Thu, 6 Nov 2025 10:00:00 +0000
+
+Hallo,
+
+diese Mail hat keinen Message-ID Header.
+Das System sollte eine synthetische ID erzeugen.
+
+Gruss
+Unbekannt

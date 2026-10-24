@@ -1,0 +1,15 @@
+From: charlie@example.com
+To: alice@lab.local
+Subject: Leere Mail
+Date: Thu, 23 Oct 2025 16:45:00 +0000
+Message-ID: <test-04@test.local>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="----=_Part_empty"
+
+------=_Part_empty
+Content-Type: application/octet-stream
+Content-Transfer-Encoding: base64
+
+dGVzdA==
+
+------=_Part_empty--

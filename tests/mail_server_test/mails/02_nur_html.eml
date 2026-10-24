@@ -1,0 +1,17 @@
+From: diana@example.com
+To: alice@lab.local
+Subject: Terminvorschlag
+Date: Tue, 21 Oct 2025 14:30:00 +0000
+Message-ID: <test-02@test.local>
+MIME-Version: 1.0
+Content-Type: text/html; charset=utf-8
+Content-Transfer-Encoding: 8bit
+
+<html>
+<body>
+<p>Hallo Alice,</p>
+<p>ich schlage vor, dass wir am n&auml;chsten Montag einen Workshop abhalten.</p>
+<p>Bitte gib mir bis Freitag Bescheid.</p>
+<p>Gruss<br/>Diana</p>
+</body>
+</html>

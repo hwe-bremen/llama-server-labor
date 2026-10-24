@@ -1,0 +1,16 @@
+From: alice@example.com
+To: bob@lab.local
+Subject: Aufgaben fuer Testprojekt (erneut)
+Date: Tue, 28 Oct 2025 13:00:00 +0000
+Message-ID: <test-01@test.local>
+
+Hallo Bob,
+
+bitte erledige folgende Aufgaben fuer das Testprojekt:
+
+- Datenbank-Migration vorbereiten
+- Unit-Tests schreiben fuer Modul X
+- Code-Review fuer PR #42
+
+Viele Gruesse
+Alice

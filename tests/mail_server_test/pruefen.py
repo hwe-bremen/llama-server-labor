@@ -36,26 +36,23 @@ def parse_blocks(planung_path: Path) -> list[dict]:
     content = planung_path.read_text(encoding="utf-8")
     blocks = []
 
-    # Block-Grenzen: ## <Datum> — <Betreff>
-    pattern = re.compile(
-        r"## (\d{4}-\d{2}-\d{2})\s*—\s*(.+?)(?=\n## |\Z)",
-        re.DOTALL,
-    )
+    # Block-Grenzen: jeder Block beginnt mit dem Marker <!-- mail-id: ... -->,
+    # danach "## <Date-Kopf der Mail> — <Betreff>". Der Date-Kopf ist RFC 2822
+    # (z. B. "Mon, 20 Oct 2025 09:00:00 +0000"), kein ISO-Datum.
+    teile = re.split(r"(?=<!-- mail-id:)", content)
+    for body in teile:
+        mail_id_match = re.match(r"<!-- mail-id:\s*(.+?)\s*-->", body)
+        if not mail_id_match:
+            continue
+        message_id = mail_id_match.group(1).strip()
 
-    for match in pattern.finditer(content):
-        date_str = match.group(1)
-        subject = match.group(2).strip()
-        body = match.group(0)
+        kopf = re.search(r"^## (.*?) — (.*)$", body, re.MULTILINE)
+        date_str = kopf.group(1).strip() if kopf else None
+        subject = kopf.group(2).strip() if kopf else None
 
-        # Message-ID extrahieren
-        mail_id_match = re.search(r"<!-- mail-id:\s*(.+?)\s*-->", body)
-        message_id = mail_id_match.group(1).strip() if mail_id_match else None
-
-        # Absender extrahieren
         from_match = re.search(r"> Absender:\s*(.+)", body)
         sender = from_match.group(1).strip() if from_match else None
 
-        # Projekt extrahieren
         project_match = re.search(r"> Projekt:\s*(.+)", body)
         project = project_match.group(1).strip() if project_match else None
 
@@ -119,51 +116,64 @@ def run_checks(plan_dir: Path, expectations: dict) -> list[str]:
 
     blocks = parse_blocks(planung_path)
 
+    # Dedup (A10): jede mail-id darf in der Planungsdatei genau einmal vorkommen
+    gesehen = {}
+    for b in blocks:
+        gesehen[b["message_id"]] = gesehen.get(b["message_id"], 0) + 1
+    for mid, n in gesehen.items():
+        if n > 1:
+            errors.append(f"mail-id {mid} steht {n}x in der Planungsdatei (Dedup verletzt)")
+
     # Pro Mail-Block: existiert oder nicht
+    # Fehlende Felder in erwartungen.json bedeuten "nicht pruefen".
     for mail_num, expected in expectations.items():
         msg_id = expected.get("message_id")
-        block_exists_expected = expected.get("block_exists", True)
+        block_exists_expected = expected.get("block_exists")
 
-        # Block suchen
-        matching_blocks = [b for b in blocks if b["message_id"] == msg_id]
+        # Block suchen (nur wenn message_id gesetzt ist)
+        matching_blocks = []
+        if msg_id is not None:
+            matching_blocks = [b for b in blocks if b["message_id"] == msg_id]
 
-        if block_exists_expected and not matching_blocks:
-            errors.append(f"Mail {mail_num}: Block fehlt (erwartet message_id={msg_id})")
-            continue
+        # block_exists pruefen (nur wenn message_id gesetzt, sonst keine Zuordnung moeglich)
+        if msg_id is not None and block_exists_expected is not None:
+            if block_exists_expected and not matching_blocks:
+                errors.append(f"Mail {mail_num}: Block fehlt (erwartet message_id={msg_id})")
+                continue
 
-        if not block_exists_expected and matching_blocks:
-            errors.append(f"Mail {mail_num}: Block existiert (erwartet nicht vorhanden)")
-            continue
+            if not block_exists_expected and matching_blocks:
+                errors.append(f"Mail {mail_num}: Block existiert (erwartet nicht vorhanden)")
+                continue
 
         if matching_blocks:
             block = matching_blocks[0]
 
-            # Giftmail: "Auswertung fehlgeschlagen"
+            # Giftmail: "Auswertung fehlgeschlagen" — nur pruefen, wenn Feld vorhanden und True
             if expected.get("has_error_warning"):
                 if "> ⚠ Auswertung fehlgeschlagen" not in block["body"]:
                     errors.append(f"Mail {mail_num}: Fehlerwarnung fehlt")
 
-            # Kein verwertbarer Inhalt
+            # Kein verwertbarer Inhalt — nur pruefen, wenn Feld vorhanden und True
             if expected.get("has_kein_inhalt"):
                 if "> Kein verwertbarer Inhalt" not in block["body"]:
                     errors.append(f"Mail {mail_num}: 'Kein verwertbarer Inhalt' fehlt")
 
-            # Duplikat-Warnung
+            # Duplikat-Warnung — nur pruefen, wenn Feld vorhanden und True
             if expected.get("has_duplikat_warning"):
                 if "⚠️ mögliches Duplikat von" not in block["body"]:
                     errors.append(f"Mail {mail_num}: Duplikat-Warnung fehlt")
 
-            # Kuerzungshinweis
+            # Kuerzungshinweis — nur pruefen, wenn Feld vorhanden und True
             if expected.get("has_kuerzungshinweis"):
                 if "> (Mailtext für die Auswertung gekürzt)" not in block["body"]:
                     errors.append(f"Mail {mail_num}: Kuerzungshinweis fehlt")
 
-            # Aufgaben-Kategorie
+            # Aufgaben-Kategorie — nur pruefen, wenn Feld vorhanden und True
             if expected.get("has_aufgaben"):
                 if "### Aufgaben" not in block["body"]:
                     errors.append(f"Mail {mail_num}: Aufgaben-Kategorie fehlt")
 
-            # Projekt
+            # Projekt — nur pruefen, wenn Feld vorhanden
             expected_project = expected.get("project")
             if expected_project and block.get("project") != expected_project:
                 errors.append(
@@ -175,7 +185,7 @@ def run_checks(plan_dir: Path, expectations: dict) -> list[str]:
                 if "ä" not in planung_path.read_text(encoding="utf-8"):
                     errors.append("Mail 05: Umlaute nicht korrekt (UTF-8)")
 
-            # DB-Marker
+            # DB-Marker — nur pruefen, wenn message_id gesetzt
             if msg_id and not check_db(db_path, msg_id):
                 errors.append(f"Mail {mail_num}: DB-Marker fehlt fuer {msg_id}")
 

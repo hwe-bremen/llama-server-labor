@@ -1,0 +1,36 @@
+From: bob@example.com
+To: alice@lab.local
+Subject: Entscheidung benoetigt
+Date: Wed, 22 Oct 2025 11:15:00 +0000
+Message-ID: <test-03@test.local>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="----=_Part_001"
+
+------=_Part_001
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+
+Hallo,
+
+wir muessen uns entscheiden, ob wir Framework A oder Framework B verwenden.
+Bitte antworte bis morgen.
+
+Viele Gruesse
+Bob
+
+------=_Part_001
+Content-Type: application/pdf
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="bericht.pdf"
+
+JVBERi0xLjQKJcOkw7YvCjEgMCBvYmoKPDwKL1R5cGUgL0NhdGFsb2cKL1BhZ2VzIDIgMCB
+S+Cj4+CmVuZG9iagogMiAwIG9iago8PAovVHlwZSAvUGFnZXMKL0tpZHMgWzMgMCBSXQov
+Q291bnQgMQo+PgplbmRvYmoKMyAwIG9iago8PAovVHlwZSAvUGFnZQovUGFyZW50IDIgMCB
+SgovUmVzb3VyY2VzIDw8L0ZvbnQgPDwKL0YxIDQgMCBSPj4+PgovTWVkaWFCb3ggWzAgMCA2
+MTIgNzkyXQovQ29udGVudHMgNSAwIFIKPj4KZW5kb2JqCjQgMCBvYmoKPDwKL1R5cGUgL0Zv
+bnQKL1N1YnR5cGUgL1R5cGUxCi9CYXNlRm9udCAvSGVsdmV0aWNhCj4+CmVuZG9iago1IDAg
+b2JqCjw8Ci9MZW5ndGggNDQKPj4Kc3RyZWFtCkJUCi9GMSAxMiBUZgoxMDAgNzAwIFRkCihU
+ZXN0IFBERikgVGoKRVQKZW5kc3RyZWFtCmVuZG9iagog
+JSVFT0Y=
+
+------=_Part_001--

@@ -1,0 +1,34 @@
+From: alice@example.com
+To: bob@lab.local
+Subject: Multipart mit Text und HTML
+Date: Wed, 5 Nov 2025 14:00:00 +0000
+Message-ID: <test-13@test.local>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="----=_Part_013"
+
+------=_Part_013
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+
+Hallo Bob,
+
+dies ist der Text-Teil der Mail.
+Bitte pruefe die neuen Anforderungen bis 2025-11-07.
+
+Gruss
+Alice
+
+------=_Part_013
+Content-Type: text/html; charset=utf-8
+Content-Transfer-Encoding: 7bit
+
+<html>
+<body>
+<p>Hallo Bob,</p>
+<p>dies ist der <strong>HTML-Teil</strong> der Mail.</p>
+<p>Bitte pruefe die neuen Anforderungen bis 2025-11-07.</p>
+<p>Gruss<br/>Alice</p>
+</body>
+</html>
+
+------=_Part_013--
