@@ -26,7 +26,7 @@ from pathlib import Path
 
 def deliver_maildir(mails_dir: Path, smtp_host: str, smtp_port: int,
                     imap_host: str, imap_port: int,
-                    user: str, password: str) -> None:
+                    user: str, password: str, rcpt: str) -> None:
     """Liest alle .eml-Dateien und sendet sie per SMTP an GreenMail."""
     eml_files = sorted(mails_dir.glob("*.eml"))
     if not eml_files:
@@ -35,12 +35,10 @@ def deliver_maildir(mails_dir: Path, smtp_host: str, smtp_port: int,
 
     print(f"Finde {len(eml_files)} .eml-Dateien in {mails_dir}")
 
-    # SMTP-Verbindung aufbauen
+    # SMTP-Verbindung aufbauen (unverschlüsselt, ohne STARTTLS)
     try:
         server = smtplib.SMTP(smtp_host, smtp_port, timeout=10)
         server.ehlo()
-        server.starttls()
-        server.login(user, password)
     except Exception as e:
         print(f"SMTP-Verbindung fehlgeschlagen: {e}", file=sys.stderr)
         sys.exit(1)
@@ -48,12 +46,13 @@ def deliver_maildir(mails_dir: Path, smtp_host: str, smtp_port: int,
     delivered = 0
     for eml_file in eml_files:
         try:
-            with open(eml_file, "r", encoding="utf-8") as f:
-                msg = email.message_from_file(f)
+            raw = eml_file.read_bytes()  # Bytes senden: Umlaute ueberstehen smtplib nur so
+            msg = email.message_from_bytes(raw)
+            # Umschlag-Empfaenger immer das Testpostfach (Header-To bleibt unveraendert)
             server.sendmail(
-                msg["From"],
-                msg["To"],
-                msg.as_string(),
+                msg["From"] or "absender@lab.local",
+                [rcpt],
+                raw,
             )
             delivered += 1
             print(f"  Eingeliefert: {eml_file.name}")
@@ -62,6 +61,9 @@ def deliver_maildir(mails_dir: Path, smtp_host: str, smtp_port: int,
 
     server.quit()
     print(f"Erledigt: {delivered}/{len(eml_files)} Mails eingeliefert.")
+    if delivered != len(eml_files):
+        print("Nicht alle Mails eingeliefert -- Abbruch.", file=sys.stderr)
+        sys.exit(1)
 
 
 def main() -> None:
@@ -78,6 +80,7 @@ def main() -> None:
     parser.add_argument("--imap-port", type=int, default=3143, help="IMAP-Port")
     parser.add_argument("--user", default="testuser", help="IMAP-Benutzer")
     parser.add_argument("--password", default="testpass", help="IMAP-Passwort")
+    parser.add_argument("--rcpt", default="testuser@lab.local", help="Umschlag-Empfaenger (Testpostfach)")
     args = parser.parse_args()
 
     if not args.dir.exists():
@@ -92,6 +95,7 @@ def main() -> None:
         imap_port=args.imap_port,
         user=args.user,
         password=args.password,
+        rcpt=args.rcpt,
     )
 
 

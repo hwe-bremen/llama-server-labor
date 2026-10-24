@@ -1,98 +1,162 @@
-[
-  {
-    "file": "test001.eml",
-    "message_id": "<test001@mail-planung.test>",
-    "expected_project": "ProjektX",
-    "expected_status": "neu"
+{
+  "01": {
+    "message_id": "<test-01@test.local>",
+    "block_exists": true,
+    "has_aufgaben": true,
+    "has_duplikat_warning": false,
+    "has_error_warning": false,
+    "has_kein_inhalt": false,
+    "has_kuerzungshinweis": false,
+    "project": "Testprojekt"
   },
-  {
-    "file": "test002.eml",
-    "message_id": "<test001@mail-planung.test>",
-    "expected_project": "ProjektX",
-    "expected_status": "bereits_verarbeitet"
+  "02": {
+    "message_id": "<test-02@test.local>",
+    "block_exists": true,
+    "has_aufgaben": false,
+    "has_duplikat_warning": false,
+    "has_error_warning": false,
+    "has_kein_inhalt": false,
+    "has_kuerzungshinweis": false,
+    "project": "Unzugeordnet"
   },
-  {
-    "file": "test003.eml",
-    "message_id": "<test002@mail-planung.test>",
-    "expected_project": "ProjektX",
-    "expected_status": "neu"
+  "03": {
+    "message_id": "<test-03@test.local>",
+    "block_exists": true,
+    "has_aufgaben": false,
+    "has_duplikat_warning": false,
+    "has_error_warning": false,
+    "has_kein_inhalt": true,
+    "has_kuerzungshinweis": false,
+    "project": "Unzugeordnet"
   },
-  {
-    "file": "test004.eml",
-    "message_id": "<test003@mail-planung.test>",
-    "expected_project": "Unzugeordnet",
-    "expected_status": "neu"
+  "04": {
+    "message_id": "<test-04@test.local>",
+    "block_exists": true,
+    "has_aufgaben": false,
+    "has_duplikat_warning": false,
+    "has_error_warning": false,
+    "has_kein_inhalt": true,
+    "has_kuerzungshinweis": false,
+    "project": "Unzugeordnet"
   },
-  {
-    "file": "test005.eml",
-    "message_id": "<test004@mail-planung.test>",
-    "expected_project": "Unzugeordnet",
-    "expected_status": "neu"
+  "05": {
+    "message_id": "<test-05@test.local>",
+    "block_exists": true,
+    "has_aufgaben": false,
+    "has_duplikat_warning": false,
+    "has_error_warning": false,
+    "has_kein_inhalt": false,
+    "has_kuerzungshinweis": false,
+    "project": "Unzugeordnet"
   },
-  {
-    "file": "test006.eml",
-    "message_id": "<test005@mail-planung.test>",
-    "expected_project": "ProjektX",
-    "expected_status": "neu"
+  "06": {
+    "message_id": "<test-06@test.local>",
+    "block_exists": true,
+    "has_aufgaben": false,
+    "has_duplikat_warning": false,
+    "has_error_warning": false,
+    "has_kein_inhalt": false,
+    "has_kuerzungshinweis": false,
+    "project": "Unzugeordnet"
   },
-  {
-    "file": "test007.eml",
-    "message_id": "<test006@mail-planung.test>",
-    "expected_project": "Unzugeordnet",
-    "expected_status": "neu"
+  "07": {
+    "message_id": "<test-01@test.local>",
+    "block_exists": false,
+    "has_aufgaben": false,
+    "has_duplikat_warning": false,
+    "has_error_warning": false,
+    "has_kein_inhalt": false,
+    "has_kuerzungshinweis": false,
+    "project": "Testprojekt"
   },
-  {
-    "file": "test008.eml",
-    "message_id": "<test007@mail-planung.test>",
-    "expected_project": "Unzugeordnet",
-    "expected_status": "neu"
+  "08": {
+    "message_id": "<test-08@test.local>",
+    "block_exists": true,
+    "has_aufgaben": false,
+    "has_duplikat_warning": false,
+    "has_error_warning": false,
+    "has_kein_inhalt": false,
+    "has_kuerzungshinweis": true,
+    "project": "Unzugeordnet"
   },
-  {
-    "file": "test009.eml",
-    "message_id": "<test008@mail-planung.test>",
-    "expected_project": "Unzugeordnet",
-    "expected_status": "neu"
+  "09": {
+    "message_id": "<test-09@test.local>",
+    "block_exists": true,
+    "has_aufgaben": false,
+    "has_duplikat_warning": false,
+    "has_error_warning": true,
+    "has_kein_inhalt": false,
+    "has_kuerzungshinweis": false,
+    "project": "Unzugeordnet"
   },
-  {
-    "file": "test010.eml",
-    "message_id": "<test009@mail-planung.test>",
-    "expected_project": "ProjektX",
-    "expected_status": "neu"
+  "10": {
+    "message_id": "<test-10@test.local>",
+    "block_exists": true,
+    "has_aufgaben": false,
+    "has_duplikat_warning": false,
+    "has_error_warning": true,
+    "has_kein_inhalt": false,
+    "has_kuerzungshinweis": false,
+    "project": "Unzugeordnet"
   },
-  {
-    "file": "test011.eml",
-    "message_id": "<test010@mail-planung.test>",
-    "expected_project": "Unzugeordnet",
-    "expected_status": "neu_mit_duplikat"
+  "11": {
+    "message_id": "<test-11@test.local>",
+    "block_exists": true,
+    "has_aufgaben": false,
+    "has_duplikat_warning": false,
+    "has_error_warning": false,
+    "has_kein_inhalt": false,
+    "has_kuerzungshinweis": false,
+    "project": "Unzugeordnet"
   },
-  {
-    "file": "test012.eml",
-    "message_id": "<test011@mail-planung.test>",
-    "expected_project": "Unzugeordnet",
-    "expected_status": "leer"
+  "12": {
+    "message_id": "<test-12@test.local>",
+    "block_exists": true,
+    "has_aufgaben": false,
+    "has_duplikat_warning": false,
+    "has_error_warning": false,
+    "has_kein_inhalt": false,
+    "has_kuerzungshinweis": false,
+    "project": "Unzugeordnet"
   },
-  {
-    "file": "test013.eml",
-    "message_id": "<test012@mail-planung.test>",
-    "expected_project": "Unzugeordnet",
-    "expected_status": "neu"
+  "13": {
+    "message_id": "<test-13@test.local>",
+    "block_exists": true,
+    "has_aufgaben": false,
+    "has_duplikat_warning": false,
+    "has_error_warning": false,
+    "has_kein_inhalt": false,
+    "has_kuerzungshinweis": false,
+    "project": "Unzugeordnet"
   },
-  {
-    "file": "test014.eml",
+  "14": {
     "message_id": null,
-    "expected_project": "Unzugeordnet",
-    "expected_status": "neu"
+    "block_exists": true,
+    "has_aufgaben": false,
+    "has_duplikat_warning": false,
+    "has_error_warning": false,
+    "has_kein_inhalt": false,
+    "has_kuerzungshinweis": false,
+    "project": "Unzugeordnet"
   },
-  {
-    "file": "test015.eml",
-    "message_id": "<test014@mail-planung.test>",
-    "expected_project": "Unzugeordnet",
-    "expected_status": "neu"
+  "15": {
+    "message_id": "<test-15@test.local>",
+    "block_exists": true,
+    "has_aufgaben": false,
+    "has_duplikat_warning": false,
+    "has_error_warning": false,
+    "has_kein_inhalt": false,
+    "has_kuerzungshinweis": false,
+    "project": "Unzugeordnet"
   },
-  {
-    "file": "test016.eml",
-    "message_id": "<test015@mail-planung.test>",
-    "expected_project": "Unzugeordnet",
-    "expected_status": "neu"
+  "16": {
+    "message_id": "<test-16@test.local>",
+    "block_exists": true,
+    "has_aufgaben": false,
+    "has_duplikat_warning": true,
+    "has_error_warning": false,
+    "has_kein_inhalt": false,
+    "has_kuerzungshinweis": false,
+    "project": "Testprojekt"
   }
-]
+}

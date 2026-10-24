@@ -184,7 +184,7 @@ def fetch_mails(host: str, port: int, user: str, password: str) -> List[Dict[str
     und schlie�t die Verbindung. Ver�ndert das Postfach nicht.
     """
     # A5: Unverschlüsseltes IMAP nur auf ausdrücklichen Wunsch und nur für localhost
-    if MAIL_IMAP_UNENCRYPTED:
+    if MAIL_IMAP_UNENCRYPTED == "1":
         if host not in ("127.0.0.1", "localhost"):
             print("Unverschlüsseltes IMAP wird nur für localhost unterstützt", file=sys.stderr)
             sys.exit(1)
@@ -216,13 +216,7 @@ def fetch_mails(host: str, port: int, user: str, password: str) -> List[Dict[str
         from_addr = msg.get("From", "")
 
         # Betreff
-        subject = msg.get("Subject", "")
-        if subject:
-            import email.header
-            subject = " ".join(
-                v.decode(c or "utf-8") if isinstance(v, bytes) else str(v)
-                for v, c in email.header.decode_header(subject)
-            )
+        subject = decode_subject(msg.get("Subject", ""))
 
         # Datum
         date_str = msg.get("Date", "")
@@ -245,6 +239,27 @@ def fetch_mails(host: str, port: int, user: str, password: str) -> List[Dict[str
 # ---------------------------------------------------------------------------
 # TEXT-EXTRAKTION (A9) — HTML per html.parser, Umlaute, Anhang ignorieren
 # ---------------------------------------------------------------------------
+
+def _safe_decode(data: bytes, charset: Optional[str]) -> str:
+    """Bytes robust dekodieren: unbekannter/kaputter Zeichensatz (z. B.
+    'unknown-8bit' bei unkodierten Umlauten im Kopf) -> UTF-8 mit Ersatzzeichen.
+    Eine einzelne Mail darf den Lauf nie abbrechen."""
+    try:
+        return data.decode(charset or "utf-8", errors="replace")
+    except LookupError:
+        return data.decode("utf-8", errors="replace")
+
+
+def decode_subject(subject: Any) -> str:
+    """Betreff (RFC 2047 oder rohe 8-Bit-Bytes) robust in Text wandeln."""
+    if not subject:
+        return ""
+    import email.header
+    teile = []
+    for v, c in email.header.decode_header(subject):  # Header-Objekt direkt, nicht str()
+        teile.append(_safe_decode(v, c) if isinstance(v, bytes) else str(v))
+    return " ".join(teile)
+
 
 class _HTMLToText(HTMLParser):
     """Konvertiert HTML in reinen Text (Standardbibliothek, keine externe Abh�ngigkeit)."""
@@ -287,12 +302,12 @@ def extract_text(msg) -> str:
                 payload = part.get_payload(decode=True)
                 if payload:
                     charset = part.get_content_charset() or "utf-8"
-                    return payload.decode(charset, errors="replace")
+                    return _safe_decode(payload, charset)
             elif content_type == "text/html":
                 payload = part.get_payload(decode=True)
                 if payload:
                     charset = part.get_content_charset() or "utf-8"
-                    html_text = payload.decode(charset, errors="replace")
+                    html_text = _safe_decode(payload, charset)
                     parser = _HTMLToText()
                     parser.feed(html_text)
                     return parser.get_text()
@@ -303,7 +318,7 @@ def extract_text(msg) -> str:
         if not payload:
             return ""
         charset = msg.get_content_charset() or "utf-8"
-        text = payload.decode(charset, errors="replace")
+        text = _safe_decode(payload, charset)
         if content_type == "text/html":
             parser = _HTMLToText()
             parser.feed(text)

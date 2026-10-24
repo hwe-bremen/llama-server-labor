@@ -22,7 +22,7 @@ class TestT1PortCheck(unittest.TestCase):
     def test_t1_ports_freiverfügbar(self):
         """T1: Ports 3025 und 3143 sind frei vor Start."""
         script = (MAIL_DIR.parent / "start_test_mailserver.sh").read_text()
-        self.assertIn("check_ports", script)
+        self.assertIn("Port-Check", script)
         self.assertIn("lsof", script)
 
 
@@ -113,14 +113,28 @@ class TestT5ImapUnencrypted(unittest.TestCase):
                 mock_imaplib.IMAP4_SSL.assert_called_with("mail.example.com", 993)
                 mock_imaplib.IMAP4.assert_not_called()
 
+    def test_t5_unencrypted_0_localhost_ssl(self):
+        """T5: MAIL_IMAP_UNENCRYPTED=0 auf localhost nutzt IMAP4_SSL."""
+        with patch.dict(os.environ, {"MAIL_IMAP_UNENCRYPTED": "0"}):
+            mod = self._reload_mod()
+            with patch.object(mod, "imaplib") as mock_imaplib:
+                mock_imap = MagicMock()
+                mock_imaplib.IMAP4_SSL.return_value = mock_imap
+                mock_imap.search.return_value = ("OK", [b""])
+                mock_imap.select.return_value = ("OK", [b""])
+                mod.fetch_mails("127.0.0.1", 993, "user", "pass")
+                mock_imaplib.IMAP4_SSL.assert_called_with("127.0.0.1", 993)
+                mock_imaplib.IMAP4.assert_not_called()
+
 
 class TestT6DryRun(unittest.TestCase):
-    """T6: Trockenlauf â Planungsdatei nicht vorhanden."""
+    """T6: Trockenlauf — Planungsdatei und DB nicht vorhanden."""
 
     def test_t6_dry_run_keine_datei(self):
         """T6: Trockenlauf erzeugt keine Planungsdatei."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            plan_file = Path(tmpdir) / "planung.json"
+            plan_file = Path(tmpdir) / "planung.md"
+            db_file = Path(tmpdir) / "mail_planung.db"
             with patch.dict(os.environ, {"MAIL_PLAN_DIR": tmpdir}):
                 mod = __import__(MAIL_PLANUNG, fromlist=["run_dry"])
                 import importlib
@@ -130,6 +144,7 @@ class TestT6DryRun(unittest.TestCase):
                         mod.run_dry()
                         # Bei leeren Mails wird keine Datei erzeugt
                         self.assertFalse(plan_file.exists())
+                        self.assertFalse(db_file.exists())
 
 
 class TestT7RealRun(unittest.TestCase):
@@ -164,15 +179,57 @@ class TestT7RealRun(unittest.TestCase):
                             self.assertTrue(plan_file.exists())
 
 
-class TestT8SecondRun(unittest.TestCase):
-    """T8: Zweiter Lauf — byte-identische Planungsdatei."""
+class TestT8DedupSameMessageId(unittest.TestCase):
+    """T8: Dedup — gleiche Message-ID wird uebersprungen."""
 
-    def test_t8_zweiter_lauf_identisch(self):
-        """T8: Zweiter Lauf erzeugt byte-identische Planungsdatei."""
+    def test_t8_dedup_gleiche_message_id(self):
+        """T8: Zweiter Lauf mit gleicher Message-ID erzeugt keinen neuen Block."""
         with tempfile.TemporaryDirectory() as tmpdir:
             plan_file = Path(tmpdir) / "planung.md"
             fake_mail = {
-                "message_id": "<test8@example.com>",
+                "message_id": "<test8-dedup@example.com>",
+                "subject": "Test Dedup",
+                "from": "test@example.com",
+                "date": "2024-01-01",
+                "body": "Testinhalt",
+            }
+            with patch.dict(os.environ, {"MAIL_PLAN_DIR": tmpdir}):
+                mod = __import__(MAIL_PLANUNG, fromlist=["main"])
+                import importlib
+                importlib.reload(mod)
+                valid_eval = ({
+                    "projekt": "test-proj",
+                    "aufgaben": [],
+                    "termine": [],
+                    "entscheidungen": [],
+                    "offene_fragen": [],
+                }, False)
+                with patch.object(mod, "fetch_mails", return_value=[fake_mail]):
+                    with patch.object(mod, "get_imap_password", return_value="testpass"):
+                        with patch.object(mod, "evaluate_mail", return_value=valid_eval):
+                            # Erster Lauf
+                            mod.main()
+                            first_content = plan_file.read_text(encoding="utf-8")
+                            first_count = first_content.count("<test8-dedup@example.com>")
+
+                            # Zweiter Lauf: gleiche Message-ID
+                            mod.main()
+                            second_content = plan_file.read_text(encoding="utf-8")
+                            second_count = second_content.count("<test8-dedup@example.com>")
+
+                            # Block darf nicht新增
+                            self.assertEqual(first_count, second_count)
+
+
+class TestT10ByteIdentity(unittest.TestCase):
+    """T10: Zweiter Lauf — byte-identische Planungsdatei."""
+
+    def test_t10_zweiter_lauf_byte_identisch(self):
+        """T10: Zweiter Lauf erzeugt byte-identische Planungsdatei."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            plan_file = Path(tmpdir) / "planung.md"
+            fake_mail = {
+                "message_id": "<test10@example.com>",
                 "subject": "Test",
                 "from": "test@example.com",
                 "date": "2024-01-01",
@@ -367,6 +424,26 @@ class TestKAtomicWrite(unittest.TestCase):
             # Keine temporären Dateien übrig
             temps = list(Path(tmpdir).glob("*.tmp"))
             self.assertEqual(len(temps), 0)
+
+
+class TestKRobustDecode(unittest.TestCase):
+    """K16: Echte Mails mit unkodierten Umlauten im Kopf oder kaputtem Zeichensatz
+    duerfen den Lauf nicht abbrechen (gefunden im echten Lauf gegen GreenMail)."""
+
+    def test_k16_betreff_roh_8bit(self):
+        import email
+        from agents.mail_planung import mail_planung as mp
+        raw = "Subject: Übergabe Prüfung\r\nFrom: a@lab.local\r\n\r\nText\r\n".encode("utf-8")
+        msg = email.message_from_bytes(raw)
+        self.assertEqual(mp.decode_subject(msg.get("Subject", "")), "Übergabe Prüfung")
+
+    def test_k16_body_unbekannter_zeichensatz(self):
+        import email
+        from agents.mail_planung import mail_planung as mp
+        raw = ("Content-Type: text/plain; charset=unknown-8bit\r\n\r\n"
+               "Grüße\r\n").encode("utf-8")
+        msg = email.message_from_bytes(raw)
+        self.assertIn("Grüße", mp.extract_text(msg))
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 # Pruefung mail_server_test
 
-- Zeit: 2026-10-24 13:24
+- Zeit: 2026-10-24 18:57
 - Ruecksetzpunkt: 37b1da1
 - Kurz: abgleich: Abweichung | unittest: ok | gegenprobe: Abweichung
 
@@ -19,7 +19,8 @@ Handover: handover_20261023_mail_server_test.md
   ok        T7    Echter Lauf — Planungsdatei vorhanden
   ok        T8    Dedup — gleiche Message-ID
   NICHT GET T9    Duplikat — neue Message-ID, gleicher Body  (unter 'Nicht getestet' -- Grund pruefen)
-  FEHLT     T10   Zweiter Lauf — byte-identische Planungsdatei
+  ANDERS    T10   Spec: Zweiter Lauf — byte-identische Planungsdatei
+                  Handover: Byte-Identität** — bestanden   (Uebereinstimmung 20% -- ausgetauscht?)
   FEHLT     T11   Trockenlauf — Previews vorhanden
   FEHLT     T12   Giftmail — Fehler-Block
   FEHLT     T13   Injections-Mail — Eintrag vorhanden
@@ -28,7 +29,7 @@ Handover: handover_20261023_mail_server_test.md
   NICHT GET T16   Sehr lange Mail — Kürzungshinweis  (unter 'Nicht getestet' -- Grund pruefen)
   NICHT GET T17   End-to-End — Gesamtlauf  (unter 'Nicht getestet' -- Grund pruefen)
 
-  Testskript tests/test_mail_server_test.py: keine Methode test_<id> fuer T9, T10, T11, T12, T13, T14, T15, T16, T17
+  Testskript tests/test_mail_server_test.py: keine Methode test_<id> fuer T9, T11, T12, T13, T14, T15, T16, T17
   Selbst ausfuehren: python3 -m unittest -v tests/test_mail_server_test.py
 
 10 Abweichung(en).
@@ -37,10 +38,12 @@ Handover: handover_20261023_mail_server_test.md
 ## unittest  (Exit 0)
 
 ```
-Keine neuen Mails
-Verarbeitet: Test [Unzugeordnet]
 Verarbeitet: Test [Unzugeordnet]
   (bereits verarbeitet) Test
+Keine neuen Mails
+Verarbeitet: Test [Unzugeordnet]
+Verarbeitet: Test Dedup [Unzugeordnet]
+  (bereits verarbeitet) Test Dedup
 test_k15_atomares_schreiben (tests.test_mail_server_test.TestKAtomicWrite.test_k15_atomares_schreiben)
 K15: Atomares Schreiben erzeugt keine Halbschreib-Datei. ... ok
 test_k3_body_hash_deterministisch (tests.test_mail_server_test.TestKBodyHash.test_k3_body_hash_deterministisch)
@@ -65,6 +68,8 @@ test_k11_ungueltiges_datum (tests.test_mail_server_test.TestKValidateEvaluation.
 K11: Ungültiges Datum liefert Fehlerstring. ... ok
 test_k9_gueltige_evaluation (tests.test_mail_server_test.TestKValidateEvaluation.test_k9_gueltige_evaluation)
 K9: Gültige Evaluation liefert leeren Fehlerstring. ... ok
+test_t10_zweiter_lauf_byte_identisch (tests.test_mail_server_test.TestT10ByteIdentity.test_t10_zweiter_lauf_byte_identisch)
+T10: Zweiter Lauf erzeugt byte-identische Planungsdatei. ... ok
 test_t1_ports_freiverfügbar (tests.test_mail_server_test.TestT1PortCheck.test_t1_ports_freiverfügbar)
 T1: Ports 3025 und 3143 sind frei vor Start. ... ok
 test_t2_docker_port_mapping (tests.test_mail_server_test.TestT2DockerStart.test_t2_docker_port_mapping)
@@ -82,15 +87,17 @@ test_t5_localhost_erlaubt (tests.test_mail_server_test.TestT5ImapUnencrypted.tes
 T5: Unverschlüsseltes IMAP auf localhost nutzt IMAP4. ... ok
 test_t5_normaler_betrieb_ssl (tests.test_mail_server_test.TestT5ImapUnencrypted.test_t5_normaler_betrieb_ssl)
 T5: Ohne MAIL_IMAP_UNENCRYPTED wird IMAP4_SSL verwendet. ... ok
+test_t5_unencrypted_0_localhost_ssl (tests.test_mail_server_test.TestT5ImapUnencrypted.test_t5_unencrypted_0_localhost_ssl)
+T5: MAIL_IMAP_UNENCRYPTED=0 auf localhost nutzt IMAP4_SSL. ... ok
 test_t6_dry_run_keine_datei (tests.test_mail_server_test.TestT6DryRun.test_t6_dry_run_keine_datei)
 T6: Trockenlauf erzeugt keine Planungsdatei. ... ok
 test_t7_real_run_datei_erzeugt (tests.test_mail_server_test.TestT7RealRun.test_t7_real_run_datei_erzeugt)
 T7: Echter Lauf erzeugt Planungsdatei. ... ok
-test_t8_zweiter_lauf_identisch (tests.test_mail_server_test.TestT8SecondRun.test_t8_zweiter_lauf_identisch)
-T8: Zweiter Lauf erzeugt byte-identische Planungsdatei. ... ok
+test_t8_dedup_gleiche_message_id (tests.test_mail_server_test.TestT8DedupSameMessageId.test_t8_dedup_gleiche_message_id)
+T8: Zweiter Lauf mit gleicher Message-ID erzeugt keinen neuen Block. ... ok
 
 ----------------------------------------------------------------------
-Ran 23 tests in 0.201s
+Ran 25 tests in 0.186s
 
 OK
 ```
@@ -98,7 +105,7 @@ OK
 ## gegenprobe gegen 37b1da1  (Exit 1)
 
 ```
-Gegenprobe gegen 37b1da1: 23 Tests, je Datei einzeln zurueckgesetzt
+Gegenprobe gegen 37b1da1: 25 Tests, je Datei einzeln zurueckgesetzt
 
   agents/mail_planung/mail_planung.py: 3 Test(s) rot
 
@@ -114,6 +121,7 @@ Gegenprobe gegen 37b1da1: 23 Tests, je Datei einzeln zurueckgesetzt
   GRUEN test_k7_block_mit_duplikat  (wird mit keiner alten Datei rot -- prueft Bestehendes oder nichts)
   GRUEN test_k8_block_mit_fehler  (wird mit keiner alten Datei rot -- prueft Bestehendes oder nichts)
   GRUEN test_k9_gueltige_evaluation  (wird mit keiner alten Datei rot -- prueft Bestehendes oder nichts)
+  GRUEN test_t10_zweiter_lauf_byte_identisch  (wird mit keiner alten Datei rot -- prueft Bestehendes oder nichts)
   GRUEN test_t1_ports_freiverfügbar  (wird mit keiner alten Datei rot -- prueft Bestehendes oder nichts)
   GRUEN test_t2_docker_port_mapping  (wird mit keiner alten Datei rot -- prueft Bestehendes oder nichts)
   GRUEN test_t3_einliefern_script_exists  (wird mit keiner alten Datei rot -- prueft Bestehendes oder nichts)
@@ -122,10 +130,11 @@ Gegenprobe gegen 37b1da1: 23 Tests, je Datei einzeln zurueckgesetzt
   rot   test_t5_fremdhost_verboten  <- mail_planung.py
   rot   test_t5_localhost_erlaubt  <- mail_planung.py
   GRUEN test_t5_normaler_betrieb_ssl  (wird mit keiner alten Datei rot -- prueft Bestehendes oder nichts)
+  GRUEN test_t5_unencrypted_0_localhost_ssl  (wird mit keiner alten Datei rot -- prueft Bestehendes oder nichts)
   GRUEN test_t6_dry_run_keine_datei  (wird mit keiner alten Datei rot -- prueft Bestehendes oder nichts)
   GRUEN test_t7_real_run_datei_erzeugt  (wird mit keiner alten Datei rot -- prueft Bestehendes oder nichts)
-  GRUEN test_t8_zweiter_lauf_identisch  (wird mit keiner alten Datei rot -- prueft Bestehendes oder nichts)
+  GRUEN test_t8_dedup_gleiche_message_id  (wird mit keiner alten Datei rot -- prueft Bestehendes oder nichts)
 
-3 von 23 Tests werden durch eine einzelne alte Datei rot. Aktueller Stand ist wiederhergestellt.
+3 von 25 Tests werden durch eine einzelne alte Datei rot. Aktueller Stand ist wiederhergestellt.
 GRUEN/LADEN-Tests einzeln ansehen: Pruefen sie bewusst Bestehendes (in Ordnung) oder gar nichts (Befund)? Tipp: Neue Funktionen im Test erst in der Methode importieren, dann wird die Gegenprobe je Test aussagekraeftig.
 ```
