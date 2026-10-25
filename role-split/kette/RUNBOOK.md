@@ -1,4 +1,4 @@
-# Runbook: die Kette (Stand 22.10.2026)
+# Runbook: die Kette (Stand 25.10.2026)
 
 Gebrauchsanweisung für eine Aufgabe von der Idee bis zum Commit. **Das ist die einzige maßgebliche Anleitung**;
 `FAHRPLAN.md` verweist hierher, `docs/KURZANLEITUNG.md` ist der Spickzettel fürs ganze Lab.
@@ -52,9 +52,27 @@ git status --short          # muss leer sein – sonst erst committen oder klär
    @review Neue Aufgabe <kurztitel>: <was du willst, in deinen Worten>
    ```
    Der Rollen-Proxy legt `anforderung_<datum>_<kurztitel>.md` mit deinem Text an.
+   **Immer als letzten Satz anhängen** (Kontext schonen, siehe Kasten unten):
+   ```
+   Lies keine großen Dateien ganz (read_file liest immer die ganze Datei). Such gezielt mit search_files. Sag vorher, was du lesen willst und warum.
+   ```
 2. Das Modell liest Code, nimmt Stellung, stellt Rückfragen. **Einfach im Chat antworten** – jede Antwort
    wird samt Frage an die Anforderung angehängt. Entscheidungen hier treffen, nicht später.
-3. Wenn alles geklärt ist: **„Spec schreiben"**.
+3. Wenn alles geklärt ist: **Kontextanzeige ansehen.**
+   - unter ~50 %: im selben Chat **„Spec schreiben"**.
+   - ab ~50 %: **Phase teilen** (Kasten unten) – die Spec in einem frischen Chat schreiben lassen.
+
+> **Kasten: Kontext schonen in Phase A** (eingeführt 25.10. nach K8-Spec, Kontext voll)
+> Warum: In der Web-UI bleibt jedes Werkzeugergebnis im Kontext. `read_file` liest immer die *ganze* Datei
+> (z. B. `kette.py` ≈ 12 000 Token). Rückfragen-Runde + Lesen + Spec-Text passen dann nicht in 64K.
+> 1. **Gezielt lesen:** Satz oben an die Aufgabe hängen; liest das Modell trotzdem große Dateien ganz → Stopp, „nur search_files".
+> 2. **Phase teilen:** Deine Antworten stehen schon in der Anforderung (der Proxy hängt sie an). Neuer Chat, Qwen3.8, Reasoning aus:
+>    ```
+>    @review Spec schreiben für <kurztitel>: Lies docs/projekt_management/anforderung_<datum>_<kurztitel>.md – dort stehen Aufgabe, alle Rückfragen und meine Antworten. Keine neuen Rückfragen außer bei echtem Widerspruch. Lies Code nur gezielt mit search_files. Schreib die Spec abschnittsweise: write_file für den Kopf, danach append_file je Abschnitt.
+>    ```
+>    (Noch wenig erprobt – greift die Rolle nicht, Claude fragen.)
+> 3. **Abschnittsweise schreiben:** Korrekturen an der Spec mit `replace_in_file`, nie die ganze Spec neu schreiben lassen.
+> 4. **Mehr Kontext (131K + KV-Cache q8_0)** erst, wenn 1–3 nicht reichen – kostet Speicher und Tempo, vorher messen.
 4. **Spec lesen** – diese vier Punkte prüfst du selbst:
    - [ ] **Außenwirkung:** Kann die Aufgabe Mails senden, ins Netz gehen, echte Daten oder den Schlüsselbund berühren?
          Dann muss eine **technische Sperre für Tests** genannt sein. Fehlt sie → im Chat nachfordern.
@@ -177,7 +195,16 @@ Hat das Review nur im Chat geantwortet: die Antwort mit hineinkopieren, Claude l
 
 ## 5. Notbremsen und Störungen
 
-**Notbremse Kontext (Review oder Spec ab 80 %)** – in denselben Chat:
+**Notbremse Kontext Spec (ab 80 %)** – in denselben Chat, rettet den Stand:
+```
+Stopp, Kontext fast voll. Nichts mehr lesen. Speichere jetzt deinen Stand nach
+docs/projekt_management/spec_<datum>_<kurztitel>.md: erst write_file mit Kopf und den Abschnitten, die fertig sind,
+dann je weiterer Abschnitt append_file. Unfertiges als „OFFEN: …" markieren.
+```
+Danach weiter mit **Phase teilen** (Kasten in Phase A): neuer Chat liest Anforderung + diese Spec-Datei und ergänzt nur die offenen Abschnitte.
+Antwortet der Chat gar nicht mehr: deine Antworten auf die Rückfragen stehen trotzdem in der Anforderung → direkt Phase teilen.
+
+**Notbremse Kontext Review (ab 80 %)** – in denselben Chat:
 ```
 Stopp, Kontext fast voll. KEIN Tool-Aufruf, nichts speichern, nichts lesen.
 Antworte nur im Chat, maximal 15 Zeilen:
@@ -190,6 +217,7 @@ Die Antwort an Claude geben (Phase E).
 | Symptom | Ursache | Abhilfe |
 |---|---|---|
 | „Failed to parse tool call arguments … missing closing quote" | Kontext voll beim Speichern | neuer Chat, Reasoning aus; beim Review Notbremse |
+| Spec-Chat: Kontext voll, bevor die Spec steht | ganze Dateien gelesen, lange Rückfragen-Runde | Notbremse Spec, dann Phase teilen (Phase A, Kasten) |
 | `error: the following arguments are required: kurztitel` | Kurztitel fehlt (leere Variable) | Kurztitel ausschreiben |
 | `zsh: no such file or directory` | `<…>` mit eingetippt | Platzhalter ersetzen |
 | `pruefen`: „Kein Commit 'Spec …' gefunden" | Commit-Nachricht anders | `git log --oneline -10`, dann `--commit <hash>` |
@@ -211,7 +239,8 @@ Die Antwort an Claude geben (Phase E).
 ```bash
 cd ~/PycharmProjects/llama-server && source .venv/bin/activate && git status --short
 # A  start_rollen | neuer Chat | Qwen3.8, Reasoning aus
-#    "@review Neue Aufgabe <kurztitel>: …"  →  Rückfragen beantworten  →  "Spec schreiben"  →  Spec-Checkliste
+#    "@review Neue Aufgabe <kurztitel>: … Lies keine großen Dateien ganz …"  →  Rückfragen beantworten
+#    →  Kontext < 50 %: "Spec schreiben" | sonst neuer Chat: "@review Spec schreiben für <kurztitel>: …"  →  Spec-Checkliste
 python3 role-split/kette/kette.py quellen <kurztitel>
 git add docs/projekt_management/*_<kurztitel>.md && git commit -m "Spec <kurztitel>"
 # B
