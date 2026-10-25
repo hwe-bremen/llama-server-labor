@@ -42,6 +42,19 @@ git status --short          # muss leer sein – sonst erst committen oder klär
 
 ---
 
+## Phase 0 – Idee klären (optional, vor Phase A)
+
+Wenn die Aufgabe noch eine lose Idee ist: im Browser (8092, Qwen3.8, Reasoning aus) **neuer Chat**:
+```
+@idee <deine Idee in ein paar Sätzen>
+```
+Die Rolle sucht das eigentliche Problem, widerspricht begründet, prüft „gibt es das schon?" und „kleinster erster Schritt",
+liest `docs/learnings/LERNREGELN.md` und schreibt **keine** Dateien. Mit „fertig" bekommst du den fertigen Text
+für `@review Neue Aufgabe <kurztitel>: …` – in Phase A übernehmen, nach Belieben ändern.
+Grundsatzfragen (Richtung des Labs, Architektur über mehrere Ketten) besser mit Claude klären.
+
+---
+
 ## Phase A – Aufgabe und Spec
 
 **Lab:** Fenster 1 `bash start_rollen.command`, warten bis die `.ts.net`-URL erscheint.
