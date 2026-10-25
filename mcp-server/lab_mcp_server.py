@@ -209,12 +209,22 @@ def list_directory(path: str = ".") -> str:
     return "\n".join(lines) if lines else "(leer)"
 
 
+# Ab dieser Laenge haengt read_file ohne Bereich einen Hinweis an (Kontext schonen, 25.10.).
+LANG_ZEILEN = 300
+
+
 @mcp.tool()
-def read_file(path: str) -> str:
+def read_file(path: str, start_line: int = 0, end_line: int = 0) -> str:
     """Textdatei innerhalb des Scope-Ordners lesen (bis MCP_MAX_READ Bytes).
+
+    Ohne start_line/end_line: ganze Datei. Mit Bereich: nur diese Zeilen,
+    jede mit Zeilennummer ("123| text"). Grosse Dateien gezielt lesen:
+    erst search_files (liefert Zeilennummern), dann read_file mit Bereich.
 
     Args:
         path: Pfad relativ zum Scope-Root.
+        start_line: Erste Zeile (ab 1). 0 = ab Anfang.
+        end_line: Letzte Zeile (einschliesslich). 0 = bis Ende.
     """
     target = _resolve_in_scope(path)
     if not target.is_file():
@@ -225,8 +235,34 @@ def read_file(path: str) -> str:
     if b"\x00" in data:
         return f"Binaerdatei ({len(data)} B) — nicht als Text lesbar."
     text = data.decode("utf-8", errors="replace")
+    try:
+        start_line = int(start_line or 0)
+        end_line = int(end_line or 0)
+    except (TypeError, ValueError):
+        return "start_line und end_line muessen ganze Zahlen sein."
+    zeilen = text.splitlines()
+    gesamt = len(zeilen)
+    if start_line or end_line:
+        if start_line < 0 or end_line < 0:
+            return "start_line und end_line duerfen nicht negativ sein."
+        von = max(start_line, 1)
+        bis = end_line if end_line else gesamt
+        if bis < von:
+            return f"Leerer Bereich: start_line {von} > end_line {bis}."
+        if von > gesamt:
+            return f"{_rel(target)} hat nur {gesamt} Zeilen (start_line {von})."
+        bis = min(bis, gesamt)
+        breite = len(str(bis))
+        auszug = "\n".join(f"{n:>{breite}}| {zeilen[n - 1]}" for n in range(von, bis + 1))
+        kopf = f"[{_rel(target)}: Zeilen {von}–{bis} von {gesamt}]"
+        if truncated:
+            kopf += f" [Datei bei {MAX_READ} Bytes abgeschnitten]"
+        return kopf + "\n" + auszug
     if truncated:
         text += f"\n\n[... abgeschnitten bei {MAX_READ} Bytes ...]"
+    if gesamt > LANG_ZEILEN:
+        text += (f"\n\n[Hinweis: {gesamt} Zeilen gelesen. Fuer Ausschnitte: search_files fuer die "
+                 f"Zeilennummer, dann read_file mit start_line/end_line.]")
     return text
 
 

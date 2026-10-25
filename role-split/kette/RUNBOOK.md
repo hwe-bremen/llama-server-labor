@@ -54,7 +54,7 @@ git status --short          # muss leer sein – sonst erst committen oder klär
    Der Rollen-Proxy legt `anforderung_<datum>_<kurztitel>.md` mit deinem Text an.
    **Immer als letzten Satz anhängen** (Kontext schonen, siehe Kasten unten):
    ```
-   Lies keine großen Dateien ganz (read_file liest immer die ganze Datei). Such gezielt mit search_files. Sag vorher, was du lesen willst und warum.
+   Lies keine großen Dateien ganz. Erst search_files (liefert Zeilennummern), dann read_file mit start_line/end_line. Sag vorher, was du lesen willst und warum.
    ```
 2. Das Modell liest Code, nimmt Stellung, stellt Rückfragen. **Einfach im Chat antworten** – jede Antwort
    wird samt Frage an die Anforderung angehängt. Entscheidungen hier treffen, nicht später.
@@ -63,12 +63,14 @@ git status --short          # muss leer sein – sonst erst committen oder klär
    - ab ~50 %: **Phase teilen** (Kasten unten) – die Spec in einem frischen Chat schreiben lassen.
 
 > **Kasten: Kontext schonen in Phase A** (eingeführt 25.10. nach K8-Spec, Kontext voll)
-> Warum: In der Web-UI bleibt jedes Werkzeugergebnis im Kontext. `read_file` liest immer die *ganze* Datei
+> Warum: In der Web-UI bleibt jedes Werkzeugergebnis im Kontext. `read_file` ohne Bereich liest die *ganze* Datei
 > (z. B. `kette.py` ≈ 12 000 Token). Rückfragen-Runde + Lesen + Spec-Text passen dann nicht in 64K.
-> 1. **Gezielt lesen:** Satz oben an die Aufgabe hängen; liest das Modell trotzdem große Dateien ganz → Stopp, „nur search_files".
+> Seit 25.10. kann `read_file` Ausschnitte: `start_line`/`end_line` (wirkt nach Lab-Neustart); bei Dateien > 300 Zeilen
+> hängt es ohne Bereich einen Hinweis an.
+> 1. **Gezielt lesen:** Satz oben an die Aufgabe hängen; liest das Modell trotzdem große Dateien ganz → Stopp, „nur search_files + read_file mit Zeilenbereich".
 > 2. **Phase teilen:** Deine Antworten stehen schon in der Anforderung (der Proxy hängt sie an). Neuer Chat, Qwen3.8, Reasoning aus:
 >    ```
->    @review Spec schreiben für <kurztitel>: Lies docs/projekt_management/anforderung_<datum>_<kurztitel>.md – dort stehen Aufgabe, alle Rückfragen und meine Antworten. Keine neuen Rückfragen außer bei echtem Widerspruch. Lies Code nur gezielt mit search_files. Schreib die Spec abschnittsweise: write_file für den Kopf, danach append_file je Abschnitt.
+>    @review Spec schreiben für <kurztitel>: Lies docs/projekt_management/anforderung_<datum>_<kurztitel>.md – dort stehen Aufgabe, alle Rückfragen und meine Antworten. Keine neuen Rückfragen außer bei echtem Widerspruch. Lies Code nur gezielt: search_files, dann read_file mit start_line/end_line. Schreib die Spec abschnittsweise: write_file für den Kopf, danach append_file je Abschnitt.
 >    ```
 >    (Noch wenig erprobt – greift die Rolle nicht, Claude fragen.)
 > 3. **Abschnittsweise schreiben:** Korrekturen an der Spec mit `replace_in_file`, nie die ganze Spec neu schreiben lassen.
