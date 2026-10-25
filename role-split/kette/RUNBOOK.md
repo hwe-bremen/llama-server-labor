@@ -195,6 +195,26 @@ Hat das Review nur im Chat geantwortet: die Antwort mit hineinkopieren, Claude l
 
 ---
 
+## Phase G – Learnings (nach dem Commit, 10 min)
+
+Ziel: Das Wissen aus der Kette geht nicht verloren und wirkt in der nächsten Kette mit.
+Ort: `docs/learnings/` (Aufbau und Form: `docs/learnings/README.md`).
+
+1. Projekt-Chat: **„Kette <kurztitel> committet, bitte Learnings entwerfen."**
+   Claude schreibt `docs/learnings/kette_<kurztitel>.md` (was durchrutschte, Fehlerklasse, gefunden durch, Regel)
+   und schlägt neue oder geänderte Regeln für `LERNREGELN.md` vor.
+2. **Du gibst frei** (oder streichst). Faustregel: Neue Regel nur für wiederkehrende oder teure Fehler;
+   `LERNREGELN.md` bleibt unter ~100 Zeilen – lieber eine alte Regel schärfen als eine neue anhängen.
+3. Committen:
+   ```bash
+   git add docs/learnings/ && git commit -m "Learnings <kurztitel>"
+   ```
+
+Hinweis: Proben, die bekannte Defekte als Prüfstein nutzen, sperren `docs/learnings` per `MCP_DENY` – sonst liest der Reviewer die Lösung.
+(Ab K8 geplant: `kette.py prompt` gibt `LERNREGELN.md` automatisch in Spec- und Review-Prompts mit.)
+
+---
+
 ## 5. Notbremsen und Störungen
 
 **Notbremse Kontext Spec (ab 80 %)** – in denselben Chat, rettet den Stand:
@@ -255,6 +275,7 @@ python3 role-split/kette/kette.py zusammenfuehren docs/projekt_management/verdic
 # E  Projekt-Chat: "Kette <kurztitel> fertig, bitte gegenprüfen."
 # F  Freigabe → git add -A && git commit -m "Kette <kurztitel>: …"
 #    Nachbessern → Claude-Prompt in OpenCode → zurück zu C → E
+# G  Projekt-Chat: "Kette <kurztitel> committet, bitte Learnings entwerfen." → freigeben → git commit "Learnings <kurztitel>"
 ```
 
 ---
