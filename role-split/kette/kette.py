@@ -68,9 +68,11 @@ import json
 import os
 import re
 import shutil
+import socket
 import subprocess
 import sys
 import tempfile
+import threading
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -446,43 +448,63 @@ def spec_commit(kurztitel: str) -> str | None:
     return treffer[-1] if treffer else None
 
 
-def pruefen(kurztitel: str, commit: str | None = None, timeout: int = 300) -> int:
+def _pruefen_teile(kurztitel: str, commit: str | None = None, timeout: int = 300) -> dict:
+    """Teilergebnisse von abgleich, unittest, gegenprobe. Rueckgabe: dict mit den drei Schlüsseln."""
     import contextlib
     import io
+    if not re.fullmatch(r"[a-z0-9_]+", kurztitel):
+        return {"abgleich": (2, "Kurztitel ungueltig"), "unittest": (2, ""), "gegenprobe": (2, "")}
+    commit = commit or spec_commit(kurztitel)
+    if not commit:
+        return {"abgleich": (2, f"Kein Commit 'Spec {kurztitel}'"),
+                "unittest": (2, ""), "gegenprobe": (2, "")}
+    skript = ROOT / "tests" / f"test_{kurztitel}.py"
+
+    def schritt(titel: str, fn):
+        puffer = io.StringIO()
+        with contextlib.redirect_stdout(puffer):
+            try:
+                code = fn()
+            except Exception as e:
+                print(f"!!! Werkzeugfehler: {type(e).__name__}: {e}")
+                code = 2
+        return code, puffer.getvalue()
+
+    def unittest_lauf():
+        if not skript.is_file():
+            print(f"Kein Testskript {skript.relative_to(ROOT)}")
+            return 2
+        r = subprocess.run([sys.executable, "-m", "unittest", "-v", f"tests/test_{kurztitel}.py"],
+                           cwd=ROOT, capture_output=True, text=True, timeout=timeout)
+        print((r.stdout + r.stderr).rstrip())
+        return 0 if r.returncode == 0 else 1
+
+    abgl_code, abgl_out = schritt("abgleich", lambda: abgleich(kurztitel))
+    unit_code, unit_out = schritt("unittest", unittest_lauf)
+    gegen_code, gegen_out = schritt(f"gegenprobe gegen {commit}",
+                                    lambda: gegenprobe(kurztitel, commit, timeout))
+    return {"abgleich": (abgl_code, abgl_out), "unittest": (unit_code, unit_out),
+            "gegenprobe": (gegen_code, gegen_out)}
+
+
+def pruefen(kurztitel: str, commit: str | None = None, timeout: int = 300) -> int:
     if not re.fullmatch(r"[a-z0-9_]+", kurztitel):
         print(f"Kurztitel '{kurztitel}' ungueltig (nur a-z, 0-9, _)."); return 2
     commit = commit or spec_commit(kurztitel)
     if not commit:
         print(f"Kein Commit 'Spec {kurztitel}' gefunden. Ruecksetzpunkt mit --commit angeben "
               f"(git log --oneline -10)."); return 2
-    datum = _datum_aus(datei_suchen("spec", kurztitel, None)) or dt.date.today().strftime("%Y%m%d")
-    skript = ROOT / "tests" / f"test_{kurztitel}.py"
-    teile, codes = [], {}
-
-    def schritt(titel: str, fn) -> None:
-        puffer = io.StringIO()
-        with contextlib.redirect_stdout(puffer):
-            try:
-                codes[titel] = fn()
-            except Exception as e:                       # Werkzeugfehler sichtbar machen, nicht verschlucken
-                print(f"!!! Werkzeugfehler: {type(e).__name__}: {e}")
-                codes[titel] = 2
-        teile.append(f"## {titel}  (Exit {codes[titel]})\n\n```\n{puffer.getvalue().rstrip()}\n```\n")
-
-    def unittest_lauf() -> int:
-        if not skript.is_file():
-            print(f"Kein Testskript {skript.relative_to(ROOT)}"); return 2
-        r = subprocess.run([sys.executable, "-m", "unittest", "-v", f"tests/test_{kurztitel}.py"],
-                           cwd=ROOT, capture_output=True, text=True, timeout=timeout)
-        print((r.stdout + r.stderr).rstrip())
-        return 0 if r.returncode == 0 else 1
-
-    schritt("abgleich", lambda: abgleich(kurztitel))
-    schritt("unittest", unittest_lauf)
-    schritt(f"gegenprobe gegen {commit}", lambda: gegenprobe(kurztitel, commit, timeout))
-
+    teile_dict = _pruefen_teile(kurztitel, commit, timeout)
+    codes = {k: v[0] for k, v in teile_dict.items()}
+    teile = []
+    for titel_key in ("abgleich", "unittest", "gegenprobe"):
+        code, out = teile_dict[titel_key]
+        # Titel wiederherstellen: gegenprobe braucht {commit}
+        titel = f"gegenprobe gegen {commit}" if titel_key == "gegenprobe" else titel_key
+        teile.append(f"## {titel}  (Exit {code})\n\n```\n{out.rstrip()}\n```\n")
     kurz = " | ".join(f"{k.split()[0]}: {'ok' if v == 0 else ('Abweichung' if v == 1 else 'FEHLER')}"
                       for k, v in codes.items())
+    datum = _datum_aus(datei_suchen("spec", kurztitel, None)) or dt.date.today().strftime("%Y%m%d")
     kopf = (f"# Pruefung {kurztitel}\n\n- Zeit: {dt.datetime.now():%Y-%m-%d %H:%M}\n"
             f"- Ruecksetzpunkt: {commit}\n- Kurz: {kurz}\n\n")
     ziel = PM / f"pruefung_{datum}_{kurztitel}.md"
@@ -704,8 +726,30 @@ def _ist_hoch(zeile: dict) -> bool:
     return "hoch" in schwere or any(ja(spalte(zeile, n)) for n in ("datenverl", "unbemerkt", "harte"))
 
 
-def zusammenfuehren(pfade: list[Path]) -> int:
+def zusammenfuehren(pfade: list[Path], _internal: bool = False) -> int:
     if len(pfade) < 2:
+        if _internal:
+            print("Nur ein Verdikt – Gesamtbefund wird mit Warnung geschrieben.")
+            # Gesamtbefund mit UNVOLLSTÄNDIG schreiben
+            p = pfade[0]
+            m = re.match(r"verdict_(\d{8})_(.+?)_[^_]+(?:_[^_]+)*\.md$", p.name)
+            datum = m.group(1) if m else dt.date.today().strftime("%Y%m%d")
+            kt = re.match(r"verdict_\d{8}_([a-z0-9_]+?)_(?:qwen|gemma|mellum|apertus|claude|hawe)", p.name)
+            kurz = kt.group(1) if kt else "review"
+            text = p.read_text(encoding="utf-8")
+            m2 = re.search(r"\b(PASS|NACHBESSERN|FAIL)\b", abschnitt(text, "Ergebnis") or text)
+            ergebnis = m2.group(1) if m2 else "?"
+            teile = [f"# Gesamtbefund: {kurz}\n",
+                     f"Mechanisch zusammengeführt mit `kette.py zusammenfuehren` ({dt.datetime.now():%Y-%m-%d %H:%M}). Kein Befund wurde weggelassen oder umformuliert.\n",
+                      "## Ergebnis\n", f"**UNVOLLSTÄNDIG** – Nur ein Lauf mit auswertbarer Befund-Tabelle.\n",
+                     "| Lauf | Ergebnis des Laufs |", "|---|---|",
+                      f"| `{p.name}` | {ergebnis.replace('PASS', 'UNVOLLSTÄNDIG')} |",
+                     "",
+                     "> Ein weiterer Lauf fehlt. Der Gesamtbefund beruht auf nur einem Lauf mit auswertbarer Tabelle.\n"]
+            ziel = PM / f"gesamt_{datum}_{kurz}.md"
+            ziel.write_text("\n".join(teile) + "\n", encoding="utf-8")
+            print(f"Geschrieben: {ziel.relative_to(ROOT) if ziel.is_relative_to(ROOT) else ziel}")
+            return 1
         print("Mindestens zwei Verdikte angeben."); return 2
     zeilen, ergebnisse, fehlt = [], [], []
     for p in pfade:
@@ -1053,6 +1097,259 @@ def prompt(schritt: str, kurztitel: str, datum: str | None, commit: str | None, 
         print("(in die Zwischenablage kopiert)", file=sys.stderr)
     return 0
 
+# ---------------------------------------------------------------- review-auto
+
+KETTE_LLM_URL = os.environ.get("KETTE_LLM_URL", "http://127.0.0.1:8080")
+KETTE_LLM_MODEL = os.environ.get("KETTE_LLM_MODEL", "unsloth/Qwen3.6-35B-A3B-MTP-GGUF:Q4_K_XL")
+KETTE_LLM_TIMEOUT = int(os.environ.get("KETTE_LLM_TIMEOUT", "1800"))
+KETTE_HERZSCHLAG_S = int(os.environ.get("KETTE_HERZSCHLAG_S", "60"))
+
+
+def _rel(pfad):
+    """Pfad relativ zu ROOT, falls möglich, sonst absolut."""
+    try:
+        return pfad.relative_to(ROOT)
+    except ValueError:
+        return pfad
+
+
+# ------------------------------------------------------------------ review-auto (A2–A8)
+
+
+def _herzschlag_stopp_event(lauf_nummer: int):
+    """Starter fuer den Herzschlag-Thread. Gibt (event, thread) zurueck."""
+    stop = threading.Event()
+
+    def pulse():
+        start = dt.datetime.now()
+        while not stop.is_set():
+            elapsed = int((dt.datetime.now() - start).total_seconds())
+            print(f"Lauf {lauf_nummer}: {elapsed // 60} min …", flush=True)
+            stop.wait(KETTE_HERZSCHLAG_S)
+
+    t = threading.Thread(target=pulse, daemon=True)
+    t.start()
+    return stop, t
+
+
+def _api_ruf(prompt_text: str, lauf_nummer: int) -> tuple[str | None, dict]:
+    """POST auf <KETTE_LLM_URL>/v1/chat/completions. Rueckgabe: (text, info_dict)."""
+    import urllib.error
+    import urllib.parse
+    import urllib.request
+
+    url = KETTE_LLM_URL
+    parsed = urllib.parse.urlparse(url)
+    hostname = parsed.hostname or ""
+    if hostname not in ("127.0.0.1", "localhost"):
+        print(f"Nur 127.0.0.1 erlaubt, Host '{hostname}' abgelehnt."); return None, {}
+
+    body = json.dumps({
+        "model": KETTE_LLM_MODEL,
+        "messages": [{"role": "user", "content": prompt_text}],
+        "temperature": 0.1,
+        "chat_template_kwargs": {"enable_thinking": False},
+    }).encode("utf-8")
+    req = urllib.request.Request(url + "/v1/chat/completions", data=body,
+                                 headers={"Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=KETTE_LLM_TIMEOUT) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        body_err = e.read().decode("utf-8", errors="replace")[:200]
+        print(f"Router meldet HTTP {e.code}: {body_err}"); return None, {}
+    except urllib.error.URLError as e:
+        reason = getattr(e, "reason", e)
+        if isinstance(reason, socket.timeout):
+            print(f"Zeitüberschreitung nach {KETTE_LLM_TIMEOUT} s"); return None, {}
+        print(f"Router nicht erreichbar: {reason}"); return None, {}
+    except socket.timeout:
+        print(f"Zeitüberschreitung nach {KETTE_LLM_TIMEOUT} s"); return None, {}
+    except TimeoutError:
+        print(f"Zeitüberschreitung nach {KETTE_LLM_TIMEOUT} s"); return None, {}
+
+    choices = data.get("choices") or []
+    if not choices:
+        print("leere Modellantwort"); return None, {}
+    content = (choices[0].get("message") or {}).get("content")
+    if not content:
+        print("leere Modellantwort"); return None, {}
+    finish = (choices[0].get("finish_reason") or "")
+    if finish == "length":
+        print("Antwort abgeschnitten (finish_reason=length)"); return None, {}
+
+    usage = (data.get("usage") or {})
+    return content, {"prompt_tokens": usage.get("prompt_tokens"),
+                     "completion_tokens": usage.get("completion_tokens")}
+
+
+def _freier_verdiktpfad(datum: str, kurztitel: str, lauf: int) -> Path:
+    """Exklusiver Verdikt-Pfad mit automatischem Zähler (_2, _3 …)."""
+    modellkuerzel = "qwen36-35b"
+    basis = f"verdict_{datum}_{kurztitel}_{modellkuerzel}"
+    if lauf == 2:
+        basis += "_betrieb"
+    zaehler = 1
+    while True:
+        if zaehler > 1:
+            pfad = PM / f"{basis}_{zaehler}.md"
+        else:
+            pfad = PM / f"{basis}.md"
+        if not pfad.exists():
+            return pfad
+        zaehler += 1
+
+
+def _ist_auswertbar(verdikt_text: str) -> bool:
+    """Prueft, ob das Verdikt eine auswertbare Befund-Tabelle hat."""
+    bef_block = abschnitt(verdikt_text, "Befunde")
+    if not bef_block:
+        return False
+    rows = tabelle(bef_block)
+    if not rows:
+        return False
+    required = {"datenverl", "unbemerkt", "harte", "schwere"}
+    kopf = set(rows[0].keys())
+    return all(any(r in k for k in kopf) for r in required)
+
+
+# ---------------------------------------------------------------- review-auto
+
+def review_auto(kurztitel: str) -> int:
+    """Review-Paket bauen, zwei API-Laeufe, Verdikte speichern, zusammenfuehren."""
+    if not re.fullmatch(r"[a-z0-9_]+", kurztitel):
+        print(f"Kurztitel '{kurztitel}' ungueltig (nur a-z, 0-9, _)."); return 2
+
+    # A2: Pruefung, Abbruch bei roten Unit-Tests
+    teile_dict = _pruefen_teile(kurztitel)
+    unit_code = teile_dict["unittest"][0]
+    if unit_code != 0:
+        if unit_code == 2:
+            print(f"Pruefung-Fehler (Exit 2) – Review nicht moeglich."); return 2
+        print("Unit-Tests rot – direkt nachbessern, kein Review nötig"); return 1
+
+    # A3: Review-Paket bauen
+    if paket(kurztitel) != 0:
+        print("Review-Paket nicht gebaut – Voraussetzung fehlt (Exit 2)."); return 2
+    paket_pfad = PM / f"review_paket_{_datum_aus(datei_suchen('spec', kurztitel, None)) or dt.date.today().strftime('%Y%m%d')}_{kurztitel}.md"
+    paket_text = paket_pfad.read_text(encoding="utf-8") if paket_pfad.exists() else ""
+
+    datum = _datum_aus(datei_suchen("spec", kurztitel, None)) or dt.date.today().strftime("%Y%m%d")
+
+    # A1: Prompt-Dateien laden, {paket_text} ersetzen
+    prompt1 = (PROMPTS / "review_api.md").read_text(encoding="utf-8").replace("{paket_text}", paket_text).replace("{kurztitel}", kurztitel).replace("{datum}", datum).replace("{commit}", "").replace("{datum_heute}", dt.datetime.now().strftime("%Y-%m-%d")).replace("{modell}", KETTE_LLM_MODEL)
+    prompt2 = (PROMPTS / "review2_api.md").read_text(encoding="utf-8").replace("{paket_text}", paket_text).replace("{kurztitel}", kurztitel).replace("{datum}", datum).replace("{commit}", "").replace("{datum_heute}", dt.datetime.now().strftime("%Y-%m-%d")).replace("{modell}", KETTE_LLM_MODEL)
+
+    verdikt1 = verdikt2 = None
+    info1 = info2 = {}
+    pfad1 = pfad2 = None
+
+    # Lauf 1
+    print(f"Lauf 1 von 2 (Anforderung) gestartet")
+    stop1, thread1 = _herzschlag_stopp_event(1)
+    start1 = dt.datetime.now()
+    try:
+        verdikt1, info1 = _api_ruf(prompt1, 1)
+    except Exception:
+        print("Lauf 1 gescheitert – Exit 1, kein Lauf 2."); stop1.set(); thread1.join(timeout=2); return 1
+    stop1.set()
+    thread1.join(timeout=2)
+    elapsed1 = int((dt.datetime.now() - start1).total_seconds())
+    if not verdikt1:
+        print("Lauf 1: keine Antwort vom Server – Exit 1, kein Lauf 2."); return 1
+    print(f"Lauf 1 fertig ({elapsed1}s, {info1.get('prompt_tokens', '?')} prompt, "
+          f"{info1.get('completion_tokens', '?')} completion tokens)")
+    try:
+        pfad1 = _freier_verdiktpfad(datum, kurztitel, 1)
+        with open(pfad1, "x", encoding="utf-8") as f:
+            f.write(verdikt1)
+        print(f"Verdikt 1 gespeichert: {_rel(pfad1)}")
+    except FileExistsError:
+        zaehler = 2
+        while True:
+            pfad1 = PM / f"verdict_{datum}_{kurztitel}_qwen36-35b_{zaehler}.md"
+            if not pfad1.exists():
+                with open(pfad1, "x", encoding="utf-8") as f:
+                    f.write(verdikt1)
+                print(f"Verdikt 1 gespeichert: {_rel(pfad1)} (Zaehler {zaehler})")
+                break
+            zaehler += 1
+
+    # Lauf 2
+    print(f"Lauf 2 von 2 (Betrieb) gestartet")
+    stop2, thread2 = _herzschlag_stopp_event(2)
+    start2 = dt.datetime.now()
+    try:
+        verdikt2, info2 = _api_ruf(prompt2, 2)
+    except Exception:
+        print("Lauf 2 gescheitert – Exit 1."); stop2.set(); thread2.join(timeout=2); return 1
+    stop2.set()
+    thread2.join(timeout=2)
+    elapsed2 = int((dt.datetime.now() - start2).total_seconds())
+    if not verdikt2:
+        print("Lauf 2: keine Antwort vom Server – Exit 1."); return 1
+    print(f"Lauf 2 fertig ({elapsed2}s, {info2.get('prompt_tokens', '?')} prompt, "
+          f"{info2.get('completion_tokens', '?')} completion tokens)")
+    try:
+        pfad2 = _freier_verdiktpfad(datum, kurztitel, 2)
+        with open(pfad2, "x", encoding="utf-8") as f:
+            f.write(verdikt2)
+        print(f"Verdikt 2 gespeichert: {_rel(pfad2)}")
+    except FileExistsError:
+        zaehler = 2
+        while True:
+            pfad2 = PM / f"verdict_{datum}_{kurztitel}_qwen36-35b_betrieb_{zaehler}.md"
+            if not pfad2.exists():
+                with open(pfad2, "x", encoding="utf-8") as f:
+                    f.write(verdikt2)
+                print(f"Verdikt 2 gespeichert: {_rel(pfad2)} (Zaehler {zaehler})")
+                break
+            zaehler += 1
+
+    # A6: Auswertbare Befund-Tabelle
+    auswertbar1 = verdikt1 and _ist_auswertbar(verdikt1)
+    auswertbar2 = verdikt2 and _ist_auswertbar(verdikt2)
+
+    unvollstaendig = not auswertbar1 or not auswertbar2
+    fehlende_datei = []
+    if not auswertbar1 and pfad1:
+        fehlende_datei.append(pfad1.name)
+    if not auswertbar2 and pfad2:
+        fehlende_datei.append(pfad2.name)
+
+    # A7: Zusammenführen (intern, auch mit 1 oder 0 gültigen Pfaenden)
+    gueltige_pfade = [p for p, aw in [(pfad1, auswertbar1), (pfad2, auswertbar2)]
+                      if p and aw]
+    gesamt_exit = zusammenfuehren(gueltige_pfade, _internal=True)
+
+    # UNVOLLSTÄNDIG: bei fehlender Tabelle immer 1, Gesamtbefund anpassen
+    if unvollstaendig:
+        gesamt_pfad = PM / f"gesamt_{datum}_{kurztitel}.md"
+        if gesamt_pfad.exists():
+            text = gesamt_pfad.read_text(encoding="utf-8")
+            text = text.replace("**PASS**", "**UNVOLLSTÄNDIG**")
+            warnhinweis = (f"Ein Lauf ohne auswertbare Befund-Tabelle: {', '.join(fehlende_datei)} "
+                           f"– Gesamtbefund beruht nur auf {len(gueltige_pfade)} Lauf/Läufen")
+            text = text.replace(f"# Gesamtbefund: {kurztitel}\n",
+                                f"# Gesamtbefund: {kurztitel}\n\n> {warnhinweis}\n")
+            gesamt_pfad.write_text(text, encoding="utf-8")
+        gesamt_exit = 1
+        print(f"==> UNVOLLSTÄNDIG: Befund-Tabelle fehlt in {', '.join(fehlende_datei)}")
+
+    # Zusammenfassung
+    gesamt_pfad = PM / f"gesamt_{datum}_{kurztitel}.md"
+    print(f"\n=== Zusammenfassung ===")
+    if unvollstaendig:
+        print("Ergebnis: UNVOLLSTÄNDIG")
+    else:
+        print(f"Ergebnis: {'PASS' if gesamt_exit == 0 else 'NACHBESSERN'}")
+    print(f"Verdikt 1: {_rel(pfad1) if pfad1 else 'keine'}")
+    print(f"Verdikt 2: {_rel(pfad2) if pfad2 else 'keine'}")
+    print(f"Gesamt: {_rel(gesamt_pfad) if gesamt_pfad.exists() else 'keine'}")
+
+    return gesamt_exit
+
+
 # ---------------------------------------------------------------- main
 
 def main(argv=None) -> int:
@@ -1075,6 +1372,8 @@ def main(argv=None) -> int:
     pk.add_argument("kurztitel"); pk.add_argument("--commit"); pk.add_argument("--datum")
     pr = sub.add_parser("pruefen", help="abgleich + unittest + gegenprobe, Ausgabe in Datei")
     pr.add_argument("kurztitel"); pr.add_argument("--commit"); pr.add_argument("--timeout", type=int, default=300)
+    ra = sub.add_parser("review-auto", help="Review-Paket, zwei API-Laeufe, Verdikte, Zusammenfassung")
+    ra.add_argument("kurztitel")
     args = ap.parse_args(argv)
     if args.cmd == "zusammenfuehren":
         return zusammenfuehren([Path(v) if Path(v).is_absolute() or Path(v).exists() else PM / Path(v).name
@@ -1083,6 +1382,8 @@ def main(argv=None) -> int:
         return paket(args.kurztitel, args.commit, args.datum)
     if args.cmd == "pruefen":
         return pruefen(args.kurztitel, args.commit, args.timeout)
+    if args.cmd == "review-auto":
+        return review_auto(args.kurztitel)
     if args.cmd == "gegenprobe":
         return gegenprobe(args.kurztitel, args.commit, args.timeout)
     if args.cmd == "quellen":

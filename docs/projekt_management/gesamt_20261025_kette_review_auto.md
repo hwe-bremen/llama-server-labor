@@ -1,0 +1,29 @@
+# Gesamtbefund: kette_review_auto
+
+Mechanisch zusammengeführt mit `kette.py zusammenfuehren` (2026-10-25 15:58). Kein Befund wurde weggelassen oder umformuliert.
+
+## Ergebnis
+
+**NACHBESSERN** – Regel: ein hoher Befund in irgendeinem Lauf ergibt NACHBESSERN.
+
+| Lauf | Ergebnis des Laufs |
+|---|---|
+| `verdict_20261025_kette_review_auto_qwen36-35b.md` | NACHBESSERN |
+| `verdict_20261025_kette_review_auto_qwen36-35b_betrieb.md` | NACHBESSERN |
+
+## Befunde (alle Läufe)
+
+| Lauf | Schwere | hoch nach Regel | Fundstelle | Befund |
+|---|---|---|---|---|
+| `verdict_20261025_kette_review_auto_qwen36-35b.md` | hoch | ja |  | 1 / hoch / nein / ja / nein / A4: Daueranzeige immer 0 s (Zeile 1255: `dt.datetime.now() - dt.datetime.now()`). Die Spec verlangt „Nach dem Lauf Dauer". |
+| `verdict_20261025_kette_review_auto_qwen36-35b.md` | hoch | ja |  | 2 / hoch / nein / ja / nein / A5: `_freier_verdiktpfad` prüft nur `exists()`, schreibt aber mit `write_text` (kein exklusiver Modus `x`). Race Condition – keine harte Vorgabe, aber die Spec sagt „exklusiv angelegt". |
+| `verdict_20261025_kette_review_auto_qwen36-35b.md` | hoch | ja |  | 3 / hoch / nein / ja / ja / A8: `subprocess.TimeoutExpired` wird von `urllib.request.urlopen` nie geworfen (Zeile 1140). Der Timeout-Fall „Zeitüberschreitung nach n s" wird nie angezeigt. Stattdessen kommt `socket.timeout`/`URLError` → „Router nicht erreichbar". |
+| `verdict_20261025_kette_review_auto_qwen36-35b.md` | hoch | ja |  | 4 / hoch / nein / ja / ja / A7/A6: `zusammenfuehren` (Zeile 730) bricht mit Exit 2 ab, wenn < 2 Verdikte übergeben werden. Bei nur einem gültigen Lauf wird `pass` gemacht (Zeile 1303), dann `zusammenfuehren([ein_pfad])` → Exit 2, kein Gesamtbefund. Die Spec sagt „trotzdem zusammenführen". |
+| `verdict_20261025_kette_review_auto_qwen36-35b.md` | hoch | ja |  | 5 / hoch / nein / ja / ja / A6: Warnhinweis bei UNVOLLSTÄNDIG wird nur eingefügt, wenn `gesamt_pfad.exists()` (Zeile 1310). Wenn `zusammenfuehren` fehlschlägt (z.B. Fall 4), existiert der Pfad nicht → Warnhinweis bleibt aus. |
+| `verdict_20261025_kette_review_auto_qwen36-35b.md` | mittel | ja |  | 6 / mittel / nein / ja / nein / A1: Prompt verlangt „Verdikt als reine Textantwort", aber der Code speichert die Antwort blind als Datei – er prüft nicht, ob die Antwort tatsächlich ein Verdikt-Format hat, bevor sie gespeichert wird. |
+| `verdict_20261025_kette_review_auto_qwen36-35b.md` | mittel | ja |  | 7 / mittel / nein / ja / nein / A6: `text.replace("**PASS**", "**UNVOLLSTÄNDIG**")` (Zeile 1312) ersetzt nur PASS. Wenn das Ergebnis NACHBESSERN oder FAIL ist, bleibt es so – das ist korrekt, aber die Anforderung sagt „nie PASS". Bei NACHBESSERN/FAIL ist UNVOLLSTÄNDIG nicht angezeigt, was irreführend sein kann. |
+| `verdict_20261025_kette_review_auto_qwen36-35b_betrieb.md` | hoch | ja | `kette.py:1140` | `except subprocess.TimeoutExpired` wird bei `urllib.request.urlopen` niemals ausgelöst. `urllib` wirft `socket.timeout` (oder `urllib.error.URLError`), nicht `subprocess.TimeoutExpired`. Die Anforderung A8 verlangt explizit „Zeitüberschreitung → Exit 1 mit Meldung". Der Fall läuft stattdessen durch den allgemeinen `except Exception` (der aber im Code nie erreicht wird, weil `_api_ruf` alle Fehler abfängt) → die Timeout-Meldung erscheint nicht, und der Fall wird als unbekannter Fehler behandelt. Korrektur: `except socket.timeout` oder `except (socket.timeout, urllib.error.URLError)` fangen den Timeout ab und geben die korrekte Meldung. |
+| `verdict_20261025_kette_review_auto_qwen36-35b_betrieb.md` | hoch | ja | `kette.py:1267–1268` | Wenn Lauf 2 scheitert (z.B. Router nicht erreichbar), wird `return 1` sofort ausgeführt. Lauf-1-Verdikt existiert bereits (Zeile 1259), `zusammenfuehren` wird nicht aufgerufen, der Auswertbarkeits-Check (A6) wird nicht durchgeführt. Das Ergebnis ist nie „UNVOLLSTÄNDIG", obwohl nur ein Lauf gültig ist. Der Nutzer sieht „Lauf 2 gescheitert – Exit 1" im Terminal, aber keine Datei, die den Status dokumentiert. Die Anforderung sagt: „ein bereits gespeichertes gültiges Verdikt bleibt, das fehlerhafte wird nicht gespeichert, kein Gesamtbefund" – das Verdikt bleibt, aber der Nutzer hat keine Möglichkeit zu erkennen, dass es sich um einen unvollständigen Lauf handelt. Korrektur: Nach Lauf-2-Fehler prüfen, ob Lauf 1 gültig ist; wenn ja, Gesamtbefund als „UNVOLLSTÄNDIG" schreiben und Exit 1 zurückgeben. |
+| `verdict_20261025_kette_review_auto_qwen36-35b_betrieb.md` | niedrig | nein | `kette.py:1255` | `elapsed1 = int((dt.datetime.now() - dt.datetime.now()).total_seconds())` rechnet immer 0. Der Name `elapsed1` suggeriert eine Laufzeitberechnung, der Wert ist aber konstant 0. Kein Einfluss auf Logik. Korrektur: Startzeit vor `_api_ruf` speichern und nachher differenzieren. |
+| `verdict_20261025_kette_review_auto_qwen36-35b_betrieb.md` | niedrig | nein | `kette.py:1298–1303` | Der Code-Block `if len(gueltige_pfade) < 2:` enthält nur einen `pass` und keine Logik. Bei nur einem gültigen Lauf wird `zusammenfuehren` trotzdem mit einem Pfad aufgerufen, was `return 2` ergibt. Der Exit-Code 2 wird danach auf 1 überschrieben (Zeile 1318), wenn `unvollstaendig` True ist. Wenn beide Läufe gültig sind, ist alles korrekt. Korrektur: Entweder den Block entfernen oder eine sinnvolle Behandlung für den Ein-Fall einbauen. |
+| `verdict_20261025_kette_review_auto_qwen36-35b_betrieb.md` | mittel | ja | `kette.py:1107–1109` | Der Herzschlag-Thread ist ein `daemon=True`-Thread. `thread.join(timeout=2)` wartet maximal 2 Sekunden. Wenn der Thread danach noch läuft, wird er nicht mehr beendet – er läuft im Hintergrund weiter. Bei wiederholten `review_auto`-Aufrufen (z.B. in einem Script-Loop) stapeln sich Threads auf. Korrektur: `thread.join()` ohne Timeout oder `thread.daemon = True` mit explizitem `stop.set()` vor dem Verlassen. |
