@@ -1,6 +1,6 @@
-# Lernregeln der Kette (Stand 25.10.2026)
+# Lernregeln der Kette (Stand 25.10.2026, nach K8)
 
-Verdichtet aus 7 Ketten. Format: **Rnn** Regel – *Warum (Quelle)*. Höchstens ~100 Zeilen; neue Regel nur für wiederkehrende oder teure Fehler.
+Verdichtet aus 8 Ketten. Format: **Rnn** Regel – *Warum (Quelle)*. Höchstens ~100 Zeilen; neue Regel nur für wiederkehrende oder teure Fehler.
 Details je Kette: `kette_<kurztitel>.md`.
 
 ## Spec
@@ -49,3 +49,9 @@ Details je Kette: `kette_<kurztitel>.md`.
 - **R31** Phase teilen: Rückfragen-Runde und Spec-Schreiben in getrennten, frischen Chats; Zustand liegt in Dateien. – *K8.*
 - **R32** Rücksetzpunkt vor jeder agentischen Änderung committen. – *K7 NB2 ohne Rücksetzpunkt.*
 - **R33** Erst die Datei auf der Platte prüfen, dann urteilen – Ansichten können veraltet sein. – *K7: Claude las einen alten Stand und warf dem Umsetzer zu Unrecht Erfindung vor.*
+
+## Automatik (K8)
+- **R34** Ein Review über die API ohne Werkzeuge sieht **nur das Paket**: Fehlt dort der Code, urteilt das Modell über Spec und Übergabe – und glaubt der Übergabe. Paket vor jedem automatischen Review auf „Geänderte Code-Dateien: keine" prüfen. – *K8: echter Lauf meldete A4/A5 fälschlich als fehlend.*
+- **R35** Werkzeuge der Kette dürfen den Ordner, den eine Kette ändert, nicht ausblenden (auch nicht `role-split/` und `tests/`). – *K8: `paket`/`gegenprobe` blind für `kette.py` selbst.* (Behebung K9)
+- **R36** Tests mit Servern, Threads oder Netz immer mit Zeitlimit starten (`timeout 120 …`); ein hängender Test sieht aus wie langsames Arbeiten. `server.shutdown()` nur bei `serve_forever()`, sonst `server_close()`. – *K8.*
+- **R37** Automatische Prompts aus den bewährten Hand-Prompts ableiten (Pflichtfragen mit Erläuterung, Verdikt-Vorlage wörtlich), nicht neu und kürzer schreiben; Rollen-Trigger wie `@review` wirken nur über den Proxy. – *K8.*
