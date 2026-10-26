@@ -519,10 +519,53 @@ def pruefen(kurztitel: str, commit: str | None = None, timeout: int = 300) -> in
 PAKET_DIFF_ZEILEN = 700        # je Datei; Rest liest das Review gezielt nach
 PAKET_DATEI_ZEILEN = 900       # bei Umbau: ganze aktuelle Datei statt Diff, hoechstens so viele Zeilen
 PAKET_WARNUNG_ZEICHEN = 80000  # ~23k Token: darueber wird es fuer 64K Kontext eng
-# Nur docs/ und .md-Dateien gehoeren nie ins Paket. tests/, role-split/, mcp-server/ werden aufgenommen.
+# Nur docs/ und experiments/ gehoeren nie ins Paket. .md-Dateien in role-split/, tests/ etc. werden aufgenommen.
 PAKET_NIE = ("docs/", "experiments/",)
 # Harte Obergrenze: darueber bricht paket mit Exit 1 ab (nach Vorrang-Kuerzung).
 KETTE_PAKET_MAX = int(os.environ.get("KETTE_PAKET_MAX", "150000"))
+
+
+def _is_chain_file(f: str, commit: str, kurztitel: str, changed: list[str],
+                   has_kurztitel_commits: bool) -> bool:
+    """A5/A6: Gehoert die Datei zur Kette oder ist sie fremd?
+
+    Rueckgabe True  = Kette (wird ins Paket aufgenommen)
+             False  = fremd (wird ggf. als Kontext aufgenommen)
+
+    Regeln:
+    - role-split/* mit Commit-Historie oder uncommitteten Aenderungen => Kette
+    - Dateien mit Commits, die dem kurztitel entsprechen => Kette
+    - Sonst => fremd
+    """
+    if f.startswith("role-split/"):
+        # A6: role-split-Dateien mit Historie oder Aenderungen gehoeren zur Kette
+        try:
+            history = subprocess.run(
+                ["git", "-C", str(ROOT), "log", "--oneline", commit + "..HEAD", "--", f],
+                capture_output=True, text=True, check=True).stdout.strip()
+        except subprocess.CalledProcessError:
+            history = ""
+        return bool(history) or f in changed
+    if has_kurztitel_commits:
+        # Dateien mit Commits, die dem kurztitel entsprechen
+        try:
+            log_out = subprocess.run(
+                ["git", "-C", str(ROOT), "log", "--format=%h%x09%s", commit + "..HEAD"],
+                capture_output=True, text=True, check=True).stdout
+            commits = [z.split("\t", 1) for z in log_out.splitlines() if "\t" in z]
+        except subprocess.CalledProcessError:
+            commits = []
+        for h, msg in commits:
+            if kurztitel.lower().replace("-", "") in msg.lower().replace("-", ""):
+                try:
+                    files_in_commit = subprocess.run(
+                        ["git", "-C", str(ROOT), "diff", "--name-only", f"{h}^..{h}"],
+                        capture_output=True, text=True, check=True).stdout.split()
+                    if f in files_in_commit:
+                        return True
+                except subprocess.CalledProcessError:
+                    pass
+    return False
 
 
 def _bloecke(text: str, muster: str) -> str:
@@ -615,7 +658,7 @@ def _diff(commit: str, nur: set[str] | None = None, kurztitel: str | None = None
     geaendert = git("diff", "--name-only", commit).split()
     neu_unversioniert = git("ls-files", "--others", "--exclude-standard").split()
     alle_dateien = sorted({x for x in geaendert + neu_unversioniert
-                           if not x.startswith(PAKET_NIE) and not x.endswith(".md")
+                           if not x.startswith(PAKET_NIE)
                            and (ROOT / x).is_file()})
 
     # 2. Commits seit Ruecksetzpunkt mit Betreff holen (fuer Fremd-Erkennung)
@@ -640,24 +683,18 @@ def _diff(commit: str, nur: set[str] | None = None, kurztitel: str | None = None
         except subprocess.CalledProcessError:
             return []
 
-    # 4. Klassifikation: zur Kette gehoerig vs. fremd
-    #    Zur Kette: (a) in mindestens einem Commit mit Kurztitel, (b) nicht committet/unversioniert,
-    #    (c) im Handover genannt. Sonst fremd.
+    # 4. Klassifikation: zur Kette gehoerig vs. fremd (A5/A6)
+    #    A5: Gemeinsame Helper-Funktion _is_chain_file()
+    #    A6: role-split/* mit Historie oder Aenderungen => Kette
     kette_dateien, fremde_dateien = [], []
     for d in alle_dateien:
-        dc = datei_commits(d)
-        if not dc:
-            # Unversioniert oder nur nicht-committete Aenderung -> zur Kette
-            kette_dateien.append(d)
-        elif nur and d in nur:
+        if nur and d in nur:
             # Im Handover genannt -> zur Kette (auch wenn fremde Commits)
             kette_dateien.append(d)
-        elif kurztitel and any(kurztitel in betrag for _, betrag in dc):
-            # Mindestens ein Commit mit Kurztitel -> zur Kette
+        elif _is_chain_file(d, commit, kurztitel, neu_unversioniert, bool(commits)):
             kette_dateien.append(d)
         else:
-            # Nur in Commits ohne Kurztitel -> fremd
-            # Sammle alle Commit-Betreffe fuer diese Datei
+            dc = datei_commits(d)
             fremde_dateien.append((d, dc))
 
     # 5. Fremde Dateien formatieren
@@ -699,24 +736,28 @@ def _diff(commit: str, nur: set[str] | None = None, kurztitel: str | None = None
                 inhalt = _kappen(d, diff, "diff", PAKET_DIFF_ZEILEN, not im_ho)
         datei_inhalte[d] = (inhalt, vorrang(d), im_ho)
 
-    # 8. Vorrang-Kuerzung wenn Paket zu gross
+    # 8. A3/A4: Vorrang-Kuerzung nach Gesamtgroesse (Rahmenwerk + Code-Dateien)
+    #    Zuerst Vorrang 3, dann 2, dann 1 bis <= PAKET_WARNUNG_ZEICHEN (80000)
+    #    Wenn nach Vorrang 1 immer noch zu gross => KETTE_PAKET_MAX => Exit 1
     weggelassen = []
     if datei_inhalte:
-        # Gesamtpaket groesse schatzen (nur die Code-Dateien-Teile)
-        gesamt = sum(len(v[0]) for v in datei_inhalte.values())
-        if gesamt > PAKET_WARNUNG_ZEICHEN:
-            # Zuerst Vorrang 3 weglassen
-            v3 = [d for d, v in datei_inhalte.items() if v[1] == 3]
-            for d in sorted(v3):
+        # Rahmenwerk schatzen: Kopfzeilen + Fremde-Dateien + Meta
+        rahmenwerk_groesse = 500 + sum(len(ft) for ft in fremde_teile)
+        for vorrang_stufe in (3, 2, 1):
+            code_groesse = sum(len(v[0]) for v in datei_inhalte.values())
+            if rahmenwerk_groesse + code_groesse <= PAKET_WARNUNG_ZEICHEN:
+                break
+            zu_entfernen = [d for d, v in datei_inhalte.items() if v[1] == vorrang_stufe]
+            for d in sorted(zu_entfernen):
                 weggelassen.append(d)
                 del datei_inhalte[d]
-            # Noch zu gross? Dann Vorrang 2
-            gesamt = sum(len(v[0]) for v in datei_inhalte.values())
-            if gesamt > PAKET_WARNUNG_ZEICHEN:
-                v2 = [d for d, v in datei_inhalte.items() if v[1] == 2]
-                for d in sorted(v2):
-                    weggelassen.append(d)
-                    del datei_inhalte[d]
+
+    # A4: Harte Obergrenze pruefen
+    if datei_inhalte:
+        final_groesse = rahmenwerk_groesse + sum(len(v[0]) for v in datei_inhalte.values())
+        if final_groesse > KETTE_PAKET_MAX:
+            print(f"Paket zu gross ({final_groesse} Zeichen, Limit {KETTE_PAKET_MAX}).")
+            sys.exit(1)
 
     # 9. Diff-Text zusammenbauen
     teile = []
@@ -728,7 +769,7 @@ def _diff(commit: str, nur: set[str] | None = None, kurztitel: str | None = None
     weggelassen_teile = []
     for d in sorted(weggelassen):
         v = vorrang(d)
-        grund = {1: "Vorrang 1 (sollte nie passieren)", 2: "Testcode, Paket zu gross",
+        grund = {1: "Vorrang 1, Paket zu gross", 2: "Testcode, Paket zu gross",
                  3: "Testdaten, Paket zu gross"}.get(v, "Paket zu gross")
         weggelassen_teile.append(f"- `{d}` – {grund}")
 
@@ -792,10 +833,8 @@ def paket(kurztitel: str, commit: str | None = None, datum: str | None = None, s
     except subprocess.CalledProcessError as e:
         say(f"git-Fehler: {(e.stderr.strip().splitlines() or ['?'])[0]}"); return 2
 
-    # A7: Paket ohne Code trotz Aenderungen -> Exit 1
-    #    (wenn _diff sagt "keine Code-Aenderungen" oder dateien leer)
+    # A7: Nur Aenderungen ausserhalb von docs/zaehlen. Reine docs/ => Exit 0.
     if not dateien and diff.startswith("(keine Code-Aenderungen"):
-        # Pruefen, ob es ueberhaupt Aenderungen gab (auch nur docs/.md)
         try:
             alles_geaendert = subprocess.run(
                 ["git", "-C", str(ROOT), "diff", "--name-only", commit],
@@ -807,8 +846,10 @@ def paket(kurztitel: str, commit: str | None = None, datum: str | None = None, s
         except subprocess.CalledProcessError:
             hat_aenderungen = False
         if hat_aenderungen:
-            say(f"Abbruch: Es gab Aenderungen, aber keine Code-Dateien fuer das Paket. Exit 1.")
-            return 1
+            say("Keine Code-Dateien geaendert (nur docs/). Exit 0.")
+            return 0
+        say(f"Keine Aenderungen seit {commit}.")
+        return 0
 
     # Zusätzliche Sektionen bauen
     fremde_sektion = ""
@@ -1253,6 +1294,7 @@ def prompt(schritt: str, kurztitel: str, datum: str | None, commit: str | None, 
 KETTE_LLM_URL = os.environ.get("KETTE_LLM_URL", "http://127.0.0.1:8080")
 KETTE_LLM_MODEL = os.environ.get("KETTE_LLM_MODEL", "unsloth/Qwen3.6-35B-A3B-MTP-GGUF:Q4_K_XL")
 KETTE_LLM_TIMEOUT = int(os.environ.get("KETTE_LLM_TIMEOUT", "1800"))
+KETTE_LLM_MAX_TOKENS = int(os.environ.get("KETTE_LLM_MAX_TOKENS", "8000"))
 KETTE_HERZSCHLAG_S = int(os.environ.get("KETTE_HERZSCHLAG_S", "60"))
 
 
@@ -1299,6 +1341,7 @@ def _api_ruf(prompt_text: str, lauf_nummer: int) -> tuple[str | None, dict]:
         "model": KETTE_LLM_MODEL,
         "messages": [{"role": "user", "content": prompt_text}],
         "temperature": 0.1,
+        "max_tokens": KETTE_LLM_MAX_TOKENS,
         "chat_template_kwargs": {"enable_thinking": False},
     }).encode("utf-8")
     req = urllib.request.Request(url + "/v1/chat/completions", data=body,
