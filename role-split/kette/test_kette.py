@@ -253,6 +253,9 @@ class PruefenTests(unittest.TestCase):
         self.assertIn("Zeichen, ca.", out)
 
     def test_paket_nur_dateien_aus_handover_und_nie_werkzeug(self):
+        """Aangepasst: A1 – jetzt werden ALLE Code-Dateien aufgenommen.
+        Nur docs/ und .md-Dateien gehoeren nie ins Paket.
+        Dateien nicht im Handover werden mit 'nicht genannt' markiert."""
         self._paket_vorbereiten()
         (self.root / "role-split").mkdir()
         (self.root / "role-split" / "werkzeug.py").write_text("W = 1\n")
@@ -261,9 +264,14 @@ class PruefenTests(unittest.TestCase):
                       encoding="utf-8")
         lauf(kette.paket, "g")
         text = (kette.PM / "review_paket_20261022_g.md").read_text(encoding="utf-8")
+        # neu_modul.py ist im Handover -> ohne "nicht genannt"
         self.assertIn("### neu_modul.py", text)
-        self.assertNotIn("### mod.py", text)
-        self.assertNotIn("werkzeug.py", text.split("## 3.")[1].split("## 4.")[0])
+        # mod.py wird jetzt aufgenommen (A1: alle Code-Dateien), aber mit "nicht genannt"
+        self.assertIn("### mod.py", text)
+        code_section = text.split("## 3.")[1].split("## 4.")[0]
+        self.assertIn("nicht in der Uebergabe genannt", code_section)
+        # A1: role-split/ gehoert jetzt zur Kette -> werkzeug.py wird aufgenommen
+        self.assertIn("werkzeug.py", code_section)
 
     def test_paket_kleine_aenderung_als_diff(self):
         self._paket_vorbereiten()
