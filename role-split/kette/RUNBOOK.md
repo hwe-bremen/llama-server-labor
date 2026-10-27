@@ -122,6 +122,29 @@ Grundsatzfragen (Richtung des Labs, Architektur über mehrere Ketten) besser mit
 
 **Fertig, wenn:** OpenCode meldet, `handover_<datum>_<kurztitel>.md` ist geschrieben.
 
+### Phase B automatisch: `umsetzung-auto` (ab K10)
+
+Statt TUI, Prompt-Kopieren und Freigaben – ein Befehl, Agent `umsetzung_nacht`, danach mechanisch geprüft:
+```bash
+python3 role-split/kette/kette.py umsetzung-auto <kurztitel>
+```
+- **Voraussetzungen (sonst Exit 2, kein Lauf):** Commit „Spec <kurztitel>", die Spec hat `## Schreibbereich`
+  (Dateien/Ordner, die geändert werden dürfen), Arbeitsstand sauber, `opencode` installiert, Modell beginnt mit `llamacpp/`.
+- **Einstellungen:** `KETTE_UMSETZUNG_MODEL` (Vorgabe 35B-A3B), `KETTE_UMSETZUNG_TIMEOUT` (7200 s für den ganzen Lauf),
+  `OPENCODE_EXPERIMENTAL_BASH_DEFAULT_TIMEOUT_MS` (300000 je Befehl).
+- **Danach prüft das Werkzeug selbst:** kein Selbst-Commit (HEAD unverändert), nur Dateien aus dem Schreibbereich,
+  Testdatei und Handover geändert, Handover in diesem Lauf geschrieben, `pruefen` grün. Es setzt **nichts** zurück.
+- **Ergebnis:** Exit 0 = alles in Ordnung → weiter mit **Phase D**. Exit 1 = Liste der Befunde lesen. Je Lauf eine Zeile in
+  `umsetzung_<datum>_<kurztitel>.md`, Rohdaten (JSON-Strom) in `role-split/results/`.
+- **Nacharbeit:** Den Auftrag (von Claude) als `docs/projekt_management/nacharbeit_<datum>_<kurztitel>_<n>.md` ablegen, dann
+  ```bash
+  python3 role-split/kette/kette.py umsetzung-auto <kurztitel> --nacharbeit docs/projekt_management/nacharbeit_<datum>_<kurztitel>_<n>.md
+  ```
+  Offene Kettendateien (Prüfung, Verdikte, Protokoll) stören dabei nicht. Nach zwei Nachbesserungen in Folge ohne
+  Fortschritt startet keine weitere: „Übergabe an Hawe" (Exit 1).
+- Gemessen an opencode 1.19.3: `ask` wird ohne TUI sofort abgelehnt und beendet den Lauf stumm; der Exit-Code von OpenCode
+  ist immer 0 – deshalb wertet `kette.py` nur den JSON-Strom aus.
+
 ---
 
 ## Phase C – Maschinelle Prüfung (ein Befehl)
@@ -280,6 +303,8 @@ python3 role-split/kette/kette.py quellen <kurztitel>
 git add docs/projekt_management/*_<kurztitel>.md && git commit -m "Spec <kurztitel>"
 # B
 python3 role-split/kette/kette.py prompt umsetzung <kurztitel>     # → opencode, Qwen3.6, Agent umsetzung
+#    oder automatisch (Spec braucht ## Schreibbereich):
+python3 role-split/kette/kette.py umsetzung-auto <kurztitel>
 # C
 python3 role-split/kette/kette.py pruefen <kurztitel>
 # D  Ctrl+C, start_eval | Qwen3.6-35B-A3B, Reasoning aus | Lauf 1: prompt review | Lauf 2 (neuer Chat): prompt review2

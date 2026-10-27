@@ -24,6 +24,16 @@ permission:
     "git status*": allow
     "git diff*": allow
     "git log*": allow
+    # ausdruecklich verboten (K10, Anforderung P3) – zusaetzlich zu "*": deny; ohne TUI nie "ask"
+    "git commit*": deny
+    "git reset*": deny
+    "git checkout*": deny
+    "git restore*": deny
+    "git clean*": deny
+    "git stash*": deny
+    "git push*": deny
+    "rm*": deny
+    "mv*": deny
 ---
 
 # Rolle: Umsetzungs-Instanz, unbeaufsichtigt (Nachtlauf)
@@ -31,6 +41,10 @@ permission:
 Du setzt eine Spezifikation aus `docs/projekt_management/spec_*.md` um, während Hawe nicht anwesend ist.
 Niemand beantwortet Rückfragen oder Freigaben. Alles, was nicht ausdrücklich erlaubt ist, wird abgelehnt.
 Eine Ablehnung ist kein Fehler: such keinen Umweg, arbeite mit dem Erlaubten weiter und nenne die Ablehnung im Handover.
+
+**Vorrang:** Du hast Vorrang vor allgemeinen Kommunikationsregeln (z. B. einer globalen AGENTS.md): Nicht vorab
+erklären oder auf Freigabe warten, sondern umsetzen und Begründungen ins Handover schreiben. Bezeichner wie in
+Spec und bestehendem Code (in diesem Repo deutsch).
 
 ## Ablauf
 1. Lies die Spec vollständig. Ist etwas unklar oder widersprüchlich, entscheide selbst nach dem Sinn der Spec

@@ -55,6 +55,12 @@ Befehle, nur Standardbibliothek, liest/schreibt nur im Projekt:
         oder eine Anforderung "teilweise"/"nicht" ergibt NACHBESSERN.
         --anhaengen schreibt das Ergebnis als Abschnitt ans Verdikt.
 
+  python3 role-split/kette/kette.py umsetzung-auto <kurztitel> [--nacharbeit <datei.md>]
+        Umsetzung bzw. Nacharbeit ohne TUI: opencode run --format json, Agent umsetzung_nacht,
+        Modell KETTE_UMSETZUNG_MODEL (nur llamacpp/), Zeitlimit KETTE_UMSETZUNG_TIMEOUT (7200 s).
+        Danach mechanisch: Selbst-Commit, Schreibbereich der Spec, Handover, pruefen. Protokollzeile in
+        docs/projekt_management/umsetzung_<datum>_<kurztitel>.md, Rohdaten in role-split/results/.
+
 Exit-Codes: 0 = in Ordnung / PASS, 1 = Abweichung / NACHBESSERN, 2 = Datei/Format-Fehler.
 Mode B: Lab, beruehrt AskValentinAI nicht.
 """
@@ -68,6 +74,7 @@ import json
 import os
 import re
 import shutil
+import signal
 import socket
 import subprocess
 import sys
@@ -1458,6 +1465,456 @@ def review_auto(kurztitel: str) -> int:
     return gesamt_exit
 
 
+# ---------------------------------------------------------------- umsetzung-auto (K10)
+#
+# Startet die Umsetzung ohne TUI ueber `opencode run --format json` (Agent umsetzung_nacht) und
+# prueft danach mechanisch. Gemessen an opencode 1.19.3 (Spec-Paket §1): Exit-Code ist immer 0,
+# Erfolg steht nur im JSON; `ask` wird ohne TUI sofort abgelehnt; OPENCODE_PERMISSION kann
+# Agent-Regeln nicht ueberstimmen -> Sperren stehen in der Agent-Datei, Schreibgrenze prueft kette.py.
+
+UMSETZUNG_AGENT = "umsetzung_nacht"
+UMSETZUNG_MODELL_STANDARD = "llamacpp/unsloth/Qwen3.6-35B-A3B-MTP-GGUF:Q4_K_XL"
+UMSETZUNG_TIMEOUT_STANDARD = 7200          # s, ganzer Lauf (A5)
+UMSETZUNG_BASH_MS_STANDARD = 300000        # ms, Einzelbefehl, wertet OpenCode selbst aus (Probe P3)
+# Kettendateien, die bei Nacharbeit offen sein duerfen (A2.4); Spec/Anforderung/Quellen nie.
+KETTEN_PRAEFIXE = ("pruefung", "umsetzung", "review_paket", "verdict", "gesamt", "nacharbeit")
+VORGABE_PRAEFIXE = ("spec_", "anforderung_", "quellen_", "_vorlage_")
+ABGELEHNT_TEXTE = ("rejected permission", "rule which prevents")
+
+
+def _schreibbereich(spec_text: str) -> list[str] | None:
+    """Eintraege unter '## Schreibbereich' (je '- pfad', Backticks erlaubt). None, wenn der Abschnitt fehlt."""
+    if not re.search(r"^##\s+Schreibbereich\s*$", spec_text, re.M):
+        return None
+    eintraege = []
+    for z in abschnitt(spec_text, "Schreibbereich").splitlines():
+        m = re.match(r"^\s*[-*]\s+`?([^`\s]+)`?", z)
+        if m:
+            eintraege.append(m.group(1)[2:] if m.group(1).startswith("./") else m.group(1))
+    return eintraege
+
+
+def _im_schreibbereich(pfad: str, eintraege: list[str]) -> bool:
+    """Exakter Dateipfad oder Ordner-Eintrag mit '/' am Ende als Praefix."""
+    return any(pfad == e or (e.endswith("/") and pfad.startswith(e)) for e in eintraege)
+
+
+def _ist_vorgabe(pfad: str) -> bool:
+    """Spec, Anforderung, Quellen, Vorlagen der Kette – darf die Umsetzung nie aendern."""
+    name = Path(pfad).name
+    return name.endswith(".md") and name.startswith(VORGABE_PRAEFIXE)
+
+
+def _ist_kettendatei(pfad: str, kurztitel: str) -> bool:
+    """Von der Kette erzeugte Datei dieses Kurztitels in docs/projekt_management/ (ohne Vorgaben)."""
+    p = Path(pfad)
+    if p.parent.as_posix() != "docs/projekt_management":
+        return False
+    muster = rf"^(?:{'|'.join(KETTEN_PRAEFIXE)})_\d{{8}}_{re.escape(kurztitel)}(?:_[\w.-]+)?\.md$"
+    return re.match(muster, p.name) is not None
+
+
+def _offene_dateien() -> list[str] | None:
+    """Pfade aus `git status --porcelain -z --untracked-files=all` (geaendert, vorgemerkt, neu, geloescht).
+    -z: keine Anfuehrungszeichen, Umbenennungen liefern Ziel und Quelle. None bei git-Fehler."""
+    r = subprocess.run(["git", "-C", str(ROOT), "status", "--porcelain", "-z", "--untracked-files=all"],
+                       capture_output=True, text=True)
+    if r.returncode != 0:
+        return None
+    teile, pfade, i = r.stdout.split("\0"), [], 0
+    while i < len(teile):
+        eintrag = teile[i]
+        i += 1
+        if len(eintrag) < 4:
+            continue
+        status, pfad = eintrag[:2], eintrag[3:]
+        pfade.append(pfad)
+        if "R" in status or "C" in status:       # Umbenennung/Kopie: naechstes Feld ist die Quelle
+            if i < len(teile) and teile[i]:
+                pfade.append(teile[i])
+            i += 1
+    return sorted(set(pfade))
+
+
+def _stand() -> dict[str, str] | None:
+    """Pruefsummen aller offenen Dateien: {pfad: sha256 | '<geloescht>' | '<unlesbar>'} (A7)."""
+    pfade = _offene_dateien()
+    if pfade is None:
+        return None
+    stand = {}
+    for d in pfade:
+        p = ROOT / d
+        if not p.exists():
+            stand[d] = "<geloescht>"
+        elif p.is_file():
+            try:
+                stand[d] = hashlib.sha256(p.read_bytes()).hexdigest()
+            except OSError:
+                stand[d] = "<unlesbar>"
+        else:
+            stand[d] = "<kein-file>"
+    return stand
+
+
+def _in_diesem_lauf(vor: dict[str, str], nach: dict[str, str]) -> dict[str, str]:
+    """{pfad: 'neu'|'weg'|'geaendert'} fuer alles, was sich zwischen den Schnappschuessen unterscheidet.
+    Eine vorher saubere Datei, die der Lauf aendert, taucht nur in `nach` auf -> 'neu' (= jetzt offen)."""
+    raus = {}
+    for d in sorted(set(vor) | set(nach)):
+        if d not in vor:
+            raus[d] = "neu"
+        elif d not in nach:
+            raus[d] = "weg"
+        elif vor[d] != nach[d]:
+            raus[d] = "geaendert"
+    return raus
+
+
+PROTOKOLL_RE = re.compile(r"rot: (?P<rot>[^,]+), pruefen: (?P<pruefen>[^,]+), art: (?P<art>erst|nb\d+)")
+
+
+def _protokoll(pfad: Path) -> list[dict]:
+    """Protokollzeilen (A6) in Dateireihenfolge: [{'rot', 'pruefen', 'art'}, ...]."""
+    if not pfad.is_file():
+        return []
+    zeilen = []
+    for z in pfad.read_text(encoding="utf-8").splitlines():
+        if not z.startswith("- **"):            # nur Laufzeilen; Unterzeilen enthalten fremden Befehlstext
+            continue
+        m = PROTOKOLL_RE.search(z)
+        if m:
+            zeilen.append({k: m.group(k).strip() for k in ("rot", "pruefen", "art")})
+    return zeilen
+
+
+def _zahl(wert: str) -> int | None:
+    return int(wert) if re.fullmatch(r"\d+", str(wert).strip()) else None
+
+
+def _fortschritt(alt: dict, neu: dict) -> bool:
+    """A8: rot bekannt und gesunken ODER pruefen bekannt und kleiner – und keiner der beiden schlechter.
+    Unbekannte Werte ('–') zaehlen nie als Fortschritt."""
+    ar, nr, ap, np_ = _zahl(alt["rot"]), _zahl(neu["rot"]), _zahl(alt["pruefen"]), _zahl(neu["pruefen"])
+    if None in (ar, nr, ap, np_):
+        return False
+    return (nr < ar or np_ < ap) and nr <= ar and np_ <= ap
+
+
+def _halt_noetig(zeilen: list[dict]) -> bool:
+    """Die letzten zwei nb-Laeufe zeigten beide keinen Fortschritt gegenueber ihrem jeweiligen Vorlauf."""
+    nb = [i for i, z in enumerate(zeilen) if z["art"].startswith("nb") and i > 0]
+    if len(nb) < 2:
+        return False
+    return all(not _fortschritt(zeilen[i - 1], zeilen[i]) for i in nb[-2:])
+
+
+def _rot_aus_pruefung(kurztitel: str) -> str:
+    """failures+errors aus der unittest-Ausgabe der pruefung-Datei; 'OK' -> 0; sonst '–' (A6)."""
+    pfad = datei_suchen("pruefung", kurztitel, None)
+    if not pfad:
+        return "–"
+    ut = abschnitt(pfad.read_text(encoding="utf-8"), "unittest")
+    m = re.search(r"^FAILED \(([^)]*)\)", ut, re.M)
+    if m:
+        werte = dict(re.findall(r"(\w+)=(\d+)", m.group(1)))
+        return str(int(werte.get("failures", 0)) + int(werte.get("errors", 0)))
+    if re.search(r"^OK\b", ut, re.M):
+        return "0"
+    return "–"
+
+
+def _opencode_programm() -> list[str] | None:
+    """KETTE_OPENCODE (Pfad; .py wird mit sys.executable gestartet) oder `opencode` im PATH."""
+    eigen = os.environ.get("KETTE_OPENCODE", "").strip()
+    if eigen:
+        if not Path(eigen).is_file():
+            return None
+        return [sys.executable, eigen] if eigen.endswith(".py") else [eigen]
+    gefunden = shutil.which("opencode")
+    return [gefunden] if gefunden else None
+
+
+def _umsetzung_prompt(kurztitel: str, datum: str, commit: str, nacharbeit: Path | None, nb: int) -> str | None:
+    vorlage = PROMPTS / "umsetzung_nacht.md"
+    if not vorlage.is_file():
+        return None
+    anf = datei_suchen("anforderung", kurztitel, None)
+    anf_pfad = f"docs/projekt_management/{anf.name}" if anf else \
+        f"docs/projekt_management/anforderung_{datum}_{kurztitel}.md"
+    text = (vorlage.read_text(encoding="utf-8")
+            .replace("{kurztitel}", kurztitel).replace("{datum}", datum).replace("{commit}", commit)
+            .replace("{anforderung}", anf_pfad)
+            .replace("{quellen}", f"docs/projekt_management/quellen_{datum}_{kurztitel}.md"))
+    text = "\n".join(z for z in text.splitlines() if not z.startswith("<!--")).strip() + "\n"
+    if nacharbeit:
+        text += (f"\n## Nachbesserung {nb}\n\nDas ist Nachbesserung {nb}. Der Auftrag steht unten (aus "
+                 f"`{_rel(nacharbeit)}`). Ergänze den Handover docs/projekt_management/handover_{datum}_"
+                 f"{kurztitel}.md um den Abschnitt „## Nachbesserung {nb}\" – nichts Bestehendes löschen.\n\n"
+                 + nacharbeit.read_text(encoding="utf-8").strip() + "\n")
+    return text
+
+
+def _lauf(befehl: list[str], env: dict, timeout: int, rohdaten: Path) -> dict:
+    """Startet opencode in eigener Prozessgruppe, liest den JSON-Strom zeilenweise (sofort in die
+    Rohdaten), gibt je Werkzeugaufruf eine Zeile aus und beendet die Gruppe nach `timeout` s (A5, A6, A9)."""
+    info = {"werkzeuge": 0, "fehler": [], "abgelehnt": [], "tokens": 0, "reason": None, "text": "",
+            "ereignisse": 0, "kaputt": 0, "timeout": False,
+            "tokens_teile": {"input": 0, "output": 0, "reasoning": 0}}
+    rohdaten.parent.mkdir(parents=True, exist_ok=True)
+    stderr_datei = rohdaten.with_suffix(".err")
+    start = dt.datetime.now()
+    with open(rohdaten, "w", encoding="utf-8") as roh, open(stderr_datei, "w", encoding="utf-8") as fehlerkanal:
+        try:
+            proc = subprocess.Popen(befehl, cwd=ROOT, env=env, stdout=subprocess.PIPE, stderr=fehlerkanal,
+                                    text=True, encoding="utf-8", errors="replace", start_new_session=True)
+        except OSError as e:
+            info["startfehler"] = f"{type(e).__name__}: {e}"
+            info["dauer"] = 0
+            return info
+
+        def lesen():
+            for zeile in proc.stdout:
+                roh.write(zeile); roh.flush()
+                zeile = zeile.strip()
+                if not zeile:
+                    continue
+                try:
+                    e = json.loads(zeile)
+                except json.JSONDecodeError:
+                    info["kaputt"] += 1
+                    continue
+                info["ereignisse"] += 1
+                teil = e.get("part") or {}
+                typ = e.get("type")
+                if typ == "tool_use":
+                    zustand = teil.get("state") or {}
+                    status = zustand.get("status")
+                    if status not in ("completed", "error"):
+                        continue
+                    info["werkzeuge"] += 1
+                    eingabe = zustand.get("input")
+                    wortlaut = (eingabe.get("command") or eingabe.get("filePath") or json.dumps(eingabe,
+                                ensure_ascii=False)) if isinstance(eingabe, dict) else str(eingabe or "")
+                    kurz = wortlaut.replace("\n", " ")[:60]
+                    print(f"[{dt.datetime.now():%H:%M:%S}] {teil.get('tool', '?')}: {kurz}"
+                          + ("…" if len(wortlaut) > 60 else "") + ("  [FEHLER]" if status == "error" else ""),
+                          flush=True)
+                    if status == "error":
+                        fehlertext = str(zustand.get("error") or "")
+                        eintrag = f"{teil.get('tool', '?')}: {wortlaut[:200]} – {fehlertext[:200]}".replace("\n", " ")
+                        info["fehler"].append(eintrag)
+                        if any(t in fehlertext for t in ABGELEHNT_TEXTE):
+                            info["abgelehnt"].append(eintrag)
+                elif typ == "step_finish":
+                    info["reason"] = teil.get("reason")
+                    tok = teil.get("tokens") or {}
+                    info["tokens"] += int(tok.get("total") or 0)
+                    for k in info["tokens_teile"]:
+                        info["tokens_teile"][k] += int(tok.get(k) or 0)
+                elif typ == "text":
+                    info["text"] = teil.get("text") or info["text"]
+
+        leser = threading.Thread(target=lesen, daemon=True)
+        leser.start()
+        stopp = threading.Event()
+
+        def puls():
+            while not stopp.wait(KETTE_HERZSCHLAG_S):
+                minuten = int((dt.datetime.now() - start).total_seconds()) // 60
+                print(f"[{dt.datetime.now():%H:%M:%S}] Lebenszeichen, Lauf läuft seit {minuten} min", flush=True)
+
+        herz = threading.Thread(target=puls, daemon=True)
+        herz.start()
+        try:
+            proc.wait(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            info["timeout"] = True
+            try:
+                os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+            except (ProcessLookupError, PermissionError, OSError):
+                proc.kill()
+            try:
+                proc.wait(timeout=30)
+            except subprocess.TimeoutExpired:
+                info["haengt"] = True
+        finally:
+            stopp.set()
+        leser.join(timeout=10)
+    info["dauer"] = int((dt.datetime.now() - start).total_seconds())
+    return info
+
+
+def umsetzung_auto(kurztitel: str, nacharbeit: str | None = None) -> int:
+    """K10: Umsetzung bzw. Nacharbeit ueber `opencode run` ohne TUI, danach mechanisch pruefen.
+    Exit 0 = abgeschlossen + keine Verletzung + pruefen 0; 1 = Lauf/Pruefung nicht in Ordnung; 2 = Voraussetzung."""
+    def nein(meldung: str, code: int = 2) -> int:
+        print(meldung, file=sys.stderr)
+        return code
+
+    # A2.1 Kurztitel
+    if not re.fullmatch(r"[a-z0-9_]+", kurztitel):
+        return nein(f"Kurztitel '{kurztitel}' ungültig (nur a-z, 0-9, _).")
+    # A2.2 Spec-Commit
+    commit = spec_commit(kurztitel)
+    if not commit:
+        return nein(f"Kein Commit 'Spec {kurztitel}' gefunden – erst die Spec committen.")
+    # A2.3 Spec mit Schreibbereich
+    spec_p = datei_suchen("spec", kurztitel, None)
+    if not spec_p:
+        return nein(f"Keine Spec spec_<datum>_{kurztitel}.md in {_rel(PM)}.")
+    bereich = _schreibbereich(spec_p.read_text(encoding="utf-8"))
+    if bereich is None:
+        return nein(f"Spec {spec_p.name} hat keinen Abschnitt '## Schreibbereich'. Spec um '## Schreibbereich' "
+                    "ergaenzen (Dateien/Ordner, die die Umsetzung aendern darf), sonst kein umsetzung-auto-Lauf.")
+    if not bereich:
+        return nein(f"'## Schreibbereich' in {spec_p.name} ist leer – mindestens einen Pfad eintragen.")
+    for e in bereich:
+        if _ist_vorgabe(e):
+            print(f"Hinweis: Schreibbereich nennt {e} – Vorgaben (spec_/anforderung_/quellen_/_vorlage_) "
+                  "sind nie erlaubt; eine Änderung daran endet in (b) mit Exit 1.", file=sys.stderr)
+    datum = _datum_aus(spec_p) or dt.date.today().strftime("%Y%m%d")
+    testdatei = f"tests/test_{kurztitel}.py"
+    handover_rel = f"docs/projekt_management/handover_{datum}_{kurztitel}.md"
+    protokoll_p = PM / f"umsetzung_{datum}_{kurztitel}.md"
+    nach_p = None
+    if nacharbeit:
+        nach_p = Path(nacharbeit)
+        if not nach_p.is_absolute():
+            nach_p = (ROOT / nach_p) if (ROOT / nach_p).is_file() else nach_p.resolve()
+        if not nach_p.is_file():
+            return nein(f"Nacharbeitsdatei {nacharbeit} nicht gefunden.")
+    # A2.4 Arbeitsstand
+    offen = _offene_dateien()
+    if offen is None:
+        return nein("git status fehlgeschlagen – ist ROOT ein Git-Repo?")
+    if not nach_p:
+        if offen:
+            return nein("Arbeitsstand nicht sauber – ohne --nacharbeit muss alles committet sein:\n"
+                        + "\n".join(f"  {d}" for d in offen))
+    else:
+        try:
+            nach_rel = nach_p.resolve().relative_to(ROOT.resolve()).as_posix()
+        except ValueError:
+            nach_rel = None
+        fremd = [d for d in offen
+                 if _ist_vorgabe(d) or not (_im_schreibbereich(d, bereich) or d == testdatei or d == handover_rel
+                                             or _ist_kettendatei(d, kurztitel) or d == nach_rel)]
+        if fremd:
+            return nein("Nacharbeit: unzulaessige offene Aenderungen (Vorgaben oder ausserhalb von Schreibbereich/"
+                        "Testdatei/Kettendateien):\n" + "\n".join(f"  {d}" for d in fremd))
+    # A2.5 opencode
+    programm = _opencode_programm()
+    if not programm:
+        ziel = os.environ.get("KETTE_OPENCODE") or "opencode im PATH"
+        return nein(f"opencode nicht gefunden ({ziel}).")
+    # A2.6 Modell
+    modell = os.environ.get("KETTE_UMSETZUNG_MODEL", UMSETZUNG_MODELL_STANDARD)
+    if not modell.startswith("llamacpp/"):
+        return nein(f"Modell '{modell}' beginnt nicht mit 'llamacpp/' (nur direkt am Router, ohne Gedaechtnis).")
+    # A8 Halt-Regel und Nummer
+    zeilen = _protokoll(protokoll_p)
+    handover_p = ROOT / handover_rel
+    handover_alt = handover_p.read_text(encoding="utf-8") if handover_p.is_file() else ""
+    nb = len(re.findall(r"^## Nachbesserung\b", handover_alt, re.M)) + 1
+    if nach_p and _halt_noetig(zeilen):
+        return nein("Zwei Nachbesserungen in Folge ohne Fortschritt – keine weitere. Übergabe an Hawe.", 1)
+    art = f"nb{nb}" if nach_p else "erst"
+    # A3 Prompt
+    prompt_text = _umsetzung_prompt(kurztitel, datum, commit, nach_p, nb)
+    if prompt_text is None:
+        return nein(f"Prompt-Vorlage {_rel(PROMPTS / 'umsetzung_nacht.md')} fehlt.")
+    try:
+        timeout = int(os.environ.get("KETTE_UMSETZUNG_TIMEOUT", UMSETZUNG_TIMEOUT_STANDARD))
+        bash_ms = int(os.environ.get("OPENCODE_EXPERIMENTAL_BASH_DEFAULT_TIMEOUT_MS", UMSETZUNG_BASH_MS_STANDARD))
+    except ValueError:
+        return nein("KETTE_UMSETZUNG_TIMEOUT / OPENCODE_EXPERIMENTAL_BASH_DEFAULT_TIMEOUT_MS muessen ganze Zahlen sein.")
+
+    # A7 Schnappschuss VOR dem Start
+    head_vor = _git("rev-parse", "HEAD").strip()
+    stand_vor = _stand()
+    if stand_vor is None:
+        return nein("git status fehlgeschlagen.")
+    befehl = programm + ["run", "--format", "json", "--agent", UMSETZUNG_AGENT, "--model", modell,
+                         "--dir", str(ROOT), "--title", f"kette {kurztitel} {art}", prompt_text]
+    env = dict(os.environ, OPENCODE_EXPERIMENTAL_BASH_DEFAULT_TIMEOUT_MS=str(bash_ms))
+    rohdaten = ROOT / "role-split" / "results" / f"umsetzung_auto_{datum}_{kurztitel}_{dt.datetime.now():%H%M%S}.jsonl"
+    print(f"umsetzung-auto {kurztitel} ({art}): Modell {modell}, Agent {UMSETZUNG_AGENT}, "
+          f"Zeitlimit {timeout} s, Rücksetzpunkt {commit}", flush=True)
+    info = _lauf(befehl, env, timeout, rohdaten)
+
+    # A7 Schnappschuss SOFORT nach dem Lauf, bevor kette.py selbst etwas schreibt
+    stand_nach = _stand() or {}
+    head_nach = _git("rev-parse", "HEAD").strip()
+    aenderungen = _in_diesem_lauf(stand_vor, stand_nach)
+    abgeschlossen = not info["timeout"] and info["reason"] == "stop"
+    befunde = []
+
+    if info.get("haengt"):
+        befunde.append("opencode reagiert 30 s nach SIGKILL nicht – Prozess pruefen (ps).")
+    if info.get("startfehler"):
+        befunde.append(f"opencode liess sich nicht starten: {info['startfehler']}")
+    elif info["timeout"]:
+        befunde.append(f"Timeout nach {timeout} s – opencode samt Unterprozessen beendet.")
+    elif info["ereignisse"] == 0:
+        befunde.append("Keine gültigen JSON-Ereignisse von opencode.")
+    elif info["reason"] != "stop":
+        befunde.append(f"Lauf nicht abgeschlossen (reason: {info['reason']}).")
+    # (a) immer
+    if head_vor != head_nach:
+        befunde.append(f"Selbst-Commit: HEAD {head_vor[:7]} -> {head_nach[:7]} (nichts zurückgesetzt).")
+    # (b) immer
+    verstoesse = [(d, a) for d, a in aenderungen.items()
+                  if _ist_vorgabe(d) or not (_im_schreibbereich(d, bereich) or d in (testdatei, handover_rel))]
+    if verstoesse:
+        befunde.append("Schreibbereich verletzt (nichts zurückgesetzt):\n"
+                       + "\n".join(f"  {d} ({a})" for d, a in verstoesse))
+    # (c) und (d) nur bei abgeschlossenem Lauf
+    rot, pruefen_code = "–", "–"
+    if abgeschlossen:
+        if handover_rel not in aenderungen or not (ROOT / handover_rel).is_file():
+            befunde.append(f"Handover {handover_rel} in diesem Lauf nicht geschrieben.")
+        elif nach_p and not re.search(rf"^## Nachbesserung {nb}\b",
+                                      (ROOT / handover_rel).read_text(encoding="utf-8"), re.M):
+            befunde.append(f"Handover {handover_rel} hat keinen Abschnitt '## Nachbesserung {nb}'.")
+        code = pruefen(kurztitel)
+        pruefen_code = str(code)
+        rot = _rot_aus_pruefung(kurztitel)
+        if code != 0:
+            befunde.append(f"pruefen: Exit {code}.")
+    else:
+        print("(c) übersprungen (Lauf nicht abgeschlossen)\n(d) übersprungen (Lauf nicht abgeschlossen)")
+
+    exit_code = 1 if befunde else 0
+    reason = "timeout" if info["timeout"] else (info["reason"] or "–")
+    zeile = (f"- **{dt.datetime.now():%Y-%m-%d %H:%M}** – Modell: {modell}, Dauer: {info['dauer']} s, "
+             f"Tools: {info['werkzeuge']}, Fehler: {len(info['fehler'])}, Abgelehnt: {len(info['abgelehnt'])}, "
+             f"Tokens: {info['tokens']}, reason: {reason}, rot: {rot}, pruefen: {pruefen_code}, art: {art}, "
+             f"Exit: {exit_code}\n")
+    if not protokoll_p.exists():
+        protokoll_p.write_text(f"# Umsetzungs-Protokoll: {kurztitel}\n\nJe Lauf eine Zeile (kette.py umsetzung-auto).\n\n",
+                               encoding="utf-8")
+    tt = info["tokens_teile"]
+    zeile += f"  - Tokens: input {tt['input']}, output {tt['output']}, reasoning {tt['reasoning']}\n"
+    for e in info["fehler"]:
+        zeile += f"  - {'abgelehnt' if e in info['abgelehnt'] else 'fehlgeschlagen'}: {e}\n"
+    with open(protokoll_p, "a", encoding="utf-8") as f:
+        f.write(zeile)
+
+    print(f"\n=== umsetzung-auto {kurztitel} ({art}) ===")
+    print(f"Dauer {info['dauer']} s, Werkzeugaufrufe {info['werkzeuge']}, Fehler {len(info['fehler'])}, "
+          f"abgelehnt {len(info['abgelehnt'])}, Tokens {info['tokens']}, reason {reason}")
+    for e in info["fehler"]:
+        print(f"  {'abgelehnt' if e in info['abgelehnt'] else 'fehlgeschlagen'}: {e}")
+    if info["text"]:
+        print(f"Schlusstext: {info['text'][:300]}")
+    print(f"In diesem Lauf geändert: {', '.join(aenderungen) or 'nichts'}")
+    for b in befunde:
+        print(f"!!! {b}")
+    print(f"Rohdaten: {_rel(rohdaten)}\nProtokoll: {_rel(protokoll_p)}")
+    print(f"==> {'OK' if exit_code == 0 else 'NICHT IN ORDNUNG'} (Exit {exit_code})")
+    return exit_code
+
+
 # ---------------------------------------------------------------- main
 
 def main(argv=None) -> int:
@@ -1482,6 +1939,8 @@ def main(argv=None) -> int:
     pr.add_argument("kurztitel"); pr.add_argument("--commit"); pr.add_argument("--timeout", type=int, default=300)
     ra = sub.add_parser("review-auto", help="Review-Paket, zwei API-Laeufe, Verdikte, Zusammenfassung")
     ra.add_argument("kurztitel")
+    ua = sub.add_parser("umsetzung-auto", help="Umsetzung/Nacharbeit ueber opencode run ohne TUI, danach pruefen")
+    ua.add_argument("kurztitel"); ua.add_argument("--nacharbeit", help="Datei mit dem Nachbesserungs-Auftrag")
     args = ap.parse_args(argv)
     if args.cmd == "zusammenfuehren":
         return zusammenfuehren([Path(v) if Path(v).is_absolute() or Path(v).exists() else PM / Path(v).name
@@ -1492,6 +1951,8 @@ def main(argv=None) -> int:
         return pruefen(args.kurztitel, args.commit, args.timeout)
     if args.cmd == "review-auto":
         return review_auto(args.kurztitel)
+    if args.cmd == "umsetzung-auto":
+        return umsetzung_auto(args.kurztitel, args.nacharbeit)
     if args.cmd == "gegenprobe":
         return gegenprobe(args.kurztitel, args.commit, args.timeout)
     if args.cmd == "quellen":
