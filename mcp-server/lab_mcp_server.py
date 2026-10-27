@@ -25,6 +25,14 @@ Konfiguration über Umgebungsvariablen (alle optional):
                      ganzen Scope erlaubt. Default: leer (ganzer Scope).
                      Default: 0 (aus).
     MCP_MAX_READ     Max. Lese-Bytes pro Datei. Default: 2_000_000.
+    MCP_TOOL_LOG     Pfad der Tool-Call-Logdatei (JSONL, eine Zeile pro Aufruf).
+                     Default: ~/.lab_mcp/tool_calls.jsonl (ausserhalb des Repos,
+                     damit git_commit es nicht mitnimmt). "off" = kein Log.
+                     Liegt die Datei im Scope, wird ihr Ordner automatisch
+                     gesperrt (Agent kann sein eigenes Log weder lesen noch
+                     manipulieren).
+    MCP_AGENT        Optionales Label des aufrufenden Agenten/der Rolle fuers
+                     Log (z.B. "review", "coder"). Default: leer.
     MCP_MAX_APPEND   Max. Zeichen je append_file-Aufruf. Default: 20000.
 
 Start (lokal, für Claude-Connector über Tailscale):
@@ -39,11 +47,17 @@ Tailscale-ACLs auf das eine erlaubte Gerät (iPad) begrenzen.
 from __future__ import annotations
 
 import base64
+import functools
+import hashlib
+import json
 import os
 import re
 import subprocess
 import sys
 import tempfile
+import threading
+import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
@@ -81,6 +95,110 @@ WRITE_ROOTS = [
 ]
 
 mcp = FastMCP(SERVER_NAME, host=HOST, port=PORT)
+
+
+# --------------------------------------------------------------------------
+# Tool-Call-Log (JSONL) — jede Tool-Ausfuehrung wird protokolliert
+# --------------------------------------------------------------------------
+_LOG_SETTING = os.environ.get("MCP_TOOL_LOG", "").strip()
+if _LOG_SETTING.lower() == "off":
+    TOOL_LOG: Path | None = None
+else:
+    TOOL_LOG = Path(
+        os.path.expanduser(_LOG_SETTING or "~/.lab_mcp/tool_calls.jsonl")
+    ).resolve()
+AGENT_LABEL = os.environ.get("MCP_AGENT", "").strip()
+_LOG_LOCK = threading.Lock()
+# Grosse/inhaltliche Argumente nur als Laenge + Hash loggen, nicht im Klartext.
+_REDACT_ARGS = {"content", "content_b64", "code"}
+_MAX_ARG_CHARS = 300
+_MAX_RESULT_HEAD = 160
+
+# Log im Scope? Dann dessen Ordner sperren, damit der Agent es nicht anfasst.
+if TOOL_LOG is not None:
+    _log_dir = TOOL_LOG.parent
+    if _log_dir == SCOPE_ROOT or SCOPE_ROOT in _log_dir.parents:
+        DENY_PATHS.append(_log_dir)
+
+
+def _log_value(name: str, value):
+    if name in _REDACT_ARGS and isinstance(value, str):
+        digest = hashlib.sha256(value.encode("utf-8", "replace")).hexdigest()[:12]
+        return {"len": len(value), "sha256_12": digest}
+    if isinstance(value, str) and len(value) > _MAX_ARG_CHARS:
+        return value[:_MAX_ARG_CHARS] + f"...[+{len(value) - _MAX_ARG_CHARS}]"
+    if isinstance(value, (int, float, bool)) or value is None:
+        return value
+    return str(value)[:_MAX_ARG_CHARS]
+
+
+def _write_log(record: dict) -> None:
+    """Haengt eine JSON-Zeile an. Darf das Tool nie zum Scheitern bringen."""
+    if TOOL_LOG is None:
+        return
+    try:
+        line = json.dumps(record, ensure_ascii=False) + "\n"
+        with _LOG_LOCK:
+            TOOL_LOG.parent.mkdir(parents=True, exist_ok=True)
+            with TOOL_LOG.open("a", encoding="utf-8") as fh:
+                fh.write(line)
+    except Exception as e:  # Logging-Fehler nur melden, nie weiterwerfen
+        print(f"[tool-log] Schreibfehler: {e}", file=sys.stderr)
+
+
+def _with_log(fn):
+    """Wrapper: misst Dauer, protokolliert Argumente (gekuerzt), Status, Ergebnis-Kopf."""
+
+    @functools.wraps(fn)
+    def wrapper(*args, **kwargs):
+        t0 = time.perf_counter()
+        record = {
+            "ts": datetime.now(timezone.utc).isoformat(timespec="milliseconds"),
+            "server": SERVER_NAME,
+            "agent": AGENT_LABEL or None,
+            "tool": fn.__name__,
+            "args": {k: _log_value(k, v) for k, v in kwargs.items()},
+        }
+        if args:
+            record["pos_args"] = [_log_value("", a) for a in args]
+        try:
+            result = fn(*args, **kwargs)
+        except Exception as e:
+            record.update(
+                status="error",
+                error=f"{type(e).__name__}: {str(e)[:_MAX_RESULT_HEAD]}",
+                ms=round((time.perf_counter() - t0) * 1000, 1),
+            )
+            _write_log(record)
+            raise
+        text = result if isinstance(result, str) else str(result)
+        record.update(
+            status="ok",
+            ms=round((time.perf_counter() - t0) * 1000, 1),
+            result_len=len(text),
+            result_head=text[:_MAX_RESULT_HEAD],
+        )
+        _write_log(record)
+        return result
+
+    return wrapper
+
+
+_orig_tool = mcp.tool
+
+
+def _logged_tool(*args, **kwargs):
+    """Ersatz fuer mcp.tool(): registriert die geloggte Variante des Tools."""
+    register = _orig_tool(*args, **kwargs)
+
+    def deco(fn):
+        register(_with_log(fn))
+        return fn
+
+    return deco
+
+
+mcp.tool = _logged_tool
 
 
 def _tool_if(enabled: bool):
@@ -633,6 +751,8 @@ def _banner() -> None:
     print(f"  name       : {SERVER_NAME}", file=sys.stderr)
     print(f"  deny       : {[_rel(d) for d in DENY_PATHS] or '-'}", file=sys.stderr)
     print(f"  write_roots: {[_rel(r) for r in WRITE_ROOTS] or '- (ganzer Scope)'}", file=sys.stderr)
+    print(f"  tool_log   : {TOOL_LOG or 'aus'}", file=sys.stderr)
+    print(f"  agent      : {AGENT_LABEL or '-'}", file=sys.stderr)
     if TRANSPORT != "stdio" and HOST not in ("127.0.0.1", "localhost"):
         print(
             "  ! WARNUNG: gebunden ausserhalb localhost — kein Auth-Layer!\n"
