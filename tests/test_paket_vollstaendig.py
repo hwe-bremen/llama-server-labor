@@ -1,475 +1,227 @@
-"""Tests fuer Spec paket_vollstaendig (T1–T9).
-Jede Methode entspricht einer Test-ID aus der Spec.
-Behaviorale Tests: disposables Git-Repo, Paket-Inhalt pruefen, keine Quellcode-Inspektion.
-Neue Funktionen werden innerhalb der Methode importiert, nicht am Dateianfang."""
-import os
+#!/usr/bin/env python3
+"""Tests fuer Spec paket_vollstaendig (K9), Testplan T1–T9 plus Zusatztests K1–K2.
+
+Jeder Test baut ein Wegwerf-Git-Repo und prueft Verhalten (Paketinhalt, Exit-Code, Gegenprobe),
+nicht den Quelltext. Laeuft ab Python 3.10. Geschrieben von Claude (Uebernahme NB2, 26.10.).
+"""
+import io
 import subprocess
 import sys
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
 
-# Projekt-Root fuer relative Pfade
-PROJ_ROOT = Path(__file__).resolve().parent.parent
-KETTE_DIR = PROJ_ROOT / "role-split" / "kette"
+PROJ = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(PROJ / "role-split" / "kette"))
+import kette  # noqa: E402
 
 
-def _setup_repo(tmp_dir: Path, files: dict[str, str], commit_msg: str = "initial") -> str:
-    """Erstellt ein git-Repo in tmp_dir mit gegebenen Dateien und gibt den Commit-SHA zurueck."""
-    for rel_path, content in files.items():
-        p = tmp_dir / rel_path
+def lauf(fn, *a, **kw):
+    buf = io.StringIO()
+    with redirect_stdout(buf):
+        code = fn(*a, **kw)
+    return code, buf.getvalue()
+
+
+class Basis(unittest.TestCase):
+    """Repo mit Spec-Datei und Commit 'Spec g' als Ruecksetzpunkt."""
+
+    def setUp(self):
+        d = tempfile.TemporaryDirectory()
+        self.addCleanup(d.cleanup)
+        self.root = Path(d.name)
+        self.git("init", "-q")
+        self.pm = self.root / "docs" / "projekt_management"
+        self.pm.mkdir(parents=True)
+        (self.pm / "spec_20261026_g.md").write_text(
+            "# Spec\n\n## Ziel\nZ\n\n## Nicht-Ziele\nN\n\n## Anforderungen\n### A1: Eins\nX\n\n"
+            "## Testplan\n### T1: Erster\n- **Erwartung:** E\n\n## Offene Fragen\nO\n", encoding="utf-8")
+        self.schreibe("mod.py", "def f():\n    return 1\n")
+        self.git("add", "-A")
+        self.git("commit", "-qm", "Spec g")
+        self.spec_commit = self.git("rev-parse", "--short", "HEAD").strip()
+        for name, wert in (("ROOT", self.root), ("PM", self.pm)):
+            alt = getattr(kette, name)
+            setattr(kette, name, wert)
+            self.addCleanup(setattr, kette, name, alt)
+
+    def git(self, *a):
+        return subprocess.run(["git", "-C", str(self.root), "-c", "user.name=t", "-c", "user.email=t@t", *a],
+                              check=True, capture_output=True, text=True).stdout
+
+    def schreibe(self, rel, inhalt):
+        p = self.root / rel
         p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_text(content, encoding="utf-8")
+        p.write_text(inhalt, encoding="utf-8")
 
-    subprocess.run(["git", "-C", str(tmp_dir), "init"], check=True, capture_output=True)
-    subprocess.run(["git", "-C", str(tmp_dir), "config", "user.email", "test@test.com"], check=True, capture_output=True)
-    subprocess.run(["git", "-C", str(tmp_dir), "config", "user.name", "Test"], check=True, capture_output=True)
-    subprocess.run(["git", "-C", str(tmp_dir), "add", "-A"], check=True, capture_output=True)
-    subprocess.run(["git", "-C", str(tmp_dir), "commit", "-m", commit_msg], check=True, capture_output=True)
-    sha = subprocess.run(["git", "-C", str(tmp_dir), "rev-parse", "HEAD"],
-                         check=True, capture_output=True, text=True).stdout.strip()
-    return sha
+    def commit(self, nachricht, **dateien):
+        for rel, inhalt in dateien.items():
+            self.schreibe(rel.replace("__", "/"), inhalt)
+        self.git("add", "-A")
+        self.git("commit", "-qm", nachricht)
 
+    def handover(self, *dateien):
+        zeilen = "".join(f"- `{d}` – x\n" for d in dateien)
+        (self.pm / "handover_20261026_g.md").write_text(
+            f"# HO\n## Geänderte und neue Dateien\n{zeilen}\n## Abweichungen\nkeine\n", encoding="utf-8")
 
-def _add_commit(tmp_dir: Path, files: dict[str, str], commit_msg: str) -> str:
-    """Fuegt Dateien hinzu, committet und gibt neuen SHA zurueck."""
-    for rel_path, content in files.items():
-        p = tmp_dir / rel_path
-        p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_text(content, encoding="utf-8")
-    subprocess.run(["git", "-C", str(tmp_dir), "add", "-A"], check=True, capture_output=True)
-    subprocess.run(["git", "-C", str(tmp_dir), "commit", "-m", commit_msg], check=True, capture_output=True)
-    sha = subprocess.run(["git", "-C", str(tmp_dir), "rev-parse", "HEAD"],
-                         check=True, capture_output=True, text=True).stdout.strip()
-    return sha
+    def paket(self, **kw):
+        code, out = lauf(kette.paket, "g", **kw)
+        ziel = self.pm / "review_paket_20261026_g.md"
+        text = ziel.read_text(encoding="utf-8") if ziel.exists() else None
+        return code, out, text
 
+    @staticmethod
+    def code_teil(text):
+        rest = text.split("## 3. Code-Aenderungen")[1]
+        for ende in ("## 3a.", "## 3b.", "## 4."):
+            if ende in rest:
+                rest = rest.split(ende)[0]
+        return rest
 
-def _kette_modul():
-    """Importiert und reloade das kette-Modul."""
-    import importlib
-    sys.path.insert(0, str(KETTE_DIR))
-    kette = importlib.import_module("kette")
-    importlib.reload(kette)
-    return kette
+    @staticmethod
+    def markiert(code_teil):
+        return {b.split(" ")[0] for b in code_teil.split("### ")[1:] if "nicht in der Uebergabe genannt" in b}
 
 
-def _spec_datei(pm_dir: Path, kurztitel: str = "testkurz", datum: str = "20260101"):
-    """Erzeugt eine minimale Spec-Datei."""
-    spec_name = f"spec_{datum}_{kurztitel}.md"
-    (pm_dir / spec_name).write_text(
-        "# Spec\n\n## Ziel\nTest\n\n## Nicht-Ziele\nKeine\n\n## Anforderungen\nA1: Test\n\n## Testplan\n### T1\n- **Erwartung**: ok\n",
-        encoding="utf-8"
-    )
+class TestPaketVollstaendig(Basis):
 
-
-def _anforderung_datei(pm_dir: Path, kurztitel: str = "testkurz", datum: str = "20260101"):
-    """Erzeugt eine minimale Anforderungs-Datei."""
-    (pm_dir / f"anforderung_{datum}_{kurztitel}.md").write_text("Anforderung\n", encoding="utf-8")
-
-
-class TestPaketVollstaendig(unittest.TestCase):
-    """Behaviorale Tests fuer die Anforderungen A1–A7 der Spec paket_vollstaendig."""
-
-    # ---------------------------------------------------------------- T1
     def test_t1_fehlerpfade_von_paket(self):
-        """T1: Fehlerpfade von paket (Git-Fehler, kein Spec-Commit, keine Spec, ungueltiger Kurztitel)."""
-        kette = _kette_modul()
+        """T1: Fehlerpfade von paket (Git-Fehler, kein Spec-Commit, keine Spec, ungültiger Kurztitel)"""
+        code, out = lauf(kette.paket, "G-1")
+        self.assertEqual(code, 2); self.assertIn("ungueltig", out)
+        code, out = lauf(kette.paket, "nichtda")
+        self.assertEqual(code, 2); self.assertIn("Keine Spec", out)
+        (self.pm / "spec_20261026_ohne.md").write_text("# Spec\n", encoding="utf-8")
+        code, out = lauf(kette.paket, "ohne")
+        self.assertEqual(code, 2); self.assertIn("Kein Commit 'Spec ohne'", out)
+        code, out = lauf(kette.paket, "g", commit="deadbeefdeadbeef")
+        self.assertEqual(code, 2); self.assertIn("git-Fehler", out)
+        self.assertEqual(list(self.pm.glob("review_paket_*")), [])
 
-        with tempfile.TemporaryDirectory() as td:
-            tmp = Path(td)
-            pm_dir = tmp / "docs" / "projekt_management"
-            pm_dir.mkdir(parents=True)
-            _spec_datei(pm_dir)
-            _anforderung_datei(pm_dir)
+    def test_t2_paket_enthaelt_dateien_unter_tests_und_role_split_auch_unversionierte(self):
+        """T2: Paket enthält Dateien unter tests/ und role-split/, auch unversionierte"""
+        self.commit("g: mod", **{"mod.py": "def f():\n    return 2\n"})
+        self.schreibe("tests/test_g.py", "import unittest\n")                       # unversioniert
+        self.schreibe("tests/daten/x.json", '{"a": 1}\n')                            # unversioniert
+        self.schreibe("role-split/kette/hilfs.py", "H = 1\n")
+        self.git("add", "role-split/kette/hilfs.py")                                 # nur vorgemerkt
+        self.schreibe("role-split/rollen/r.md", "# Rolle R\n")                       # .md unter role-split
+        self.handover("mod.py")
+        code, out, text = self.paket()
+        self.assertEqual(code, 0, out)
+        teil = self.code_teil(text)
+        for d in ("mod.py", "tests/test_g.py", "tests/daten/x.json", "role-split/kette/hilfs.py",
+                  "role-split/rollen/r.md"):
+            self.assertIn(f"### {d} ", teil, d)
+        self.assertEqual(self.markiert(teil), {"tests/test_g.py", "tests/daten/x.json",
+                                               "role-split/kette/hilfs.py", "role-split/rollen/r.md"})
 
-            # Baseline-Commit mit "Spec testkurz"
-            files = {
-                "mod.py": "# mod.py\n",
-            }
-            sha = _setup_repo(tmp, files, "Spec testkurz")
-
-            # Commit mit Kurztitel: aendert mod.py
-            _add_commit(tmp, {"mod.py": "# mod.py geaendert\n"}, "testkurz: aenderung")
-
-            kette.ROOT = tmp
-            kette.PM = pm_dir
-
-            # (a) Normalfall: Exit 0, Paket existiert
-            ergebnis = kette.paket("testkurz", sha, still=True)
-            self.assertEqual(ergebnis, 0, "T1(a): paket() sollte 0 rueckgeben")
-            paket_pfad = pm_dir / f"review_paket_20260101_testkurz.md"
-            self.assertTrue(paket_pfad.exists(), "T1(a): Paket-Datei sollte existieren")
-
-            # (b) Kein Commit "Spec testkurz" => Exit 2
-            falscher_sha = "0000000"
-            ergebnis = kette.paket("testkurz", falscher_sha, still=True)
-            self.assertEqual(ergebnis, 2, "T1(b): Kein Spec-Commit sollte Exit 2 sein")
-
-            # (c) Keine Spec-Datei => Exit 2
-            os.remove(pm_dir / "spec_20260101_testkurz.md")
-            ergebnis = kette.paket("testkurz", sha, still=True)
-            self.assertEqual(ergebnis, 2, "T1(c): Keine Spec sollte Exit 2 sein")
-
-            # (d) Ungueltiger Kurztitel => Exit 2
-            _spec_datei(pm_dir)  # Spec wiederherstellen
-            ergebnis = kette.paket("test-kurz!", sha, still=True)
-            self.assertEqual(ergebnis, 2, "T1(d): Ungueltiger Kurztitel sollte Exit 2 sein")
-
-    # ---------------------------------------------------------------- T2
-    def test_t2_paket_enthaelt_tests_und_role_split_auch_unversioniert(self):
-        """T2: Paket enthaelt Dateien unter tests/ und role-split/, auch unversionierte."""
-        kette = _kette_modul()
-
-        with tempfile.TemporaryDirectory() as td:
-            tmp = Path(td)
-            pm_dir = tmp / "docs" / "projekt_management"
-            pm_dir.mkdir(parents=True)
-            _spec_datei(pm_dir)
-            _anforderung_datei(pm_dir)
-
-            # Handover nennt nur mod.py
-            (pm_dir / "handover_20260101_testkurz.md").write_text(
-                "## Geaenderte und neue Dateien\n\n- `mod.py`\n",
-                encoding="utf-8"
-            )
-
-            # Baseline-Commit
-            files = {
-                "mod.py": "# mod.py\n",
-            }
-            sha = _setup_repo(tmp, files, "Spec testkurz")
-
-            # Commit mit Kurztitel: aendert mod.py
-            _add_commit(tmp, {"mod.py": "# mod.py geaendert\n"}, "testkurz: aenderung")
-
-            # Unversionierte Dateien hinzufuegen
-            tests_dir = tmp / "tests"
-            tests_dir.mkdir(parents=True, exist_ok=True)
-            (tests_dir / "test_g.py").write_text("# test_g.py\n", encoding="utf-8")
-
-            testdaten_dir = tests_dir / "testdaten"
-            testdaten_dir.mkdir(parents=True, exist_ok=True)
-            (testdaten_dir / "auspruefen.json").write_text('{"test": true}\n', encoding="utf-8")
-
-            role_split_dir = tmp / "role-split" / "kette"
-            role_split_dir.mkdir(parents=True, exist_ok=True)
-            (role_split_dir / "hilfs.py").write_text("# hilfs.py\n", encoding="utf-8")
-
-            kette.ROOT = tmp
-            kette.PM = pm_dir
-
-            ergebnis = kette.paket("testkurz", sha, still=True)
-            self.assertEqual(ergebnis, 0, "T2: paket() sollte 0 rueckgeben")
-
-            paket_pfad = pm_dir / f"review_paket_20260101_testkurz.md"
-            paket_inhalt = paket_pfad.read_text(encoding="utf-8")
-
-            # tests/ und role-split/ Dateien muessen im Paket sein
-            self.assertIn("tests/test_g.py", paket_inhalt, "T2: tests/test_g.py fehlt im Paket")
-            self.assertIn("tests/testdaten/auspruefen.json", paket_inhalt, "T2: tests/testdaten/auspruefen.json fehlt im Paket")
-            self.assertIn("role-split/kette/hilfs.py", paket_inhalt, "T2: role-split/kette/hilfs.py fehlt im Paket")
-
-            # Die drei Dateien ausser mod.py tragen den Hinweis "nicht in der Uebergabe genannt"
-            self.assertIn("nicht in der Uebergabe genannt", paket_inhalt, "T2: Hinweis fehlt")
-
-    # ---------------------------------------------------------------- T3
     def test_t3_handover_datei_ohne_markierung_fremde_datei_mit_markierung(self):
-        """T3: Handover-Datei ohne Markierung, fremde Datei mit Markierung."""
-        kette = _kette_modul()
+        """T3: Handover-Datei ohne Markierung, fremde Datei mit Markierung"""
+        self.commit("g: mod", **{"mod.py": "def f():\n    return 2\n"})
+        self.schreibe("tests/test_g.py", "import unittest\n")
+        self.schreibe("role-split/kette/hilfs.py", "H = 1\n")
+        self.handover("mod.py", "tests/test_g.py")
+        code, out, text = self.paket()
+        self.assertEqual(code, 0, out)
+        self.assertEqual(self.markiert(self.code_teil(text)), {"role-split/kette/hilfs.py"})
 
-        with tempfile.TemporaryDirectory() as td:
-            tmp = Path(td)
-            pm_dir = tmp / "docs" / "projekt_management"
-            pm_dir.mkdir(parents=True)
-            _spec_datei(pm_dir)
-            _anforderung_datei(pm_dir)
-
-            # Handover nennt mod.py und tests/test_g.py
-            (pm_dir / "handover_20260101_testkurz.md").write_text(
-                "## Geaenderte und neue Dateien\n\n- `mod.py`\n- `tests/test_g.py`\n",
-                encoding="utf-8"
-            )
-
-            # Baseline-Commit
-            files = {
-                "mod.py": "# mod.py\n",
-            }
-            sha = _setup_repo(tmp, files, "Spec testkurz")
-
-            # Commit mit Kurztitel: aendert mod.py und tests/test_g.py
-            _add_commit(tmp, {
-                "mod.py": "# mod.py geaendert\n",
-                "tests/test_g.py": "# test_g.py\n",
-            }, "testkurz: aenderung")
-
-            # Unversionierte Datei
-            role_split_dir = tmp / "role-split" / "kette"
-            role_split_dir.mkdir(parents=True, exist_ok=True)
-            (role_split_dir / "hilfs.py").write_text("# hilfs.py\n", encoding="utf-8")
-
-            kette.ROOT = tmp
-            kette.PM = pm_dir
-
-            ergebnis = kette.paket("testkurz", sha, still=True)
-            self.assertEqual(ergebnis, 0, "T3: paket() sollte 0 rueckgeben")
-
-            paket_pfad = pm_dir / f"review_paket_20260101_testkurz.md"
-            paket_inhalt = paket_pfad.read_text(encoding="utf-8")
-
-            # mod.py und tests/test_g.py im Paket OHNE den Hinweis
-            # role-split/kette/hilfs.py MIT dem Hinweis
-            self.assertIn("role-split/kette/hilfs.py", paket_inhalt, "T3: role-split/kette/hilfs.py fehlt im Paket")
-            self.assertIn("nicht in der Uebergabe genannt", paket_inhalt, "T3: Hinweis bei nicht-genannter Datei fehlt")
-
-    # ---------------------------------------------------------------- T4
     def test_t4_vorrang_kuerzung_vorrang_3_wird_weggelassen(self):
-        """T4: Vorrang-Kuerzung – Vorrang 3 wird weggelassen."""
-        kette = _kette_modul()
+        """T4: Vorrang-Kürzung – Vorrang 3 wird weggelassen"""
+        self.commit("g: mod", **{"mod.py": "def f():\n    return 2\n"})
+        self.schreibe("tests/test_g.py", "import unittest\n")
+        zeile = "Testzeile mit Inhalt fuer eine grosse Datei\n"
+        self.schreibe("tests/daten/gross.eml", zeile * 2500)          # ~110 000 Zeichen, Vorrang 3
+        alt = kette.PAKET_DATEI_ZEILEN
+        kette.PAKET_DATEI_ZEILEN = 5000
+        self.addCleanup(setattr, kette, "PAKET_DATEI_ZEILEN", alt)
+        self.handover("mod.py")
+        code, out, text = self.paket()
+        self.assertEqual(code, 0, out)
+        teil = self.code_teil(text)
+        self.assertIn("### mod.py ", teil)
+        self.assertIn("### tests/test_g.py ", teil)                    # Vorrang 2 bleibt, reicht schon
+        self.assertNotIn("gross.eml", teil)
+        weg = text.split("## 3b.")[1].split("## 4.")[0]
+        self.assertIn("`tests/daten/gross.eml` – Testdaten", weg)
+        self.assertLessEqual(len(text), kette.PAKET_WARNUNG_ZEICHEN)
 
-        with tempfile.TemporaryDirectory() as td:
-            tmp = Path(td)
-            pm_dir = tmp / "docs" / "projekt_management"
-            pm_dir.mkdir(parents=True)
-            _spec_datei(pm_dir)
-            _anforderung_datei(pm_dir)
-
-            # Handover nennt mod.py
-            (pm_dir / "handover_20260101_testkurz.md").write_text(
-                "## Geaenderte und neue Dateien\n\n- `mod.py`\n",
-                encoding="utf-8"
-            )
-
-            # Python 3.10 Kompatibilitaet: keine Backslashes in f-strings
-            zeile = "y\n"
-
-            # PAKET_DIFF_ZEILEN und PAKET_DATEI_ZEILEN temporar erhoehen, damit Dateien nicht gekappt werden
-            alt_diff = kette.PAKET_DIFF_ZEILEN
-            alt_datei = kette.PAKET_DATEI_ZEILEN
-            kette.PAKET_DIFF_ZEILEN = 100000  # sehr hoch, damit keine Kappung erfolgt
-            kette.PAKET_DATEI_ZEILEN = 100000  # sehr hoch, damit keine Kappung erfolgt
-            self.addCleanup(setattr, kette, "PAKET_DIFF_ZEILEN", alt_diff)
-            self.addCleanup(setattr, kette, "PAKET_DATEI_ZEILEN", alt_datei)
-
-            # Baseline-Commit: Dateien mit Inhalt
-            # Vorrang 1: ~25000 Zeichen, Vorrang 2: ~25000 Zeichen, Vorrang 3: ~30000 Zeichen
-            # Gesamt: ~80000 Zeichen, also muss Vorrang 3 entfernt werden, um unter 80000 zu kommen
-            files = {
-                "mod.py": "# mod.py\n" + zeile * 25000,  # Vorrang 1
-                "tests/test_g.py": "# test_g.py\n" + zeile * 25000,  # Vorrang 2
-                "tests/testdaten/auspruefen.eml": "# Grosser Inhalt\n" + zeile * 30000,  # Vorrang 3
-            }
-            sha = _setup_repo(tmp, files, "Spec testkurz")
-
-            # Aenderungen committen mit Kurztitel: alle Zeilen aendern, um groeßeren Diff zu erzeugen
-            _add_commit(tmp, {
-                "mod.py": "# mod.py geaendert\n" + "z\n" * 25000,  # alle Zeilen aendern
-                "tests/test_g.py": "# test_g.py geaendert\n" + "z\n" * 25000,  # alle Zeilen aendern
-                "tests/testdaten/auspruefen.eml": "# eml geaendert\n" + "z\n" * 30000,  # alle Zeilen aendern
-            }, "testkurz: aenderung")
-
-            kette.ROOT = tmp
-            kette.PM = pm_dir
-
-            ergebnis = kette.paket("testkurz", sha, still=True)
-            self.assertEqual(ergebnis, 0, "T4: paket() sollte 0 rueckgeben")
-
-            paket_pfad = pm_dir / f"review_paket_20260101_testkurz.md"
-            paket_inhalt = paket_pfad.read_text(encoding="utf-8")
-
-            # mod.py und tests/test_g.py im Paket
-            self.assertIn("mod.py", paket_inhalt, "T4: mod.py fehlt im Paket")
-            self.assertIn("tests/test_g.py", paket_inhalt, "T4: tests/test_g.py fehlt im Paket")
-
-            # tests/testdaten/auspruefen.eml in "Weggelassen"-Sektion
-            self.assertIn("weggelassen", paket_inhalt.lower(), "T4: Weggelassen-Sektion fehlt")
-            self.assertIn("tests/testdaten/auspruefen.eml", paket_inhalt, "T4: auspruefen.eml fehlt in Weggelassen-Liste")
-
-    # ---------------------------------------------------------------- T5
     def test_t5_kette_paket_max_ueberschritten_exit_1(self):
-        """T5: KETTE_PAKET_MAX ueberschritten -> Exit 1."""
-        kette = _kette_modul()
+        """T5: KETTE_PAKET_MAX überschritten → Exit 1"""
+        self.commit("g: mod", **{"mod.py": "".join(f"def f{i}():\n    return {i}\n" for i in range(300))})
+        self.handover("mod.py")
+        alt = kette.KETTE_PAKET_MAX
+        kette.KETTE_PAKET_MAX = 3000
+        self.addCleanup(setattr, kette, "KETTE_PAKET_MAX", alt)
+        code, out, text = self.paket()
+        self.assertEqual(code, 1, out)
+        self.assertIn("passt nicht in den Kontext", out)
+        self.assertIsNone(text)
 
-        with tempfile.TemporaryDirectory() as td:
-            tmp = Path(td)
-            pm_dir = tmp / "docs" / "projekt_management"
-            pm_dir.mkdir(parents=True)
-            _spec_datei(pm_dir)
-            _anforderung_datei(pm_dir)
-
-            # Handover nennt mod.py
-            (pm_dir / "handover_20260101_testkurz.md").write_text(
-                "## Geaenderte und neue Dateien\n\n- `mod.py`\n",
-                encoding="utf-8"
-            )
-
-            # Python 3.10 Kompatibilitaet: keine Backslashes in f-strings
-            zeile = "y\n"
-            riesiger_inhalt = "# Riesiger Inhalt\n" + zeile * 200000  # > 150000 Zeichen
-
-            # Baseline-Commit
-            files = {
-                "mod.py": riesiger_inhalt,  # Vorrang 1, > 150000 Zeichen
-            }
-            sha = _setup_repo(tmp, files, "Spec testkurz")
-
-            # Aenderung committen mit Kurztitel
-            _add_commit(tmp, {
-                "mod.py": "# Riesiger Inhalt geaendert\n" + zeile * 200000,
-            }, "testkurz: aenderung")
-
-            kette.ROOT = tmp
-            kette.PM = pm_dir
-
-            ergebnis = kette.paket("testkurz", sha, still=True)
-            self.assertEqual(ergebnis, 1, "T5: paket() sollte Exit 1 rueckgeben bei KETTE_PAKET_MAX")
-
-            # Keine review_paket_*-Datei
-            paket_pfad = pm_dir / f"review_paket_20260101_testkurz.md"
-            self.assertFalse(paket_pfad.exists(), "T5: Paket-Datei darf nicht existieren bei Exit 1")
-
-    # ---------------------------------------------------------------- T6
     def test_t6_gegenprobe_beruecksichtigt_role_split_kette(self):
-        """T6: Gegenprobe beruecksichtigt role-split/kette/."""
-        kette = _kette_modul()
+        """T6: Gegenprobe berücksichtigt role-split/kette/"""
+        self.commit("Werkzeug: fremd", **{"fremd.py": "F = 5\n"})
+        self.commit("g: hilfs", **{"role-split__kette__hilfs.py": "H = 7\n"})
+        self.schreibe("tests/test_g.py",
+                      "import sys, unittest\nfrom pathlib import Path\n"
+                      "R = Path(__file__).resolve().parent.parent\n"
+                      "sys.path.insert(0, str(R / 'role-split' / 'kette')); sys.path.insert(0, str(R))\n"
+                      "class T(unittest.TestCase):\n"
+                      "    def test_t1_hilfs(self):\n        import hilfs\n        self.assertEqual(hilfs.H, 7)\n"
+                      "    def test_t2_fremd(self):\n        import fremd\n        self.assertEqual(fremd.F, 5)\n")
+        code, out = lauf(kette.gegenprobe, "g", self.spec_commit)
+        self.assertIn("rot   test_t1_hilfs  <- hilfs.py", out)
+        self.assertIn("GRUEN test_t2_fremd", out)                     # fremde Datei nicht zurueckgesetzt
+        self.assertNotIn("fremd.py:", out)
+        self.assertEqual((self.root / "role-split/kette/hilfs.py").read_text(), "H = 7\n")
 
-        with tempfile.TemporaryDirectory() as td:
-            tmp = Path(td)
-            pm_dir = tmp / "docs" / "projekt_management"
-            pm_dir.mkdir(parents=True)
-            _spec_datei(pm_dir)
-            _anforderung_datei(pm_dir)
-
-            # Baseline-Commit
-            files = {
-                "role-split/kette/kette.py": "# kette\n",
-                "role-split/kette/hilfs.py": "# hilfs.py\n",
-                "tests/test_g.py": "import unittest\nclass T(unittest.TestCase):\n    def test_ok(self):\n        self.assertTrue(True)\n",
-            }
-            sha = _setup_repo(tmp, files, "Spec testkurz")
-
-            # Aenderung an role-split/kette/ Datei mit Kurztitel
-            _add_commit(tmp, {
-                "role-split/kette/hilfs.py": "# hilfs.py geaendert\n",
-            }, "testkurz: aenderung")
-
-            kette.ROOT = tmp
-            kette.PM = pm_dir
-
-            # role-split/kette/ Dateien duerfen nicht ausgeschlossen sein
-            diff_text, dateien, fremde, weggelassen = kette._diff(sha, None, "testkurz")
-
-            role_split_dateien = [d for d in dateien if d.startswith("role-split/kette/")]
-            self.assertTrue(len(role_split_dateien) > 0,
-                            f"T6: role-split/kette/ Dateien sollten nicht ausgeschlossen sein (gefunden: {role_split_dateien})")
-
-    # ---------------------------------------------------------------- T7
     def test_t7_bestehende_tests_in_test_kette_py_bleiben_gruen(self):
-        """T7: Bestehende Tests in test_kette.py bleiben gruen."""
-        # test_kette.py wird im echten Repo aufgerufen (keine temporären Repos)
-        ergebnis = subprocess.run(
-            ["python3", str(KETTE_DIR / "test_kette.py")],
-            capture_output=True, text=True, timeout=180
-        )
-        self.assertEqual(ergebnis.returncode, 0,
-                         f"T7: test_kette.py sollte alle Tests bestehen. Ausgabe:\n{ergebnis.stdout}\n{ergebnis.stderr}")
+        """T7: Bestehende Tests in test_kette.py bleiben grün"""
+        r = subprocess.run([sys.executable, str(PROJ / "role-split" / "kette" / "test_kette.py")],
+                           capture_output=True, text=True, timeout=300)
+        self.assertEqual(r.returncode, 0, r.stdout[-2000:] + r.stderr[-2000:])
 
-    # ---------------------------------------------------------------- T8
     def test_t8_fremde_commits_nur_als_liste(self):
-        """T8: Fremde Commits nur als Liste."""
-        kette = _kette_modul()
+        """T8: Fremde Commits nur als Liste"""
+        self.commit("g: mod", **{"mod.py": "def f():\n    return 2\n"})
+        self.commit("Werkzeug: x", **{"werkzeug.py": "GEHEIMER_INHALT = 1\n", "anderes.py": "A = 1\n"})
+        self.handover("mod.py", "anderes.py")
+        code, out, text = self.paket()
+        self.assertEqual(code, 0, out)
+        teil = self.code_teil(text)
+        self.assertIn("### mod.py ", teil)
+        self.assertIn("### anderes.py ", teil)                          # fremd, aber in der Uebergabe
+        self.assertNotIn("GEHEIMER_INHALT", text)
+        fremd = text.split("## 3a.")[1].split("## 4.")[0]
+        self.assertIn("`werkzeug.py`", fremd)
+        self.assertIn("Werkzeug: x", fremd)
+        self.assertNotIn("anderes.py", fremd)
 
-        with tempfile.TemporaryDirectory() as td:
-            tmp = Path(td)
-            pm_dir = tmp / "docs" / "projekt_management"
-            pm_dir.mkdir(parents=True)
-            _spec_datei(pm_dir)
-            _anforderung_datei(pm_dir)
-
-            # Handover nennt mod.py und anderes.py
-            (pm_dir / "handover_20260101_testkurz.md").write_text(
-                "## Geaenderte und neue Dateien\n\n- `mod.py`\n- `anderes.py`\n",
-                encoding="utf-8"
-            )
-
-            # Baseline-Commit
-            files = {
-                "mod.py": "# mod.py\n",
-            }
-            sha = _setup_repo(tmp, files, "Spec testkurz")
-
-            # Commit mit Kurztitel: aendert mod.py
-            _add_commit(tmp, {"mod.py": "# mod.py geaendert\n"}, "testkurz: mod aenderung")
-
-            # Commit OHNE Kurztitel: aendert werkzeug.py und anderes.py
-            _add_commit(tmp, {
-                "werkzeug.py": "# werkzeug.py\n",
-                "anderes.py": "# anderes.py\n",
-            }, "Werkzeug: x")
-
-            kette.ROOT = tmp
-            kette.PM = pm_dir
-
-            diff_text, dateien, fremde, weggelassen = kette._diff(sha, {"mod.py", "anderes.py"}, "testkurz")
-
-            # mod.py und anderes.py mit Inhalt im Paket (anderes.py gehoert ueber die Uebergabe dazu)
-            self.assertIn("mod.py", dateien, "T8: mod.py fehlt im Paket")
-            self.assertIn("anderes.py", dateien, "T8: anderes.py fehlt im Paket (im Handover genannt)")
-
-            # werkzeug.py nur in "Fremde Aenderungen (nur Liste)"
-            self.assertIn("werkzeug.py", " ".join(fremde), "T8: werkzeug.py sollte in fremde-Liste sein")
-
-    # ---------------------------------------------------------------- T9
     def test_t9_paket_ohne_code_trotz_aenderungen_exit_1(self):
-        """T9: Paket ohne Code trotz Aenderungen -> Exit 1."""
-        kette = _kette_modul()
+        """T9: Paket ohne Code trotz Änderungen → Exit 1"""
+        self.commit("Werkzeug: x", **{"mod.py": "def f():\n    return 9\n"})
+        code, out, text = self.paket()
+        self.assertEqual(code, 1, out)
+        self.assertIn("Paket ohne Code trotz Aenderungen", out)
+        self.assertIsNone(text)
 
-        with tempfile.TemporaryDirectory() as td:
-            tmp = Path(td)
-            pm_dir = tmp / "docs" / "projekt_management"
-            pm_dir.mkdir(parents=True)
-            _spec_datei(pm_dir)
-            _anforderung_datei(pm_dir)
+    def test_k1_nur_docs_geaendert_exit_0(self):
+        """K1: Nur docs/ geaendert -> Exit 0, 'keine Code-Dateien'"""
+        self.commit("g: doku", **{"docs__notiz.md": "x\n"})
+        code, out, text = self.paket()
+        self.assertEqual(code, 0, out)
+        self.assertIn("Geaenderte Code-Dateien: keine", text)
 
-            # Baseline-Commit
-            files = {
-                "mod.py": "# mod.py\n",
-            }
-            sha = _setup_repo(tmp, files, "Spec testkurz")
-
-            # Nur Commit OHNE Kurztitel (fremd)
-            _add_commit(tmp, {"mod.py": "# mod.py geaendert\n"}, "Werkzeug: x")
-
-            kette.ROOT = tmp
-            kette.PM = pm_dir
-
-            # (a) Exit 1, Meldung "Paket ohne Code trotz Aenderungen", keine review_paket_*-Datei
-            ergebnis = kette.paket("testkurz", sha, still=True)
-            self.assertEqual(ergebnis, 1, "T9(a): paket() sollte Exit 1 rueckgeben bei nur fremden Aenderungen")
-
-            paket_pfad = pm_dir / f"review_paket_20260101_testkurz.md"
-            self.assertFalse(paket_pfad.exists(), "T9(a): Paket-Datei darf nicht existieren bei Exit 1")
-
-            # (b) Keine Aenderung ausser docs/ => Exit 0, "keine Code-Dateien"
-            # Neues Repo fuer Fall (b)
-            tmp2 = Path(tempfile.mkdtemp())
-            pm_dir2 = tmp2 / "docs" / "projekt_management"
-            pm_dir2.mkdir(parents=True)
-            _spec_datei(pm_dir2)
-            _anforderung_datei(pm_dir2)
-
-            files2 = {
-                "docs/lese_mich.md": "# Lese mich\n",
-            }
-            sha2 = _setup_repo(tmp2, files2, "Spec testkurz")
-
-            # Nur docs/ Aenderung
-            _add_commit(tmp2, {"docs/lese_mich.md": "# Lese mich geaendert\n"}, "docs update")
-
-            kette.ROOT = tmp2
-            kette.PM = pm_dir2
-
-            ergebnis2 = kette.paket("testkurz", sha2, still=True)
-            self.assertEqual(ergebnis2, 0, "T9(b): paket() sollte Exit 0 rueckgeben bei nur docs/ Aenderungen")
+    def test_k2_kurztitel_als_ganzes_wort(self):
+        """K2: Kurztitel 'g' trifft nicht 'gross' -> Datei aus 'gross init' ist fremd"""
+        self.commit("gross init", **{"gross.py": "G = 1\n"})
+        self.commit("g: mod", **{"mod.py": "def f():\n    return 2\n"})
+        code, out, text = self.paket()
+        self.assertEqual(code, 0, out)
+        self.assertIn("`gross.py`", text.split("## 3a.")[1].split("## 4.")[0])
+        self.assertNotIn("### gross.py", self.code_teil(text))
 
 
 if __name__ == "__main__":

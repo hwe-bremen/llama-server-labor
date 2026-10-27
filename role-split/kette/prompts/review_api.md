@@ -52,6 +52,11 @@ ob die Schaechte schon vorher bestand. `kette.py urteil` prueft das nach.
 - **Unbemerkt:** Kann ein Fehler unbemerkt bleiben (Haenger, Schweigen, falscher Exit-Code, Test misst nichts)?
 - **Harte Vorgabe:** Verstoesst es gegen eine harte Vorgabe der Spec oder des Auftrags (z. B. kein echter Versand)?
 
+In diese Tabelle gehoeren **nur echte Maengel**. Was du nachgeprueft und fuer korrekt befunden hast
+(„kein Befund", „korrekt umgesetzt", „ist gewollt"), gehoert in die Anforderungstabelle oder unter
+„Handover gegen Code" – nicht hierher, auch nicht als Zeile mit „nein". Gibt es keinen Mangel, schreibe
+genau diese eine Zeile: `| – | nein | nein | nein | – | – | keine Befunde | – |`
+
 | # | Datenverlust | Unbemerkt | Harte Vorgabe | Schwere | Datei:Zeile | Befund | Loesungsweg (in Worten) |
 |---|---|---|---|---|---|---|---|
 | 1 | ja / nein | ja / nein | ja / nein | hoch / mittel / niedrig | | | |

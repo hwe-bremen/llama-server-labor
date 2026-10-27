@@ -387,15 +387,12 @@ def gegenprobe(kurztitel: str, commit: str, timeout: int = 300) -> int:
     if not skript.is_file():
         print(f"Kein Testskript {skript.relative_to(ROOT)}"); return 2
     try:
-        diff = subprocess.run(["git", "-C", str(ROOT), "diff", "--name-only", commit],
-                              capture_output=True, text=True, check=True).stdout.split()
-        neu = subprocess.run(["git", "-C", str(ROOT), "ls-files", "--others", "--exclude-standard"],
-                             capture_output=True, text=True, check=True).stdout.split()
+        kette, _fremd = _aenderungen(commit, kurztitel)
     except subprocess.CalledProcessError as e:
         print(f"git-Fehler: {e.stderr.strip()}"); return 2
-    dateien = sorted({d for d in diff + neu
-                       if d.endswith((".py", ".sh", ".command")) and (ROOT / d).exists()
-                       and not d.startswith(("tests/", "docs/", "experiments/"))})
+    # A5: dieselbe Auswahl wie paket – nur zur Kette gehoerige Code-Dateien, auch role-split/kette/
+    dateien = sorted(d for d in kette
+                     if d.endswith((".py", ".sh", ".command")) and not d.startswith("tests/"))
     if not dateien:
         print(f"Keine geaenderten Code-Dateien seit {commit}."); return 2
 
@@ -525,47 +522,43 @@ PAKET_NIE = ("docs/", "experiments/",)
 KETTE_PAKET_MAX = int(os.environ.get("KETTE_PAKET_MAX", "150000"))
 
 
-def _is_chain_file(f: str, commit: str, kurztitel: str, changed: list[str],
-                   has_kurztitel_commits: bool) -> bool:
-    """A5/A6: Gehoert die Datei zur Kette oder ist sie fremd?
+def _git(*a: str) -> str:
+    return subprocess.run(["git", "-C", str(ROOT), *a], capture_output=True, text=True, check=True).stdout
 
-    Rueckgabe True  = Kette (wird ins Paket aufgenommen)
-             False  = fremd (wird ggf. als Kontext aufgenommen)
 
-    Regeln:
-    - role-split/* mit Commit-Historie oder uncommitteten Aenderungen => Kette
-    - Dateien mit Commits, die dem kurztitel entsprechen => Kette
-    - Sonst => fremd
-    """
-    if f.startswith("role-split/"):
-        # A6: role-split-Dateien mit Historie oder Aenderungen gehoeren zur Kette
-        try:
-            history = subprocess.run(
-                ["git", "-C", str(ROOT), "log", "--oneline", commit + "..HEAD", "--", f],
-                capture_output=True, text=True, check=True).stdout.strip()
-        except subprocess.CalledProcessError:
-            history = ""
-        return bool(history) or f in changed
-    if has_kurztitel_commits:
-        # Dateien mit Commits, die dem kurztitel entsprechen
-        try:
-            log_out = subprocess.run(
-                ["git", "-C", str(ROOT), "log", "--format=%h%x09%s", commit + "..HEAD"],
-                capture_output=True, text=True, check=True).stdout
-            commits = [z.split("\t", 1) for z in log_out.splitlines() if "\t" in z]
-        except subprocess.CalledProcessError:
-            commits = []
-        for h, msg in commits:
-            if kurztitel.lower().replace("-", "") in msg.lower().replace("-", ""):
-                try:
-                    files_in_commit = subprocess.run(
-                        ["git", "-C", str(ROOT), "diff", "--name-only", f"{h}^..{h}"],
-                        capture_output=True, text=True, check=True).stdout.split()
-                    if f in files_in_commit:
-                        return True
-                except subprocess.CalledProcessError:
-                    pass
-    return False
+def _aenderungen(commit: str, kurztitel: str | None, nur: set[str] | None = None
+                 ) -> tuple[list[str], list[tuple[str, list[tuple[str, str]]]]]:
+    """A1: Alle seit <commit> geaenderten/neuen Dateien (ausser PAKET_NIE), getrennt nach
+    zur Kette gehoerig / fremd. Gemeinsame Auswahl fuer paket und gegenprobe (A5).
+
+    Quellen: Commits <commit>..HEAD, nicht committete Aenderungen (auch vorgemerkt),
+    unversionierte Dateien. Zur Kette gehoert eine Datei, wenn sie (a) in einem Commit mit dem
+    Kurztitel in der Nachricht geaendert wurde, (b) nicht committete oder unversionierte
+    Aenderungen hat oder (c) in der Uebergabe genannt wird. Sonst fremd.
+    Rueckgabe: (kette, fremd) mit fremd = [(datei, [(kurzhash, betreff), ...]), ...]."""
+    committet = set(_git("diff", "--name-only", commit, "HEAD").split())
+    offen = set(_git("diff", "--name-only", "HEAD").split())          # unstaged + staged
+    neu = set(_git("ls-files", "--others", "--exclude-standard").split())
+    alle = sorted(d for d in committet | offen | neu
+                  if not d.startswith(PAKET_NIE) and (ROOT / d).is_file())
+    log = [z.split("\t", 1) for z in _git("log", "--format=%H%x09%s", f"{commit}..HEAD").splitlines()
+           if "\t" in z]
+    # Kurztitel als ganzes Wort (nicht "g" in "gross"): links/rechts kein a-z, 0-9, _
+    muster = re.compile(rf"(?<![a-z0-9_]){re.escape(kurztitel)}(?![a-z0-9_])") if kurztitel else None
+    eigene = {h for h, betreff in log if muster and muster.search(betreff)}
+    kette: list[str] = []
+    fremd: list[tuple[str, list[tuple[str, str]]]] = []
+    for d in alle:
+        if d in offen or d in neu or (nur and d in nur):
+            kette.append(d)
+            continue
+        dc = [z.split("\t", 1) for z in
+              _git("log", "--format=%H%x09%s", f"{commit}..HEAD", "--", d).splitlines() if "\t" in z]
+        if any(h in eigene for h, _ in dc):
+            kette.append(d)
+        else:
+            fremd.append((d, [(h[:7], b) for h, b in dc]))
+    return kette, fremd
 
 
 def _bloecke(text: str, muster: str) -> str:
@@ -643,137 +636,37 @@ def _testcode(skript: Path, auffaellig: set[str], grenze: int = 60) -> str:
     return "\n\n".join(teile)
 
 
+def _vorrang(d: str, nur: set[str] | None) -> int:
+    """A3: 1 = Uebergabe oder ausserhalb tests/ (nie kuerzen), 2 = Testcode, 3 = Testdaten."""
+    if (nur and d in nur) or not d.startswith("tests/"):
+        return 1
+    return 2 if d.endswith((".py", ".sh", ".command")) else 3
+
+
 def _diff(commit: str, nur: set[str] | None = None, kurztitel: str | None = None
-          ) -> tuple[str, list[str], list[tuple[str, str]], list[str]]:
-    """Code-Aenderungen gegen commit.
-    Liefert (diff_text, dateien_mit_inhalt, fremde_liste, weggelassen_liste).
-    fremde_liste: [(datei, commit_betreff), ...] – nur in Commits ohne Kurztitel geaendert.
-    weggelassen_liste: [datei, ...] – durch Vorrang-Kuerzung weggelassen.
-    nur: wenn gesetzt (aus dem Handover), nur diese Dateien werden als Vorrang 1 bevorzugt.
-    kurztitel: Kurztitel der Kette; Commits ohne diesen Titel gelten als fremd."""
-    def git(*a):
-        return subprocess.run(["git", "-C", str(ROOT), *a], capture_output=True, text=True, check=True).stdout
-
-    # 1. Alle geaenderten/neuen Dateien sammeln (3 Quellen)
-    geaendert = git("diff", "--name-only", commit).split()
-    neu_unversioniert = git("ls-files", "--others", "--exclude-standard").split()
-    alle_dateien = sorted({x for x in geaendert + neu_unversioniert
-                           if not x.startswith(PAKET_NIE)
-                           and (ROOT / x).is_file()})
-
-    # 2. Commits seit Ruecksetzpunkt mit Betreff holen (fuer Fremd-Erkennung)
-    if kurztitel:
-        try:
-            log_out = git("log", "--format=%h%x09%s", commit + "..HEAD")
-            commits = [z.split("\t", 1) for z in log_out.splitlines() if "\t" in z]
-        except subprocess.CalledProcessError:
-            commits = []
-    else:
-        commits = []
-
-    # 3. Fuer jede Datei: in welchen Commits geaendert? (nur wenn committet)
-    def datei_commits(d):
-        """Gibt Liste von (hash, betreffen) zurueck, in denen d geaendert wurde."""
-        if d not in geaendert:
-            return []
-        try:
-            log_d = git("log", "--format=%h%x09%s", "--follow", commit + "..HEAD", "--", d)
-            return [(z.split("\t", 1)[0], z.split("\t", 1)[1] if "\t" in z else "?")
-                    for z in log_d.splitlines() if z.strip()]
-        except subprocess.CalledProcessError:
-            return []
-
-    # 4. Klassifikation: zur Kette gehoerig vs. fremd (A5/A6)
-    #    A5: Gemeinsame Helper-Funktion _is_chain_file()
-    #    A6: role-split/* mit Historie oder Aenderungen => Kette
-    kette_dateien, fremde_dateien = [], []
-    for d in alle_dateien:
-        if nur and d in nur:
-            # Im Handover genannt -> zur Kette (auch wenn fremde Commits)
-            kette_dateien.append(d)
-        elif _is_chain_file(d, commit, kurztitel, neu_unversioniert, bool(commits)):
-            kette_dateien.append(d)
-        else:
-            dc = datei_commits(d)
-            fremde_dateien.append((d, dc))
-
-    # 5. Fremde Dateien formatieren
-    fremde_teile = []
-    for d, dc in sorted(fremde_dateien):
-        betriege = ", ".join(f"`{h}` ({b})" for h, b in dc)
-        fremde_teile.append(f"- `{d}` – {betriege} (nicht Teil dieser Kette – nicht bewerten, nur zur Kenntnis)")
-    fremde_abschnitt = "\n".join(fremde_teile) if fremde_teile else ""
-
-    # 6. Vorrang-Klassifikation fuer Kette-Dateien
-    #    Vorrang 1: im Handover ODER ausserhalb von tests/
-    #    Vorrang 2: Testcode unter tests/ (.py, .sh, .command)
-    #    Vorrang 3: alles andere unter tests/
-    def vorrang(d):
-        if nur and d in nur:
-            return 1
-        if not d.startswith("tests/"):
-            return 1
-        if d.endswith((".py", ".sh", ".command")):
-            return 2
-        return 3
-
-    # 7. Diff-Inhalt fuer jede Kette-Datei bauen
-    datei_inhalte = {}  # datei -> (inhalt_string, vorrang, im_handover)
-    for d in sorted(kette_dateien):
-        im_ho = (nur is not None and d in nur)
+          ) -> tuple[dict[str, tuple[str, int]], list[str], list[str]]:
+    """Inhalte der zur Kette gehoerigen Dateien gegen <commit>.
+    Rueckgabe: (eintraege {datei: (abschnitt, vorrang)}, fremd_zeilen, kette_dateien)."""
+    kette, fremd = _aenderungen(commit, kurztitel, nur)
+    neu = set(_git("ls-files", "--others", "--exclude-standard").split())
+    eintraege: dict[str, tuple[str, int]] = {}
+    for d in kette:
+        nicht_genannt = nur is None or d not in nur
         aktuell = (ROOT / d).read_text(encoding="utf-8", errors="replace").splitlines()
         nummeriert = [f"{i:4d}  {z}" for i, z in enumerate(aktuell, 1)]
-        if d in neu_unversioniert and d not in geaendert:
-            inhalt = _kappen(d, nummeriert, "neu", PAKET_DATEI_ZEILEN, not im_ho)
+        if d in neu:
+            inhalt = _kappen(d, nummeriert, "neu", PAKET_DATEI_ZEILEN, nicht_genannt)
         else:
-            try:
-                diff = git("diff", "-U3", commit, "--", d).splitlines()
-            except subprocess.CalledProcessError:
-                diff = []
+            diff = _git("diff", "-U3", commit, "--", d).splitlines()
             if len(diff) > len(aktuell):
-                inhalt = _kappen(d, nummeriert, "umbau", PAKET_DATEI_ZEILEN, not im_ho)
+                inhalt = _kappen(d, nummeriert, "umbau", PAKET_DATEI_ZEILEN, nicht_genannt)
             else:
-                inhalt = _kappen(d, diff, "diff", PAKET_DIFF_ZEILEN, not im_ho)
-        datei_inhalte[d] = (inhalt, vorrang(d), im_ho)
-
-    # 8. A3/A4: Vorrang-Kuerzung nach Gesamtgroesse (Rahmenwerk + Code-Dateien)
-    #    Zuerst Vorrang 3, dann 2, dann 1 bis <= PAKET_WARNUNG_ZEICHEN (80000)
-    #    Wenn nach Vorrang 1 immer noch zu gross => KETTE_PAKET_MAX => Exit 1
-    weggelassen = []
-    if datei_inhalte:
-        # Rahmenwerk schatzen: Kopfzeilen + Fremde-Dateien + Meta
-        rahmenwerk_groesse = 500 + sum(len(ft) for ft in fremde_teile)
-        for vorrang_stufe in (3, 2, 1):
-            code_groesse = sum(len(v[0]) for v in datei_inhalte.values())
-            if rahmenwerk_groesse + code_groesse <= PAKET_WARNUNG_ZEICHEN:
-                break
-            zu_entfernen = [d for d, v in datei_inhalte.items() if v[1] == vorrang_stufe]
-            for d in sorted(zu_entfernen):
-                weggelassen.append(d)
-                del datei_inhalte[d]
-
-    # A4: Harte Obergrenze pruefen
-    if datei_inhalte:
-        final_groesse = rahmenwerk_groesse + sum(len(v[0]) for v in datei_inhalte.values())
-        if final_groesse > KETTE_PAKET_MAX:
-            print(f"Paket zu gross ({final_groesse} Zeichen, Limit {KETTE_PAKET_MAX}).")
-            sys.exit(1)
-
-    # 9. Diff-Text zusammenbauen
-    teile = []
-    for d in sorted(datei_inhalte):
-        teile.append(datei_inhalte[d][0])
-    diff_text = "\n\n".join(teile) or "(keine Code-Aenderungen gegen den Ruecksetzpunkt)"
-
-    # 10. Weggelassen-Liste formatieren
-    weggelassen_teile = []
-    for d in sorted(weggelassen):
-        v = vorrang(d)
-        grund = {1: "Vorrang 1, Paket zu gross", 2: "Testcode, Paket zu gross",
-                 3: "Testdaten, Paket zu gross"}.get(v, "Paket zu gross")
-        weggelassen_teile.append(f"- `{d}` – {grund}")
-
-    return diff_text, sorted(datei_inhalte.keys()), fremde_teile, weggelassen_teile
+                inhalt = _kappen(d, diff, "diff", PAKET_DIFF_ZEILEN, nicht_genannt)
+        eintraege[d] = (inhalt, _vorrang(d, nur))
+    fremd_zeilen = [f"- `{d}` – " + (", ".join(f"`{h}` ({b})" for h, b in dc) or "ohne Commit-Angabe")
+                    + " – nicht Teil dieser Kette, nicht bewerten, nur zur Kenntnis"
+                    for d, dc in fremd]
+    return eintraege, fremd_zeilen, kette
 
 
 def _kappen(datei: str, zeilen: list[str], art: str, grenze: int, nicht_genannt: bool = False) -> str:
@@ -829,80 +722,87 @@ def paket(kurztitel: str, commit: str | None = None, datum: str | None = None, s
     spec = spec_p.read_text(encoding="utf-8")
     nur = _handover_dateien(ho_p.read_text(encoding="utf-8")) if ho_p else None
     try:
-        diff, dateien, fremde_teile, weggelassen_teile = _diff(commit, nur, kurztitel)
+        eintraege, fremd_zeilen, kette = _diff(commit, nur, kurztitel)
     except subprocess.CalledProcessError as e:
         say(f"git-Fehler: {(e.stderr.strip().splitlines() or ['?'])[0]}"); return 2
 
-    # A7: Nur Aenderungen ausserhalb von docs/zaehlen. Reine docs/ => Exit 0.
-    if not dateien and diff.startswith("(keine Code-Aenderungen"):
-        try:
-            alles_geaendert = subprocess.run(
-                ["git", "-C", str(ROOT), "diff", "--name-only", commit],
-                capture_output=True, text=True, check=True).stdout.split()
-            neu_unv = subprocess.run(
-                ["git", "-C", str(ROOT), "ls-files", "--others", "--exclude-standard"],
-                capture_output=True, text=True, check=True).stdout.split()
-            hat_aenderungen = bool(alles_geaendert + neu_unv)
-        except subprocess.CalledProcessError:
-            hat_aenderungen = False
-        if hat_aenderungen:
-            say("Keine Code-Dateien geaendert (nur docs/). Exit 0.")
-            return 0
-        say(f"Keine Aenderungen seit {commit}.")
-        return 0
+    def bauen(drin: dict[str, tuple[str, int]], weg: list[str]) -> str:
+        code = "\n\n".join(drin[d][0] for d in sorted(drin)) or "(keine Code-Aenderungen gegen den Ruecksetzpunkt)"
+        weg_zeilen = []
+        for d in sorted(weg):
+            grund = {2: "Testcode", 3: "Testdaten"}.get(_vorrang(d, nur), "?")
+            zusatz = " (nicht in der Uebergabe genannt)" if nur is None or d not in nur else ""
+            weg_zeilen.append(f"- `{d}` – {grund}, Paket zu gross{zusatz}")
+        teile = [
+            f"# Review-Paket: {kurztitel}\n",
+            f"Erzeugt {dt.datetime.now():%Y-%m-%d %H:%M} von `kette.py paket`. Ruecksetzpunkt: `{commit}`. "
+            f"Geaenderte Code-Dateien: {', '.join(f'`{d}`' for d in sorted(drin)) or 'keine'}.\n"
+            "Alles Noetige steht hier. Ganze Dateien nur lesen, wenn eine Frage anders nicht zu klaeren ist – "
+            "dann gezielt (search_files, Zeilenbereich), nicht komplett.\n",
+            "## 1. Anforderung (verbindlich, woertlich)\n\n"
+            + (anf_p.read_text(encoding="utf-8").strip() if anf_p else "(keine Anforderungsdatei – nur Spec als Massstab)"),
+            f"## 2. Spec (Auszug aus `{spec_p.name}`)\n\n### Ziel\n{abschnitt(spec, 'Ziel').strip()}\n\n"
+            f"### Nicht-Ziele (bewusst ausgeschlossen – kein Befund)\n{abschnitt(spec, 'Nicht-Ziele').strip() or '(keine)'}\n\n"
+            f"### Anforderungen\n{abschnitt(spec, 'Anforderungen').strip()}\n\n"
+            f"### Testplan (nur Titel und Erwartungen)\n{_testplan_kurz(spec)}\n\n"
+            f"### Offene Fragen\n{abschnitt(spec, 'Offene Fragen').strip() or '(keine)'}",
+            f"## 3. Code-Aenderungen gegen `{commit}`\n\n{code}",
+        ]
+        if fremd_zeilen:
+            teile.append("## 3a. Fremde Aenderungen (nur Liste)\n\nDiese Dateien wurden nur in Commits ohne den "
+                         f"Kurztitel `{kurztitel}` geaendert. Sie gehoeren nicht zur Aufgabe – nicht bewerten.\n\n"
+                         + "\n".join(fremd_zeilen))
+        if weg_zeilen:
+            teile.append("## 3b. Weggelassen (Paket zu gross)\n\nTeil der Kette, aber wegen der Paketgroesse "
+                         "ohne Inhalt. Bei Bedarf gezielt nachlesen.\n\n" + "\n".join(weg_zeilen))
+        skript = ROOT / "tests" / f"test_{kurztitel}.py"
+        tc = _testcode(skript, _auffaellige_tests(pr_p.read_text(encoding="utf-8")) if pr_p else set())
+        teile += [
+            f"## 4. Testskript `tests/test_{kurztitel}.py` (Methoden)\n\n{_testliste(skript)}"
+            + (f"\n\n### Code der auffaelligen Tests (GRUEN/ANDERS in der Pruefung)\n\n{tc}" if tc else ""),
+            "## 5. Handover – nur Abweichungen, Annahmen, offene und nicht getestete Punkte\n\n"
+            + ((_bloecke(ho_p.read_text(encoding="utf-8"), r"abweich|annahm|offen|nicht getestet|schw[aä]chen")
+                or "(keine solchen Abschnitte)") if ho_p else "(kein Handover)"),
+            f"## 6. Maschinelle Pruefung (Kurzfassung)\n\n{_pruefung_kurz(pr_p)}",
+        ]
+        return "\n\n".join(teile).rstrip() + "\n"
 
-    # Zusätzliche Sektionen bauen
-    fremde_sektion = ""
-    if fremde_teile:
-        fremde_sektion = (f"## 3a. Fremde Aenderungen (nur Liste)\n\n"
-                          "Diese Dateien wurden in Commits ohne den Kurztitel dieser Kette geaendert. "
-                          "Sie gehoeren nicht zur Aufgabe – nicht bewerten, nur zur Kenntnis.\n\n"
-                          + "\n".join(fremde_teile))
+    # A7: Aenderungen ausserhalb docs/, aber nichts davon gehoert zur Kette -> lauter Fehler
+    if not eintraege and fremd_zeilen:
+        say(f"Paket ohne Code trotz Aenderungen seit {commit}: {len(fremd_zeilen)} Datei(en), davon "
+            f"{len(fremd_zeilen)} fremd. Commits ohne Kurztitel '{kurztitel}' in der Nachricht? "
+            "Dann Ruecksetzpunkt/Kurztitel pruefen. Exit 1, kein Paket.")
+        return 1
 
-    weggelassen_sektion = ""
-    if weggelassen_teile:
-        weggelassen_sektion = (f"## 3b. Weggelassen (Paket zu gross)\n\n"
-                               "Diese Dateien wurden durch die Vorrang-Kuerzung weggelassen. "
-                               "Sie sind Teil der Kette, aber sekundaer.\n\n"
-                               + "\n".join(weggelassen_teile))
+    # A3: nach Gesamtgroesse kuerzen – erst Vorrang 3, dann 2; Vorrang 1 nie
+    drin, weg = dict(eintraege), []
+    text = bauen(drin, weg)
+    for stufe in (3, 2):
+        if len(text) <= PAKET_WARNUNG_ZEICHEN:
+            break
+        for d in sorted(x for x, (_, v) in drin.items() if v == stufe):
+            weg.append(d); del drin[d]
+            text = bauen(drin, weg)
+            if len(text) <= PAKET_WARNUNG_ZEICHEN:
+                break
 
-    teile = [
-        f"# Review-Paket: {kurztitel}\n",
-        f"Erzeugt {dt.datetime.now():%Y-%m-%d %H:%M} von `kette.py paket`. Ruecksetzpunkt: `{commit}`. "
-        f"Geaenderte Code-Dateien: {', '.join(f'`{d}`' for d in dateien) or 'keine'}.\n"
-        "Alles Noetige steht hier. Ganze Dateien nur lesen, wenn eine Frage anders nicht zu klaeren ist – "
-        "dann gezielt (search_files, Zeilenbereich), nicht komplett.\n",
-        "## 1. Anforderung (verbindlich, woertlich)\n\n"
-        + (anf_p.read_text(encoding="utf-8").strip() if anf_p else "(keine Anforderungsdatei – nur Spec als Massstab)"),
-        f"## 2. Spec (Auszug aus `{spec_p.name}`)\n\n### Ziel\n{abschnitt(spec, 'Ziel').strip()}\n\n"
-        f"### Nicht-Ziele (bewusst ausgeschlossen – kein Befund)\n{abschnitt(spec, 'Nicht-Ziele').strip() or '(keine)'}\n\n"
-        f"### Anforderungen\n{abschnitt(spec, 'Anforderungen').strip()}\n\n"
-        f"### Testplan (nur Titel und Erwartungen)\n{_testplan_kurz(spec)}\n\n"
-        f"### Offene Fragen\n{abschnitt(spec, 'Offene Fragen').strip() or '(keine)'}",
-        f"## 3. Code-Aenderungen gegen `{commit}`\n\n{diff}",
-        fremde_sektion,
-        weggelassen_sektion,
-        f"## 4. Testskript `tests/test_{kurztitel}.py` (Methoden)\n\n{_testliste(ROOT / 'tests' / f'test_{kurztitel}.py')}"
-        + (f"\n\n### Code der auffaelligen Tests (GRUEN/ANDERS in der Pruefung)\n\n{tc}" if (tc := _testcode(
-            ROOT / "tests" / f"test_{kurztitel}.py",
-            _auffaellige_tests(pr_p.read_text(encoding="utf-8")) if pr_p else set())) else ""),
-        "## 5. Handover – nur Abweichungen, Annahmen, offene und nicht getestete Punkte\n\n"
-        + ((_bloecke(ho_p.read_text(encoding="utf-8"), r"abweich|annahm|offen|nicht getestet|schw[aä]chen")
-            or "(keine solchen Abschnitte)") if ho_p else "(kein Handover)"),
-        f"## 6. Maschinelle Pruefung (Kurzfassung)\n\n{_pruefung_kurz(pr_p)}",
-    ]
-    text = "\n\n".join(teile).rstrip() + "\n"
+    # A7 (Fall b): Kette-Dateien vorhanden, aber nach der Kuerzung keine mit Inhalt
+    if eintraege and not drin:
+        say("Paket ohne Code trotz Aenderungen: alle Dateien der Kette mussten weggelassen werden. Exit 1, kein Paket.")
+        return 1
+
+    groesse = len(text)
+    # A4: harte Obergrenze vor dem Schreiben
+    if groesse > KETTE_PAKET_MAX:
+        say(f"Paket passt nicht in den Kontext des Review-Modells, Review in Teilen noetig "
+            f"({groesse} Zeichen > KETTE_PAKET_MAX {KETTE_PAKET_MAX}). Exit 1, kein Paket.")
+        return 1
     ziel = PM / f"review_paket_{datum}_{kurztitel}.md"
     ziel.write_text(text, encoding="utf-8")
-    groesse = len(text)
-    say(f"Review-Paket: {ziel.relative_to(ROOT)}  ({groesse} Zeichen, ca. {groesse // 3500}k Token)")
+    say(f"Review-Paket: {ziel.relative_to(ROOT)}  ({groesse} Zeichen, ca. {groesse // 3500}k Token)"
+        + (f", {len(weg)} Datei(en) weggelassen" if weg else "") + (f", {len(fremd_zeilen)} fremd" if fremd_zeilen else ""))
     if groesse > PAKET_WARNUNG_ZEICHEN:
-        say(f"WARNUNG: Paket > {PAKET_WARNUNG_ZEICHEN} Zeichen – fuer 64K Kontext eng. "
-            "Review dann eher in Teilen (z. B. erst Anforderungen A1–A3).")
-    # A4: Harte Obergrenze – Exit 1 wenn zu gross (nach Vorrang-Kuerzung)
-    if groesse > KETTE_PAKET_MAX:
-        say(f"ABBRUCH: Paket > {KETTE_PAKET_MAX} Zeichen (auch nach Vorrang-Kuerzung). Exit 1.")
-        return 1
+        say(f"WARNUNG: Paket > {PAKET_WARNUNG_ZEICHEN} Zeichen (nur noch Vorrang 1) – fuer 64K Kontext eng.")
     if not pr_p:
         say("Hinweis: keine pruefung_*-Datei – erst `kette.py pruefen <kurztitel>` laufen lassen.")
     return 0
@@ -1295,6 +1195,10 @@ KETTE_LLM_URL = os.environ.get("KETTE_LLM_URL", "http://127.0.0.1:8080")
 KETTE_LLM_MODEL = os.environ.get("KETTE_LLM_MODEL", "unsloth/Qwen3.6-35B-A3B-MTP-GGUF:Q4_K_XL")
 KETTE_LLM_TIMEOUT = int(os.environ.get("KETTE_LLM_TIMEOUT", "1800"))
 KETTE_LLM_MAX_TOKENS = int(os.environ.get("KETTE_LLM_MAX_TOKENS", "8000"))
+# Leer = Sampling-Werte des Servers (config/models.ini, fuer Qwen 0.6/0.95/20). Frueher fest 0.1:
+# niedrige Temperatur ohne Denkphase fuehrte beim 35B zu Wiederholungsschleifen bis max_tokens.
+KETTE_LLM_TEMPERATURE = os.environ.get("KETTE_LLM_TEMPERATURE", "")
+KETTE_ABGESCHNITTEN = Path(os.environ.get("KETTE_ABGESCHNITTEN", "/tmp"))
 KETTE_HERZSCHLAG_S = int(os.environ.get("KETTE_HERZSCHLAG_S", "60"))
 
 
@@ -1337,13 +1241,15 @@ def _api_ruf(prompt_text: str, lauf_nummer: int) -> tuple[str | None, dict]:
     if hostname not in ("127.0.0.1", "localhost"):
         print(f"Nur 127.0.0.1 erlaubt, Host '{hostname}' abgelehnt."); return None, {}
 
-    body = json.dumps({
+    nutzlast = {
         "model": KETTE_LLM_MODEL,
         "messages": [{"role": "user", "content": prompt_text}],
-        "temperature": 0.1,
         "max_tokens": KETTE_LLM_MAX_TOKENS,
         "chat_template_kwargs": {"enable_thinking": False},
-    }).encode("utf-8")
+    }
+    if KETTE_LLM_TEMPERATURE:
+        nutzlast["temperature"] = float(KETTE_LLM_TEMPERATURE)
+    body = json.dumps(nutzlast).encode("utf-8")
     req = urllib.request.Request(url + "/v1/chat/completions", data=body,
                                  headers={"Content-Type": "application/json"})
     try:
@@ -1370,7 +1276,15 @@ def _api_ruf(prompt_text: str, lauf_nummer: int) -> tuple[str | None, dict]:
         print("leere Modellantwort"); return None, {}
     finish = (choices[0].get("finish_reason") or "")
     if finish == "length":
-        print("Antwort abgeschnitten (finish_reason=length)"); return None, {}
+        n = (data.get("usage") or {}).get("completion_tokens")
+        ziel = KETTE_ABGESCHNITTEN / f"kette_abgeschnitten_lauf{lauf_nummer}.md"
+        try:
+            ziel.write_text(content, encoding="utf-8")
+        except OSError:
+            ziel = None
+        print(f"Antwort abgeschnitten (finish_reason=length) nach {n} Token "
+              f"(KETTE_LLM_MAX_TOKENS={KETTE_LLM_MAX_TOKENS}). Text: {ziel} – "
+              f"auf Wiederholungsschleife pruefen, bevor das Limit erhoeht wird."); return None, {}
 
     usage = (data.get("usage") or {})
     return content, {"prompt_tokens": usage.get("prompt_tokens"),

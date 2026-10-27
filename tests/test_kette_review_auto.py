@@ -28,11 +28,13 @@ class _MiniServer(http.server.BaseHTTPRequestHandler):
 
     antworten = []          # Liste von dicts, pro Request wird das nächste genommen
     anzahl_rufe = 0
+    koerper = []            # empfangene Request-Bodies (fuer K-Test max_tokens)
 
     def do_POST(self):
         _MiniServer.anzahl_rufe += 1
         length = int(self.headers.get("Content-Length", 0))
         body = json.loads(self.rfile.read(length))
+        _MiniServer.koerper.append(body)
         # Antwort zusammenbauen
         idx = (_MiniServer.anzahl_rufe - 1) % max(len(_MiniServer.antworten), 1)
         resp = _MiniServer.antworten[idx]
@@ -79,6 +81,8 @@ class ReviewAutoTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         kette.PM = Path(self.tmp.name)
+        self.addCleanup(setattr, kette, "KETTE_ABGESCHNITTEN", kette.KETTE_ABGESCHNITTEN)
+        kette.KETTE_ABGESCHNITTEN = Path(self.tmp.name)
         self._orig_url = os.environ.get("KETTE_LLM_URL")
         self._orig_model = os.environ.get("KETTE_LLM_MODEL")
         self._orig_timeout = os.environ.get("KETTE_LLM_TIMEOUT")
@@ -88,6 +92,7 @@ class ReviewAutoTests(unittest.TestCase):
         os.environ["KETTE_HERZSCHLAG_S"] = "1"
         _MiniServer.antworten = []
         _MiniServer.anzahl_rufe = 0
+        _MiniServer.koerper = []
 
     def tearDown(self):
         if self._orig_url is not None:
@@ -141,6 +146,33 @@ class ReviewAutoTests(unittest.TestCase):
         self.assertEqual(_MiniServer.anzahl_rufe, 2)
         gesamt = list(kette.PM.glob("gesamt_*.md"))
         self.assertTrue(bool(gesamt))
+
+    # --- K3 (K9): max_tokens wird im API-Aufruf mitgeschickt ---
+
+    def test_k3_max_tokens_im_api_aufruf(self):
+        port = _freier_port()
+        url = f"http://127.0.0.1:{port}"
+        os.environ["KETTE_LLM_URL"] = url
+        kette.KETTE_LLM_URL = url
+        _MiniServer.antworten = [
+            {"choices": [{"message": {"content": KOPF.format(u="PASS", anf="| A1 | x | erfüllt | x |", bef="| 1 | nein | nein | ja | niedrig | x.py:1 | x | y |")}, "finish_reason": "stop"}], "usage": {"prompt_tokens": 10, "completion_tokens": 5}},
+        ]
+        _server_thread(port)
+        orig_teile = kette._pruefen_teile
+        kette._pruefen_teile = lambda *a, **kw: {"unittest": (0, ""), "abgleich": (0, ""), "gegenprobe": (0, "")}
+        self.addCleanup(setattr, kette, "_pruefen_teile", orig_teile)
+        orig_paket = kette.paket
+        kette.paket = lambda *a: 0
+        self.addCleanup(setattr, kette, "paket", orig_paket)
+        orig_max = kette.KETTE_LLM_MAX_TOKENS
+        kette.KETTE_LLM_MAX_TOKENS = 1234
+        self.addCleanup(setattr, kette, "KETTE_LLM_MAX_TOKENS", orig_max)
+        with redirect_stdout(io.StringIO()):
+            kette.review_auto("test1")
+        self.assertTrue(_MiniServer.koerper)
+        for body in _MiniServer.koerper:
+            self.assertEqual(body.get("max_tokens"), 1234)
+            self.assertNotIn("temperature", body)       # Server-Sampling gilt (models.ini)
 
     # --- T2: Router nicht erreichbar ---
 

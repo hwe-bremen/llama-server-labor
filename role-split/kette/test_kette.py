@@ -239,77 +239,62 @@ class PruefenTests(unittest.TestCase):
 
     def test_paket_inhalt(self):
         self._paket_vorbereiten()
-        # mod.py seit baseline nicht geaendert -> wird als fremd klassifiziert (A5/A6)
-        # neu_modul.py in role-split/ committen damit es zur Kette gehoert
-        (self.root / "role-split").mkdir(exist_ok=True)
-        (self.root / "role-split" / "neu_modul.py").write_text("Y = 1\n")
-        self.git("add", "role-split/neu_modul.py")
-        self.git("commit", "-qm", "neu_modul g")
         code, out = lauf(kette.paket, "g")
         self.assertEqual(code, 0, out)
         text = (kette.PM / "review_paket_20261022_g.md").read_text(encoding="utf-8")
         for soll in ("HAWE WILL X", "ZIELTEXT", "ANFTEXT", "### T1: Erster", "ERWARTET1", "OQTEXT",
-                      "### role-split/neu_modul.py", "   1  Y = 1",
-                      "`test_t1_neu` (Zeile", "ABWEICHUNG1", "DETAIL1", "ABWEICHUNG2",
-                      "- Kurz: abgleich: ok", "ABGL", "GEGEN", "Ran 1 test", self.erster,
-                      "NZTEXT", "#### test_t1_neu", "self.assertEqual(mod.f(), 2)"):
+                     "### mod.py (stark umgebaut", "   2      return 2", "### neu_modul.py (neue Datei", "   1  Y = 1",
+                     "`test_t1_neu` (Zeile", "ABWEICHUNG1", "DETAIL1", "ABWEICHUNG2",
+                     "- Kurz: abgleich: ok", "ABGL", "GEGEN", "Ran 1 test", self.erster,
+                     "NZTEXT", "#### test_t1_neu", "self.assertEqual(mod.f(), 2)"):
             self.assertIn(soll, text, soll)
         for nicht in ("QUELLTEXT", "FEHLERTABELLE", "AUFBAUTEXT", "LANGE AUSGABE", "UMGESETZT", "test_x ... ok"):
             self.assertNotIn(nicht, text, nicht)
-        # A5/A6: mod.py ist fremd (nicht seit baseline geaendert, nicht in role-split/)
-        self.assertIn("## 3a. Fremde Aenderungen", text)
-        self.assertIn("`mod.py`", text)
         self.assertIn("Zeichen, ca.", out)
 
-    def test_paket_nur_dateien_aus_handover_und_nie_werkzeug(self):
-        """Aangepasst: A1/A5/A6 – nur Kette-Dateien im Paket, fremde in Sektion 3a.
-        Nur docs/ und experiments/ gehoeren nie ins Paket.
-        Dateien nicht im Handover werden mit 'nicht genannt' markiert."""
+    def test_paket_alle_kette_dateien_mit_markierung_und_fremde_liste(self):
+        """K9: alle zur Kette gehoerigen Dateien (auch role-split/, unversioniert) mit Inhalt;
+        nicht in der Uebergabe genannte markiert; Dateien nur aus fremden Commits nur als Liste."""
         self._paket_vorbereiten()
         (self.root / "role-split").mkdir()
-        (self.root / "role-split" / "werkzeug.py").write_text("W = 1\n")
-        # werkzeug.py in role-split/ -> gehoert zur Kette (A6)
-        self.git("add", "role-split/werkzeug.py")
-        self.git("commit", "-qm", "werkzeug g")
+        (self.root / "role-split" / "werkzeug.py").write_text("W = 1\n")      # unversioniert -> Kette
+        (self.root / "fremd.py").write_text("F = 1\n")
+        self.git("add", "fremd.py"); self.git("commit", "-qm", "Werkzeug: anderes")   # ohne Kurztitel -> fremd
         ho = kette.PM / "handover_20261022_g.md"
         ho.write_text(ho.read_text(encoding="utf-8") + "\n## Geänderte und neue Dateien\n- `neu_modul.py` – neu\n",
                       encoding="utf-8")
         lauf(kette.paket, "g")
         text = (kette.PM / "review_paket_20261022_g.md").read_text(encoding="utf-8")
-        # neu_modul.py ist im Handover -> ohne "nicht genannt"
-        self.assertIn("### neu_modul.py", text)
-        # A5/A6: mod.py ist fremd (nicht seit baseline geaendert, nicht in role-split/)
-        self.assertIn("## 3a. Fremde Aenderungen", text)
-        self.assertIn("`mod.py`", text)
-        # A6: role-split/ gehoert jetzt zur Kette -> werkzeug.py wird aufgenommen
-        self.assertIn("werkzeug.py", text)
+        code_teil = text.split("## 3. ")[1].split("## 3a.")[0]
+        self.assertIn("### neu_modul.py", code_teil)
+        self.assertIn("### mod.py", code_teil)                       # Commit "Spec g" -> Kette
+        self.assertIn("### role-split/werkzeug.py", code_teil)
+        ng = code_teil.split("### ")
+        markiert = {b.split(" ")[0] for b in ng if "nicht in der Uebergabe genannt" in b}
+        self.assertNotIn("neu_modul.py", markiert)
+        self.assertIn("mod.py", markiert)
+        self.assertIn("role-split/werkzeug.py", markiert)
+        self.assertNotIn("F = 1", text)                              # fremd: kein Inhalt
+        self.assertIn("`fremd.py`", text.split("## 3a.")[1].split("## 4.")[0])
+        self.assertIn("Werkzeug: anderes", text)
 
     def test_paket_kleine_aenderung_als_diff(self):
         self._paket_vorbereiten()
         groß = "".join(f"def f{i}():\n    return {i}\n" for i in range(40))
-        (self.root / "role-split").mkdir(exist_ok=True)
-        # Originalversion VOR der baseline committen
-        (self.root / "role-split" / "gross.py").write_text(groß)
-        self.git("add", "role-split/gross.py"); self.git("commit", "-qm", "gross init")
-        # Baseline nach der initialen Version
+        (self.root / "gross.py").write_text(groß)
+        self.git("add", "gross.py"); self.git("commit", "-qm", "gross")
         import subprocess
         alt_commit = subprocess.run(["git", "-C", str(self.root), "rev-parse", "--short", "HEAD"],
                                     capture_output=True, text=True).stdout.strip()
-        # Aenderung committen (1 Zeile)
-        (self.root / "role-split" / "gross.py").write_text(groß.replace("return 7\n", "return 70\n"))
-        self.git("add", "role-split/gross.py"); self.git("commit", "-qm", "gross fix g")
+        (self.root / "gross.py").write_text(groß.replace("return 7\n", "return 70\n"))
         lauf(kette.paket, "g", alt_commit)
         text = (kette.PM / "review_paket_20261022_g.md").read_text(encoding="utf-8")
-        self.assertIn("### role-split/gross.py (Diff", text)
+        self.assertIn("### gross.py (Diff", text)
         self.assertIn("+    return 70", text)
 
     def test_paket_kappt_lange_dateien(self):
         self._paket_vorbereiten()
-        # neu_modul.py in role-split/ committen damit es zur Kette gehoert (A6)
-        (self.root / "role-split").mkdir(exist_ok=True)
-        (self.root / "role-split" / "neu_modul.py").write_text("".join(f"Z{i} = {i}\n" for i in range(50)))
-        self.git("add", "role-split/neu_modul.py")
-        self.git("commit", "-qm", "neu_modul g")
+        (self.root / "neu_modul.py").write_text("".join(f"Z{i} = {i}\n" for i in range(50)))
         alt = kette.PAKET_DATEI_ZEILEN; kette.PAKET_DATEI_ZEILEN = 10
         self.addCleanup(setattr, kette, "PAKET_DATEI_ZEILEN", alt)
         lauf(kette.paket, "g")
@@ -324,11 +309,6 @@ class PruefenTests(unittest.TestCase):
 
     def test_prompt_review_baut_paket_und_nennt_es(self):
         self._paket_vorbereiten()
-        # neu_modul.py in role-split/ committen damit es zur Kette gehoert (A6)
-        (self.root / "role-split").mkdir(exist_ok=True)
-        (self.root / "role-split" / "neu_modul.py").write_text("Y = 1\n")
-        self.git("add", "role-split/neu_modul.py")
-        self.git("commit", "-qm", "neu_modul g")
         code, out = lauf(kette.prompt, "review", "g", None, None)
         self.assertEqual(code, 0)
         self.assertTrue((kette.PM / "review_paket_20261022_g.md").exists())
