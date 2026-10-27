@@ -276,7 +276,10 @@ def abgleich(kurztitel: str, datum: str | None = None, schwelle: float = 0.6) ->
     spec_tests = tests_finden(spec.read_text(encoding="utf-8"))
     ho_text = ho.read_text(encoding="utf-8")
     getestet = tests_finden(abschnitt(ho_text, "Getestet"))
-    nicht = set(re.findall(rf"\b({TEST_ID})\b", abschnitt(ho_text, "Nicht getestet")))
+    # A2: Bereichsangaben (T1–T2, T1-T2) unter "Nicht getestet" entfernen
+    nicht_text = abschnitt(ho_text, "Nicht getestet")
+    nicht_text = re.sub(rf"\b({TEST_ID})\s*[–—-]\s*({TEST_ID})\b", "", nicht_text)
+    nicht = set(re.findall(rf"\b({TEST_ID})\b", nicht_text))
     print(f"Spec:     {spec.name}  ({len(spec_tests)} Tests)\nHandover: {ho.name}\n")
     if not spec_tests:
         print("Keine Test-IDs (T1, NT1 ...) in der Spec gefunden."); return 2
@@ -825,6 +828,13 @@ def _ist_hoch(zeile: dict) -> bool:
     return "hoch" in schwere or any(ja(spalte(zeile, n)) for n in ("datenverl", "unbemerkt", "harte"))
 
 
+# A4: Modell hat Befund selbst zurückgezogen
+def _zurueckgezogen(text: str) -> bool:
+    """Wahr, wenn der Befundtext (ohne *, rechts gestrippt) auf 'Korrekt.' oder 'Befund entfällt.' endet."""
+    bereinigt = text.replace("*", "").rstrip()
+    return bereinigt.endswith("Korrekt.") or bereinigt.endswith("Befund entfällt.")
+
+
 def zusammenfuehren(pfade: list[Path], _internal: bool = False) -> int:
     if len(pfade) < 2:
         if _internal:
@@ -864,10 +874,12 @@ def zusammenfuehren(pfade: list[Path], _internal: bool = False) -> int:
             schwere = spalte(b, "schwere") or "?"
             text_b = spalte(b, "befund", "begründung", "begruendung") or " | ".join(v for v in b.values() if v)
             ort = spalte(b, "datei", "zeile", "anfor") or ""
-            zeilen.append((p.name, schwere, text_b, ort, _ist_hoch(b)))
+            h = _ist_hoch(b)
+            z = _zurueckgezogen(text_b)
+            zeilen.append((p.name, schwere, text_b, ort, h, z))
     if fehlt:
         print("Fehlt: " + ", ".join(fehlt)); return 2
-    hoch = [z for z in zeilen if z[4]]
+    hoch = [z for z in zeilen if z[4] and not z[5]]
     if hoch or any(e == "NACHBESSERN" for _, e in ergebnisse):
         urteil_ = "NACHBESSERN"
     elif any(e == "FAIL" for _, e in ergebnisse):
@@ -887,11 +899,19 @@ def zusammenfuehren(pfade: list[Path], _internal: bool = False) -> int:
              "## Ergebnis\n", f"**{urteil_}** – Regel: ein hoher Befund in irgendeinem Lauf ergibt NACHBESSERN.\n",
              "| Lauf | Ergebnis des Laufs |", "|---|---|"] + [f"| `{n}` | {e} |" for n, e in ergebnisse] + [
              "", "## Befunde (alle Läufe)\n", "| Lauf | Schwere | hoch nach Regel | Fundstelle | Befund |", "|---|---|---|---|---|"]
-    for n, s_, t, o, h in zeilen:
-        teile.append(f"| `{n}` | {s_} | {'ja' if h else 'nein'} | {o.replace('|', '/')} | {t.replace('|', '/')} |")
+    for n, s_, t, o, h, z in zeilen:
+        if h and z:
+            hoch_zeig = "nein (zurückgezogen)"
+        elif h:
+            hoch_zeig = "ja"
+        else:
+            hoch_zeig = "nein"
+        teile.append(f"| `{n}` | {s_} | {hoch_zeig} | {o.replace('|', '/')} | {t.replace('|', '/')} |")
     ziel = PM / f"gesamt_{datum}_{kurz}.md"
     ziel.write_text("\n".join(teile) + "\n", encoding="utf-8")
-    print(f"{len(zeilen)} Befunde aus {len(ergebnisse)} Läufen, davon {len(hoch)} hoch -> {urteil_}")
+    zurueckgezogen = len([z for z in zeilen if z[5]])
+    zeile_zur = f", {zurueckgezogen} zurückgezogen" if zurueckgezogen else ""
+    print(f"{len(zeilen)} Befunde aus {len(ergebnisse)} Läufen, davon {len(hoch)} hoch{zeile_zur} -> {urteil_}")
     print(f"Geschrieben: {ziel.relative_to(ROOT) if ziel.is_relative_to(ROOT) else ziel}")
     return 0 if urteil_ == "PASS" else 1
 
@@ -1646,6 +1666,17 @@ def _umsetzung_prompt(kurztitel: str, datum: str, commit: str, nacharbeit: Path 
             .replace("{anforderung}", anf_pfad)
             .replace("{quellen}", f"docs/projekt_management/quellen_{datum}_{kurztitel}.md"))
     text = "\n".join(z for z in text.splitlines() if not z.startswith("<!--")).strip() + "\n"
+    # A1: Pflichtzeilen im Handover – nach Grundtext, vor Nachbesserung
+    spec_p = datei_suchen("spec", kurztitel, None)
+    if spec_p:
+        spec_tests = tests_finden(spec_p.read_text(encoding="utf-8"))
+        if spec_tests:
+            zeilen = ["", "## Pflichtzeilen im Handover",
+                      'Unter „## Getestet" steht für jede Test-ID genau eine dieser Zeilen (Titel unverändert, Status wählen):']
+            for tid, titel in spec_tests.items():
+                zeilen.append(f"**{tid}: {titel}** – bestanden | fehlgeschlagen")
+            zeilen.append('Unter „## Nicht getestet" nur Test-IDs, die wirklich nicht getestet sind – keine Sammelangaben wie „T1–T5".')
+            text += "\n".join(zeilen) + "\n"
     if nacharbeit:
         text += (f"\n## Nachbesserung {nb}\n\nDas ist Nachbesserung {nb}. Der Auftrag steht unten (aus "
                  f"`{_rel(nacharbeit)}`). Ergänze den Handover docs/projekt_management/handover_{datum}_"
@@ -1657,7 +1688,7 @@ def _umsetzung_prompt(kurztitel: str, datum: str, commit: str, nacharbeit: Path 
 def _lauf(befehl: list[str], env: dict, timeout: int, rohdaten: Path) -> dict:
     """Startet opencode in eigener Prozessgruppe, liest den JSON-Strom zeilenweise (sofort in die
     Rohdaten), gibt je Werkzeugaufruf eine Zeile aus und beendet die Gruppe nach `timeout` s (A5, A6, A9)."""
-    info = {"werkzeuge": 0, "fehler": [], "abgelehnt": [], "tokens": 0, "reason": None, "text": "",
+    info = {"werkzeuge": 0, "fehler": [], "abgelehnt": [], "tokens": 0, "tokens_spitze": 0, "reason": None, "text": "",
             "ereignisse": 0, "kaputt": 0, "timeout": False,
             "tokens_teile": {"input": 0, "output": 0, "reasoning": 0}}
     rohdaten.parent.mkdir(parents=True, exist_ok=True)
@@ -1708,7 +1739,10 @@ def _lauf(befehl: list[str], env: dict, timeout: int, rohdaten: Path) -> dict:
                 elif typ == "step_finish":
                     info["reason"] = teil.get("reason")
                     tok = teil.get("tokens") or {}
-                    info["tokens"] += int(tok.get("total") or 0)
+                    total = int(tok.get("total") or 0)
+                    info["tokens"] += total
+                    if total > info["tokens_spitze"]:
+                        info["tokens_spitze"] = total
                     for k in info["tokens_teile"]:
                         info["tokens_teile"][k] += int(tok.get(k) or 0)
                 elif typ == "text":
@@ -1894,7 +1928,7 @@ def umsetzung_auto(kurztitel: str, nacharbeit: str | None = None) -> int:
         protokoll_p.write_text(f"# Umsetzungs-Protokoll: {kurztitel}\n\nJe Lauf eine Zeile (kette.py umsetzung-auto).\n\n",
                                encoding="utf-8")
     tt = info["tokens_teile"]
-    zeile += f"  - Tokens: input {tt['input']}, output {tt['output']}, reasoning {tt['reasoning']}\n"
+    zeile += f"  - Tokens: input {tt['input']}, output {tt['output']}, reasoning {tt['reasoning']}, spitze {info['tokens_spitze']}\n"
     for e in info["fehler"]:
         zeile += f"  - {'abgelehnt' if e in info['abgelehnt'] else 'fehlgeschlagen'}: {e}\n"
     with open(protokoll_p, "a", encoding="utf-8") as f:
@@ -1902,7 +1936,7 @@ def umsetzung_auto(kurztitel: str, nacharbeit: str | None = None) -> int:
 
     print(f"\n=== umsetzung-auto {kurztitel} ({art}) ===")
     print(f"Dauer {info['dauer']} s, Werkzeugaufrufe {info['werkzeuge']}, Fehler {len(info['fehler'])}, "
-          f"abgelehnt {len(info['abgelehnt'])}, Tokens {info['tokens']}, reason {reason}")
+          f"abgelehnt {len(info['abgelehnt'])}, Tokens {info['tokens']} (Spitze {info['tokens_spitze']}), reason {reason}")
     for e in info["fehler"]:
         print(f"  {'abgelehnt' if e in info['abgelehnt'] else 'fehlgeschlagen'}: {e}")
     if info["text"]:
