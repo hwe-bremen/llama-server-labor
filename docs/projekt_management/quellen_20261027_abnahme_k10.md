@@ -1,6 +1,6 @@
 # Quellen: abnahme_k10
 
-Maschinell und woertlich aus dem Repo geholt mit `kette.py quellen abnahme_k10` (2026-10-27 15:58, Stand `ca85c5c`), nach dem Abschnitt „Quellen“ in `spec_20261027_abnahme_k10.md`.
+Maschinell und woertlich aus dem Repo geholt mit `kette.py quellen abnahme_k10` (2026-10-27 15:58, Stand `49d4a38`), nach dem Abschnitt „Quellen“ in `spec_20261027_abnahme_k10.md`.
 Nicht von Hand aendern – bei Bedarf die Spec anpassen und neu erzeugen. Konstanten, Formate und Schnittstellen werden nur von hier oder aus dem Code genommen, nie aus dem Gedaechtnis.
 
 ### `docs/projekt_management/_vorlage_handover.md` (Zeilen 1–58) – Gliederung des Handovers
