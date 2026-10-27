@@ -57,6 +57,8 @@ HARNESS_MODEL="JetBrains/Mellum2-…-Q6_K:Q6_K" python agents/llama_harness.py "
 | `MCP_READONLY=0/1` | Enables/disables write+delete tools on the MCP server |
 | `MCP_ALLOW_PYTHON=1` | Enables `run_python` tool (breaks the file sandbox — off by default) |
 | `MCP_SCOPE_ROOT` | Root path the MCP server's scope guard enforces |
+| `MCP_TOOL_LOG` | JSONL log of every MCP tool call (default `~/.lab_mcp/tool_calls.jsonl`, `off` disables) |
+| `MCP_AGENT` | Label written into the tool-call log (`agent` field) |
 | `LAB_BIND=serve/tailscale/all` | Network exposure mode for the router |
 | `HARNESS_MODEL` | Exact model ID for the harness (empty = auto-discovery, prefers Mellum) |
 | `HARNESS_READONLY=1` | Starts the harness in read-only mode |

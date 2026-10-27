@@ -392,6 +392,8 @@ nur in bestimmte Ordner: zusätzlich `MCP_WRITE_ROOTS=docs/projekt_management,do
 | `MCP_READONLY=0/1`         | read-only-gate des MCP-Servers (Argument von launch_lab gewinnt) |
 | `MCP_WRITE_ROOTS=a,b`      | Schreibgrenze: `write_file`/`delete_file` nur unter diesen Ordnern, `git_commit` aus; Lesen bleibt frei. Gilt nur für den so gestarteten Prozess |
 | `MCP_ALLOW_GITLOG=0`       | `git_log` aus (setzt `start_eval.command`; Fix-Commits verraten sonst Eval-Lösungen) |
+| `MCP_TOOL_LOG=<pfad>/off`  | Tool-Call-Log des MCP-Servers: eine JSONL-Zeile pro Tool-Aufruf. Default `~/.lab_mcp/tool_calls.jsonl` (außerhalb des Repos), `off` = aus |
+| `MCP_AGENT=<label>`        | Label im Tool-Call-Log (z.B. `rollen`, `eval`), damit erkennbar ist, aus welchem Lauf ein Aufruf kommt. Default leer |
 | `LAB_BIND=serve`           | **Remote empfohlen:** Router lokal + Tailscale Serve (HTTPS)  |
 | `LAB_KEEP_SERVE=1`         | Serve bleibt nach Ctrl+C aktiv (Router muss trotzdem laufen)  |
 | `LAB_SERVE_PORT=8092`      | Serve-Ziel überschreiben (Default 8080 bzw. 8091 mit Gedächtnis); setzt der Rollen-Starter selbst |
@@ -419,6 +421,14 @@ nur in bestimmte Ordner: zusätzlich `MCP_WRITE_ROOTS=docs/projekt_management,do
   Rollen-Starter bricht in diesem Fall ab.
 - Alle Proxys binden nur an 127.0.0.1 und sind reine Durchreicher; sie haben
   keine Schreib-Tools. Nach außen geht nur, was Serve weiterreicht.
+- **Tool-Call-Log (seit 27.10.):** Jeder Tool-Aufruf des Lab-MCP landet als JSON-Zeile in
+  `~/.lab_mcp/tool_calls.jsonl` — Zeit (UTC), Tool, Argumente (gekürzt), `ok`/`error`, Dauer,
+  Ergebnis-Anfang. Datei-Inhalte (`content`, `content_b64`, `code`) stehen nur als Länge + Hash
+  drin, nie im Klartext. Live mitlesen: `tail -F ~/.lab_mcp/tool_calls.jsonl`.
+  Liegt das Log per `MCP_TOOL_LOG` im Scope, sperrt der Server dessen Ordner automatisch —
+  ein Agent kann sein eigenes Protokoll weder lesen noch ändern. Das Log wächst unbegrenzt;
+  bei Bedarf von Hand leeren oder wegschieben. Gilt für alle Clients des MCP (Web-UI, Harness,
+  Claude Desktop), **nicht** für OpenCode (eigene Datei-Tools, siehe Szenario G).
 - OpenCode bringt eigene Datei-Tools mit und arbeitet im Ordner, in dem es
   gestartet wird — gleiche Regel wie beim Harness: vorher committen.
 - Remote nur über **Serve** (tailnet-only, WireGuard-verschlüsselt), nie
@@ -497,6 +507,11 @@ nur in bestimmte Ordner: zusätzlich `MCP_WRITE_ROOTS=docs/projekt_management,do
 - **Ein Client kommt nicht durch, andere schon:** Client-spezifisch — die
   `.ts.net`-URL frisch eingeben (nicht die gecachte IP), Private Relay / anderes
   VPN am Gerät prüfen. (iPad-Safari war so ein Fall; Chrome ging.)
+- **`tail: …/tool_calls.jsonl: No such file or directory`:** kein Fehler. Datei und Ordner
+  entstehen erst beim ersten echten Tool-Aufruf; das Abholen der Tool-Liste (`ListToolsRequest`
+  im Fenster) zählt nicht. Eine Frage stellen, die ein Tool auslöst, oder gleich `tail -F`
+  (wartet auf die Datei). Steht im MCP-Banner keine Zeile `tool_log :`, läuft noch ein alter
+  Server-Prozess → Launcher neu starten.
 - **MCP-Server-Check:** `curl http://127.0.0.1:8787/mcp` → Antwort
   „Not Acceptable / text/event-stream" (bzw. HTTP 406) heißt: der Server lauscht.
 - **Trotz `write` keine Schreib-Tools in der Web-UI** (Modell nennt nur list/read/search/git_*):

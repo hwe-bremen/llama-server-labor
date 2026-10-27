@@ -47,6 +47,28 @@ PATH, `python` allein schlägt fehl.
       bash run_http.sh                 # startet auf 127.0.0.1:8787
       npx @modelcontextprotocol/inspector   # in zweitem Terminal
 
+## Tool-Call-Log
+
+Jeder Tool-Aufruf wird als eine JSON-Zeile protokolliert (JSONL), Default-Datei
+`~/.lab_mcp/tool_calls.jsonl` — bewusst außerhalb des Repos, damit `git_commit`
+(`add -A`) sie nicht mitnimmt.
+
+    {"ts": "…+00:00", "server": "llama-server-lab", "agent": null, "tool": "list_directory",
+     "args": {"path": "mcp-server"}, "status": "ok", "ms": 0.6, "result_len": 457, "result_head": "…"}
+
+- `ts` in UTC; `status` = `ok` oder `error` (dann mit `error`-Text, z.B. `ScopeError`).
+- `content`, `content_b64`, `code` werden nur als `{"len", "sha256_12"}` geloggt, nie im Klartext.
+  Andere Argumente ab 300 Zeichen gekürzt, Ergebnis nur die ersten 160 Zeichen.
+- Schalter: `MCP_TOOL_LOG=<pfad>` (anderer Ort) bzw. `MCP_TOOL_LOG=off`;
+  `MCP_AGENT=<label>` setzt das Feld `agent`.
+- Liegt das Log im Scope, wird sein Ordner automatisch gesperrt (wie `MCP_DENY`).
+- Ein Schreibfehler am Log bricht nie das Tool ab (nur Meldung auf stderr).
+- Umsetzung: ein Wrapper um `mcp.tool()` — neue Tools werden ohne eigenen Code mitgeloggt.
+- Test: `.venv/bin/python test_tool_log.py lab_mcp_server.py` → `ALLE CHECKS OK`.
+
+Mitlesen: `tail -F ~/.lab_mcp/tool_calls.jsonl`. Die Datei entsteht erst beim
+ersten Tool-Aufruf.
+
 ## Sicherheit / Hygiene
 
 - `run_python` ist aus (`MCP_ALLOW_PYTHON=0`). Nur bewusst aktivieren.
