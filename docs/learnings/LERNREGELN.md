@@ -1,6 +1,6 @@
-# Lernregeln der Kette (Stand 25.10.2026, nach K8)
+# Lernregeln der Kette (Stand 27.10.2026, nach K9)
 
-Verdichtet aus 8 Ketten. Format: **Rnn** Regel – *Warum (Quelle)*. Höchstens ~100 Zeilen; neue Regel nur für wiederkehrende oder teure Fehler.
+Verdichtet aus 9 Ketten. Format: **Rnn** Regel – *Warum (Quelle)*. Höchstens ~100 Zeilen; neue Regel nur für wiederkehrende oder teure Fehler.
 Details je Kette: `kette_<kurztitel>.md`.
 
 ## Spec
@@ -52,6 +52,13 @@ Details je Kette: `kette_<kurztitel>.md`.
 
 ## Automatik (K8)
 - **R34** Ein Review über die API ohne Werkzeuge sieht **nur das Paket**: Fehlt dort der Code, urteilt das Modell über Spec und Übergabe – und glaubt der Übergabe. Paket vor jedem automatischen Review auf „Geänderte Code-Dateien: keine" prüfen. – *K8: echter Lauf meldete A4/A5 fälschlich als fehlend.*
-- **R35** Werkzeuge der Kette dürfen den Ordner, den eine Kette ändert, nicht ausblenden (auch nicht `role-split/` und `tests/`). – *K8: `paket`/`gegenprobe` blind für `kette.py` selbst.* (Behebung K9)
+- **R35** Werkzeuge der Kette dürfen den Ordner, den eine Kette ändert, nicht ausblenden (auch nicht `role-split/` und `tests/`). – *K8: `paket`/`gegenprobe` blind für `kette.py` selbst.* (behoben K9)
 - **R36** Tests mit Servern, Threads oder Netz immer mit Zeitlimit starten (`timeout 120 …`); ein hängender Test sieht aus wie langsames Arbeiten. `server.shutdown()` nur bei `serve_forever()`, sonst `server_close()`. – *K8.*
 - **R37** Automatische Prompts aus den bewährten Hand-Prompts ableiten (Pflichtfragen mit Erläuterung, Verdikt-Vorlage wörtlich), nicht neu und kürzer schreiben; Rollen-Trigger wie `@review` wirken nur über den Proxy. – *K8.*
+
+## Automatik (K9)
+- **R38** API-Aufrufe übernehmen das Sampling des Servers (`config/models.ini`); keine feste Temperatur im Aufruf. Bricht eine Antwort mit `finish_reason=length` ab, erst den Text auf eine Schleife prüfen, dann das Limit erhöhen. – *K9: Temperatur 0,1 statt 0,6 → 35B wiederholte sich bis 16 000 Token; mit Server-Werten 1 200–1 900 Token.*
+- **R39** In die Befund-Tabelle gehören nur echte Mängel; ohne Mangel genau die Leerzeile `| – | nein | nein | nein | – | – | keine Befunde | – |`. Ein „hoch" aus dem automatischen Review wird gegengeprüft, bevor nachgebessert wird. – *K9: Bestätigung mit „Unbemerkt: ja" ergab NACHBESSERN; derselbe 35B am selben Paket einmal PASS, einmal 2× unbegründet „hoch".*
+- **R40** Wer die Arbeit eines Umsetzers zurücksetzt, korrigiert auch dessen Handover (oder markiert ihn als ungültig) – der neueste Handover geht ins Review-Paket. – *K9 T10: falscher K7-NB3-Handover („Datei existiert nicht") ließ das Review A4/A5 anzweifeln.*
+- **R41** Paket für eine abgeschlossene Kette nur bei sauberem Arbeitsstand bauen: Nicht committete und unversionierte Dateien zählen immer zur Kette, für die das Paket gebaut wird. – *K9: K7-Paket mit uncommitteter K9-Arbeit 175 161 Zeichen → Exit 1.*
+- **R42** Umsetzer läuft zwei Nachbesserungen ohne Fortschritt oder deutet die Spec um, damit Tests grün werden ⇒ Gegenprüfer übernimmt, Dauer wird gemessen. Selbst-Commits des Umsetzers trotz „Kein Commit" melden. – *K9: 27B NB1+NB2 je ~4,5 h, `role-split/`-Sonderregel, Selbst-Commit `1b2e74c`.*

@@ -1,5 +1,7 @@
 # Handover: mail_server_test
 
+> **UNGÜLTIG in Teilen (Claude, 27.10.2026):** Dieser NB3-Handover behauptet, `agents/mail_planung/mail_planung.py` existiere nicht und T4–T10 seien übersprungen. Das ist falsch – NB3 hatte das Testskript mit falschem Pfad neu geschrieben; Claude hat `tests/test_mail_server_test.py` auf `4c8f484` zurückgesetzt. A4/A5 sind in `mail_planung.py` umgesetzt (siehe `handover_20261023_mail_server_test.md`, Gegenprobe T4/T5). Regel R40.
+
 - **Spec:** `docs/projekt_management/spec_20261023_mail_server_test.md`
 - **Datum:** 2026-10-24
 - **Modell / Werkzeug:** unsloth/Qwen3.6-27B-MTP-GGUF:Q4_K_XL in OpenCode, Agent „umsetzung"
