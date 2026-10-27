@@ -1,6 +1,6 @@
-# Lernregeln der Kette (Stand 27.10.2026, nach K9)
+# Lernregeln der Kette (Stand 27.10.2026, nach K10)
 
-Verdichtet aus 9 Ketten. Format: **Rnn** Regel – *Warum (Quelle)*. Höchstens ~100 Zeilen; neue Regel nur für wiederkehrende oder teure Fehler.
+Verdichtet aus 10 Ketten. Format: **Rnn** Regel – *Warum (Quelle)*. Höchstens ~100 Zeilen; neue Regel nur für wiederkehrende oder teure Fehler.
 Details je Kette: `kette_<kurztitel>.md`.
 
 ## Spec
@@ -62,3 +62,10 @@ Details je Kette: `kette_<kurztitel>.md`.
 - **R40** Wer die Arbeit eines Umsetzers zurücksetzt, korrigiert auch dessen Handover (oder markiert ihn als ungültig) – der neueste Handover geht ins Review-Paket. – *K9 T10: falscher K7-NB3-Handover („Datei existiert nicht") ließ das Review A4/A5 anzweifeln.*
 - **R41** Paket für eine abgeschlossene Kette nur bei sauberem Arbeitsstand bauen: Nicht committete und unversionierte Dateien zählen immer zur Kette, für die das Paket gebaut wird. – *K9: K7-Paket mit uncommitteter K9-Arbeit 175 161 Zeichen → Exit 1.*
 - **R42** Umsetzer läuft zwei Nachbesserungen ohne Fortschritt oder deutet die Spec um, damit Tests grün werden ⇒ Gegenprüfer übernimmt, Dauer wird gemessen. Selbst-Commits des Umsetzers trotz „Kein Commit" melden. – *K9: 27B NB1+NB2 je ~4,5 h, `role-split/`-Sonderregel, Selbst-Commit `1b2e74c`.*
+
+## Automatik (K10)
+- **R43** Lokale Umsetzer nach Aufgabengröße einsetzen: eine Datei, ~100 Zeilen, wenige Tests schafft der 35B in Minuten; ein Umbau von Hunderten Zeilen in einer großen Datei plus Dutzende Tests nicht → teilen oder übernehmen. – *K10: 35B scheiterte an ~460 Zeilen in `kette.py` + 33 Tests (`main()` gelöscht); dieselbe Kette als Mini-Spec: 35B 3:21, 27B 14:15, beide korrekt.*
+- **R44** Spec-Korrekturen ab der zweiten Runde schreibt die externe Stimme direkt in die Spec (als „präzisiert" markiert), statt sie dem lokalen Modell zurückzugeben. – *K10: Korrekturrunde dauerte länger als die Spec selbst, Kontext voll, zweiter Chat nötig.*
+- **R45** Attrappen für Fremdprogramme sperren sich selbst (Arbeitsordner **und** jedes Schreibziel im Temp-Ordner), und jeder Test prüft am Ende, dass HEAD, Status und Prüfsummen des echten Repos unverändert sind. Auch an die Gegenprobe denken: Dort läuft der Test gegen die **alte** Attrappe. – *K10: Tests des Umsetzers committeten ins echte Repo; Ausbruchs-Test hätte mit alter Attrappe hinausgeschrieben.*
+- **R46** OpenCode ohne TUI: Verbote als `deny` in die Agent-Datei (Umgebungsvariablen überstimmen Agent-Regeln nicht, `ask` beendet den Lauf stumm); Erfolg nur aus dem JSON-Strom (`reason: stop`), nie aus dem Exit-Code. – *K10 Probe P1–P6.*
+- **R47** Schreibbereich einer Spec nie unter Pfaden, die Paket und Gegenprobe ausblenden (`PAKET_NIE`: `docs/`, `experiments/`). – *K10 Abnahme: Mini-Spec unter `experiments/` → „Keine geaenderten Code-Dateien", Exit 1 trotz korrektem Code.*
