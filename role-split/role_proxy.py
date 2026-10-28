@@ -279,6 +279,8 @@ def capture_task(msgs: list) -> str:
     t = (t.replace("{kurztitel}", kurztitel).replace("{datum}", datum)
           .replace("{anforderung}", f"docs/projekt_management/{anf.name}"))
     t = re.sub(r"<AUFGABE[^>]*>", lambda _m: aufgabe, t)
+    # K13a: Pfade in der Ablage der Kette nennen
+    t = k._ablage_text(t, kurztitel)
     return ("## Auftrag dieses Chats (automatisch; Hawes Worte stehen woertlich in der Anforderungsdatei)\n\n" + t)
 
 

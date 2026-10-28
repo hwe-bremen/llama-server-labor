@@ -92,6 +92,39 @@ PM = ROOT / "docs" / "projekt_management"
 PROMPTS = HERE / "prompts"
 SCHRITTE = ("spec", "umsetzung", "review", "review2", "tief")
 
+# ---------------------------------------------------------------- Ablage-Ordner (K13a)
+
+def ablage(kurztitel: str) -> Path:
+    """Ablage-Verzeichnis: docs/projekt_management/<kurztitel>/ wenn vorhanden, sonst docs/projekt_management/."""
+    ordner = PM / kurztitel
+    return ordner if ordner.is_dir() else PM
+
+
+def _ablage_rel(kurztitel: str) -> str:
+    """Relativer Pfad zur Ablage, wie er in Dateinamen/Prompts steht."""
+    if (PM / kurztitel).is_dir():
+        return f"docs/projekt_management/{kurztitel}"
+    return "docs/projekt_management"
+
+
+def _ablage_text(text: str, kurztitel: str) -> str:
+    """Ersetzt docs/projekt_management/ in Pfaden durch den Ablage-Ordner der Kette.
+    
+    Ersetzt jedes docs/projekt_management/ das nicht auf _vorlage_ folgt,
+    unabhaengig vom Dateisuffix. Doppelordner werden vermieden, indem
+    der Aufrufer den Text vor Platzhalter-Ersetzung umbiegt.
+    """
+    if not (PM / kurztitel).is_dir():
+        return text
+    abl = f"docs/projekt_management/{kurztitel}/"
+    # Ersetze docs/projekt_management/<nicht-slash, nicht-whitespace> nur wenn es kein _vorlage_ ist
+    # Der Dateiname wird beibehalten (Capture-Group)
+    return re.sub(
+        r"docs/projekt_management/(?!_vorlage_)([^/\s]+)",
+        lambda m: f"{abl}{m.group(1)}",
+        text
+    )
+
 # ---------------------------------------------------------------- Markdown-Helfer
 
 def abschnitt(text: str, titel: str) -> str:
@@ -265,11 +298,14 @@ def methoden_pruefen(code: str) -> list[str]:
 
 def datei_suchen(typ: str, kurztitel: str, datum: str | None) -> Path | None:
     if datum:
-        p = PM / f"{typ}_{datum}_{kurztitel}.md"
+        # Nur Ablage-Ordner der Kette (Nachbesserung 1 E2: kein Fallback mehr auf flach)
+        abl = ablage(kurztitel)
+        p = abl / f"{typ}_{datum}_{kurztitel}.md"
         return p if p.is_file() else None
     # Nur exakt <typ>_<JJJJMMTT>_<kurztitel>.md – sonst greift z. B. handover_..._nachbesserung2_<kt>.md (K6, 23.10.)
     muster = re.compile(rf"^{re.escape(typ)}_\d{{8}}_{re.escape(kurztitel)}\.md$")
-    treffer = sorted(p for p in PM.glob(f"{typ}_*_{kurztitel}.md") if muster.match(p.name))
+    abl = ablage(kurztitel)
+    treffer = sorted(p for p in abl.glob(f"{typ}_*_{kurztitel}.md") if muster.match(p.name))
     return treffer[-1] if treffer else None
 
 
@@ -596,7 +632,7 @@ def pruefen(kurztitel: str, commit: str | None = None, timeout: int = 300) -> in
     datum = _datum_aus(datei_suchen("spec", kurztitel, None)) or dt.date.today().strftime("%Y%m%d")
     kopf = (f"# Pruefung {kurztitel}\n\n- Zeit: {dt.datetime.now():%Y-%m-%d %H:%M}\n"
             f"- Ruecksetzpunkt: {commit}\n- Kurz: {kurz}\n\n")
-    ziel = PM / f"pruefung_{datum}_{kurztitel}.md"
+    ziel = ablage(kurztitel) / f"pruefung_{datum}_{kurztitel}.md"
     ziel.write_text(kopf + "\n".join(teile), encoding="utf-8")
     print("\n".join(teile))
     print(f"\n==> {kurz}")
@@ -889,7 +925,7 @@ def paket(kurztitel: str, commit: str | None = None, datum: str | None = None, s
         say(f"Paket passt nicht in den Kontext des Review-Modells, Review in Teilen noetig "
             f"({groesse} Zeichen > KETTE_PAKET_MAX {KETTE_PAKET_MAX}). Exit 1, kein Paket.")
         return 1
-    ziel = PM / f"review_paket_{datum}_{kurztitel}.md"
+    ziel = ablage(kurztitel) / f"review_paket_{datum}_{kurztitel}.md"
     ziel.write_text(text, encoding="utf-8")
     say(f"Review-Paket: {ziel.relative_to(ROOT)}  ({groesse} Zeichen, ca. {groesse // 3500}k Token)"
         + (f", {len(weg)} Datei(en) weggelassen" if weg else "") + (f", {len(fremd_zeilen)} fremd" if fremd_zeilen else ""))
@@ -937,7 +973,7 @@ def zusammenfuehren(pfade: list[Path], _internal: bool = False) -> int:
                       f"| `{p.name}` | {ergebnis.replace('PASS', 'UNVOLLSTÄNDIG')} |",
                      "",
                      "> Ein weiterer Lauf fehlt. Der Gesamtbefund beruht auf nur einem Lauf mit auswertbarer Tabelle.\n"]
-            ziel = PM / f"gesamt_{datum}_{kurz}.md"
+            ziel = ablage(kurz) / f"gesamt_{datum}_{kurz}.md"
             ziel.write_text("\n".join(teile) + "\n", encoding="utf-8")
             print(f"Geschrieben: {ziel.relative_to(ROOT) if ziel.is_relative_to(ROOT) else ziel}")
             return 1
@@ -951,7 +987,7 @@ def zusammenfuehren(pfade: list[Path], _internal: bool = False) -> int:
         ergebnisse.append((p.name, m.group(1) if m else "?"))
         befunde = _befunde(text)
         if not befunde:
-            zeilen.append((p.name, "?", "(keine Befundtabelle erkannt – Verdikt von Hand lesen)", "", False))
+            zeilen.append((p.name, "?", "(keine Befundtabelle erkannt – Verdikt von Hand lesen)", "", False, False))
         for b in befunde:
             schwere = spalte(b, "schwere") or "?"
             text_b = spalte(b, "befund", "begründung", "begruendung") or " | ".join(v for v in b.values() if v)
@@ -989,7 +1025,7 @@ def zusammenfuehren(pfade: list[Path], _internal: bool = False) -> int:
         else:
             hoch_zeig = "nein"
         teile.append(f"| `{n}` | {s_} | {hoch_zeig} | {o.replace('|', '/')} | {t.replace('|', '/')} |")
-    ziel = PM / f"gesamt_{datum}_{kurz}.md"
+    ziel = ablage(kurz) / f"gesamt_{datum}_{kurz}.md"
     ziel.write_text("\n".join(teile) + "\n", encoding="utf-8")
     zurueckgezogen = len([z for z in zeilen if z[5]])
     zeile_zur = f", {zurueckgezogen} zurückgezogen" if zurueckgezogen else ""
@@ -1020,8 +1056,9 @@ def anforderung(kurztitel: str, aufgabe: str | None, antwort: str | None, frage:
             print(f"Gibt es schon: {vorhanden} (nichts ueberschrieben; Antworten mit --antwort anhaengen)")
             return 2
         d = datum or dt.date.today().strftime("%Y%m%d")
-        ziel = PM / f"anforderung_{d}_{kurztitel}.md"
-        PM.mkdir(parents=True, exist_ok=True)
+        abl = ablage(kurztitel)
+        abl.mkdir(parents=True, exist_ok=True)
+        ziel = abl / f"anforderung_{d}_{kurztitel}.md"
         ziel.write_text(
             f"# Anforderung: {kurztitel}\n\n"
             "Verbindliche Vorgabe von Hawe, woertlich. Spec, Umsetzung und Review werden an diesem Text gemessen;\n"
@@ -1231,7 +1268,7 @@ def quellen(kurztitel: str, datum: str | None = None) -> int:
     for z in unerkannt:
         teile.append(f"### Nicht erkannt\n\n**UNKLAR:** `{z[:200]}` – Form: `pfad` Zeilen a–b | def Name | class Name | `Name` | Abschnitt „…“\n")
         fehler += 1
-    ziel_datei = PM / f"quellen_{d}_{kurztitel}.md"
+    ziel_datei = ablage(kurztitel) / f"quellen_{d}_{kurztitel}.md"
     ziel_datei.write_text("\n".join(teile), encoding="utf-8")
     print(f"{len(eintraege)} Quellen -> {ziel_datei}" + (f"   {fehler} mit FEHLT/VERWEIGERT/ZU LANG/UNKLAR/PRÜFEN" if fehler else ""))
     for t in teile:
@@ -1267,23 +1304,25 @@ def prompt(schritt: str, kurztitel: str, datum: str | None, commit: str | None, 
         if schritt != "spec":
             print(f"Hinweis: Ruecksetzpunkt = HEAD von {ROOT} ({commit}). Stimmt das (Worktree?)? "
                   "Sonst --commit angeben.", file=sys.stderr)
-    paket_pfad = f"docs/projekt_management/review_paket_{datum}_{kurztitel}.md"
+    paket_pfad = f"{_ablage_rel(kurztitel)}/review_paket_{datum}_{kurztitel}.md"
     if schritt in ("review", "review2", "tief"):
         if paket(kurztitel, commit if commit != "<HASH>" else None, None, still=False) != 0:
             print("Hinweis: Review-Paket nicht gebaut (siehe oben) – Prompt verweist trotzdem darauf.",
                   file=sys.stderr)
-    anf_pfad = f"docs/projekt_management/{anf.name}" if anf else \
-        f"docs/projekt_management/anforderung_{datum}_{kurztitel}.md"
+    anf_pfad = f"{_ablage_rel(kurztitel)}/{anf.name}" if anf else \
+        f"{_ablage_rel(kurztitel)}/anforderung_{datum}_{kurztitel}.md"
     if not anf:
         print(f"Hinweis: {anf_pfad} fehlt. Anlegen mit: kette.py anforderung {kurztitel} --aufgabe \"…\"",
               file=sys.stderr)
-    text = (vorlage.read_text(encoding="utf-8")
-            .replace("{kurztitel}", kurztitel)
-            .replace("{datum}", datum)
-            .replace("{commit}", commit)
-            .replace("{anforderung}", anf_pfad)
-            .replace("{quellen}", f"docs/projekt_management/quellen_{datum}_{kurztitel}.md")
-            .replace("{paket}", paket_pfad))
+    text = (vorlage.read_text(encoding="utf-8"))
+    # K13a: Pfade in der Ablage der Kette nennen — vor Platzhalter-Ersetzung (Nachbesserung 1 E4)
+    text = _ablage_text(text, kurztitel)
+    text = (text.replace("{kurztitel}", kurztitel)
+              .replace("{datum}", datum)
+              .replace("{commit}", commit)
+              .replace("{anforderung}", anf_pfad)
+              .replace("{quellen}", f"{_ablage_rel(kurztitel)}/quellen_{datum}_{kurztitel}.md")
+              .replace("{paket}", paket_pfad))
     if anf:
         text = re.sub(r"<AUFGABE[^>]*>", lambda _m: aufgabe_lesen(anf), text)
     text = "\n".join(z for z in text.splitlines() if not z.startswith("<!--")).strip() + "\n"
@@ -1407,11 +1446,12 @@ def _freier_verdiktpfad(datum: str, kurztitel: str, lauf: int) -> Path:
     if lauf == 2:
         basis += "_betrieb"
     zaehler = 1
+    abl = ablage(kurztitel)
     while True:
         if zaehler > 1:
-            pfad = PM / f"{basis}_{zaehler}.md"
+            pfad = abl / f"{basis}_{zaehler}.md"
         else:
-            pfad = PM / f"{basis}.md"
+            pfad = abl / f"{basis}.md"
         if not pfad.exists():
             return pfad
         zaehler += 1
@@ -1448,7 +1488,7 @@ def review_auto(kurztitel: str) -> int:
     # A3: Review-Paket bauen
     if paket(kurztitel) != 0:
         print("Review-Paket nicht gebaut – Voraussetzung fehlt (Exit 2)."); return 2
-    paket_pfad = PM / f"review_paket_{_datum_aus(datei_suchen('spec', kurztitel, None)) or dt.date.today().strftime('%Y%m%d')}_{kurztitel}.md"
+    paket_pfad = ablage(kurztitel) / f"review_paket_{_datum_aus(datei_suchen('spec', kurztitel, None)) or dt.date.today().strftime('%Y%m%d')}_{kurztitel}.md"
     paket_text = paket_pfad.read_text(encoding="utf-8") if paket_pfad.exists() else ""
 
     datum = _datum_aus(datei_suchen("spec", kurztitel, None)) or dt.date.today().strftime("%Y%m%d")
@@ -1483,8 +1523,9 @@ def review_auto(kurztitel: str) -> int:
         print(f"Verdikt 1 gespeichert: {_rel(pfad1)}")
     except FileExistsError:
         zaehler = 2
+        abl = ablage(kurztitel)
         while True:
-            pfad1 = PM / f"verdict_{datum}_{kurztitel}_qwen36-35b_{zaehler}.md"
+            pfad1 = abl / f"verdict_{datum}_{kurztitel}_qwen36-35b_{zaehler}.md"
             if not pfad1.exists():
                 with open(pfad1, "x", encoding="utf-8") as f:
                     f.write(verdikt1)
@@ -1514,8 +1555,9 @@ def review_auto(kurztitel: str) -> int:
         print(f"Verdikt 2 gespeichert: {_rel(pfad2)}")
     except FileExistsError:
         zaehler = 2
+        abl = ablage(kurztitel)
         while True:
-            pfad2 = PM / f"verdict_{datum}_{kurztitel}_qwen36-35b_betrieb_{zaehler}.md"
+            pfad2 = abl / f"verdict_{datum}_{kurztitel}_qwen36-35b_betrieb_{zaehler}.md"
             if not pfad2.exists():
                 with open(pfad2, "x", encoding="utf-8") as f:
                     f.write(verdikt2)
@@ -1541,7 +1583,7 @@ def review_auto(kurztitel: str) -> int:
 
     # UNVOLLSTÄNDIG: bei fehlender Tabelle immer 1, Gesamtbefund anpassen
     if unvollstaendig:
-        gesamt_pfad = PM / f"gesamt_{datum}_{kurztitel}.md"
+        gesamt_pfad = ablage(kurztitel) / f"gesamt_{datum}_{kurztitel}.md"
         if gesamt_pfad.exists():
             text = gesamt_pfad.read_text(encoding="utf-8")
             text = text.replace("**PASS**", "**UNVOLLSTÄNDIG**")
@@ -1554,7 +1596,7 @@ def review_auto(kurztitel: str) -> int:
         print(f"==> UNVOLLSTÄNDIG: Befund-Tabelle fehlt in {', '.join(fehlende_datei)}")
 
     # Zusammenfassung
-    gesamt_pfad = PM / f"gesamt_{datum}_{kurztitel}.md"
+    gesamt_pfad = ablage(kurztitel) / f"gesamt_{datum}_{kurztitel}.md"
     print(f"\n=== Zusammenfassung ===")
     if unvollstaendig:
         print("Ergebnis: UNVOLLSTÄNDIG")
@@ -1608,12 +1650,20 @@ def _ist_vorgabe(pfad: str) -> bool:
 
 
 def _ist_kettendatei(pfad: str, kurztitel: str) -> bool:
-    """Von der Kette erzeugte Datei dieses Kurztitels in docs/projekt_management/ (ohne Vorgaben)."""
+    """Von der Kette erzeugte Datei dieses Kurztitels in docs/projekt_management/ (ohne Vorgaben).
+    
+    Erkennen auch im Ablage-Ordner docs/projekt_management/<kurztitel>/ (K13a).
+    """
     p = Path(pfad)
-    if p.parent.as_posix() != "docs/projekt_management":
-        return False
     muster = rf"^(?:{'|'.join(KETTEN_PRAEFIXE)})_\d{{8}}_{re.escape(kurztitel)}(?:_[\w.-]+)?\.md$"
-    return re.match(muster, p.name) is not None
+    # Erst im Ablage-Ordner der Kette prüfen
+    ordner = f"docs/projekt_management/{kurztitel}"
+    if p.parent.as_posix() == ordner:
+        return re.match(muster, p.name) is not None
+    # Dann flach in docs/projekt_management/
+    if p.parent.as_posix() == "docs/projekt_management":
+        return re.match(muster, p.name) is not None
+    return False
 
 
 def _offene_dateien() -> list[str] | None:
@@ -1741,12 +1791,14 @@ def _umsetzung_prompt(kurztitel: str, datum: str, commit: str, nacharbeit: Path 
     if not vorlage.is_file():
         return None
     anf = datei_suchen("anforderung", kurztitel, None)
-    anf_pfad = f"docs/projekt_management/{anf.name}" if anf else \
-        f"docs/projekt_management/anforderung_{datum}_{kurztitel}.md"
-    text = (vorlage.read_text(encoding="utf-8")
-            .replace("{kurztitel}", kurztitel).replace("{datum}", datum).replace("{commit}", commit)
-            .replace("{anforderung}", anf_pfad)
-            .replace("{quellen}", f"docs/projekt_management/quellen_{datum}_{kurztitel}.md"))
+    anf_pfad = f"{_ablage_rel(kurztitel)}/{anf.name}" if anf else \
+        f"{_ablage_rel(kurztitel)}/anforderung_{datum}_{kurztitel}.md"
+    text = (vorlage.read_text(encoding="utf-8"))
+    # K13a: Pfade in der Ablage der Kette nennen — vor Platzhalter-Ersetzung (Nachbesserung 1 E4)
+    text = _ablage_text(text, kurztitel)
+    text = (text.replace("{kurztitel}", kurztitel).replace("{datum}", datum).replace("{commit}", commit)
+              .replace("{anforderung}", anf_pfad)
+              .replace("{quellen}", f"{_ablage_rel(kurztitel)}/quellen_{datum}_{kurztitel}.md"))
     text = "\n".join(z for z in text.splitlines() if not z.startswith("<!--")).strip() + "\n"
     # A1: Pflichtzeilen im Handover – nach Grundtext, vor Nachbesserung
     spec_p = datei_suchen("spec", kurztitel, None)
@@ -1765,10 +1817,12 @@ def _umsetzung_prompt(kurztitel: str, datum: str, commit: str, nacharbeit: Path 
                  f"bis python3 -m unittest -v tests/test_{kurztitel}.py grün ist. Passt ein Test nicht zur Spec, "
                  "nenne ihn im Handover unter „Abweichungen“.\n")
     if nacharbeit:
+        nacharbeit_text = nacharbeit.read_text(encoding="utf-8").strip()
+        handover_rel = f"docs/projekt_management/handover_{datum}_{kurztitel}.md"
+        handover_rel = _ablage_text(handover_rel, kurztitel)
         text += (f"\n## Nachbesserung {nb}\n\nDas ist Nachbesserung {nb}. Der Auftrag steht unten (aus "
-                 f"`{_rel(nacharbeit)}`). Ergänze den Handover docs/projekt_management/handover_{datum}_"
-                 f"{kurztitel}.md um den Abschnitt „## Nachbesserung {nb}\" – nichts Bestehendes löschen.\n\n"
-                 + nacharbeit.read_text(encoding="utf-8").strip() + "\n")
+                 f"`{_rel(nacharbeit)}`). Ergänze den Handover {handover_rel} um den Abschnitt „## Nachbesserung {nb}\" – nichts Bestehendes löschen.\n\n"
+                 + nacharbeit_text + "\n")
     return text
 
 
@@ -1896,7 +1950,8 @@ def umsetzung_auto(kurztitel: str, nacharbeit: str | None = None) -> int:
     datum = _datum_aus(spec_p) or dt.date.today().strftime("%Y%m%d")
     testdatei = f"tests/test_{kurztitel}.py"
     handover_rel = f"docs/projekt_management/handover_{datum}_{kurztitel}.md"
-    protokoll_p = PM / f"umsetzung_{datum}_{kurztitel}.md"
+    handover_rel = _ablage_text(handover_rel, kurztitel)
+    protokoll_p = ablage(kurztitel) / f"umsetzung_{datum}_{kurztitel}.md"
     nach_p = None
     if nacharbeit:
         nach_p = Path(nacharbeit)

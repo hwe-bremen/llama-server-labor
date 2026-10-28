@@ -106,6 +106,8 @@ class UmsetzungImOrdner(Basis):
         prompt = json.loads(self.argsdatei.read_text(encoding="utf-8"))[-1]
         self.assertIn(f"docs/projekt_management/g/spec_{DATUM}_g.md", prompt)
         self.assertIn(f"docs/projekt_management/g/handover_{DATUM}_g.md", prompt)
+        self.assertIn(f"docs/projekt_management/g/anforderung_{DATUM}_g.md", prompt)    # Nachtrag: Platzhalter-Pfade
+        self.assertIn(f"docs/projekt_management/g/quellen_{DATUM}_g.md", prompt)
         self.assertNotIn(f"docs/projekt_management/spec_{DATUM}_g.md", prompt)
         self.assertNotIn("docs/projekt_management/g/_vorlage", prompt)
         self.assertNotIn("docs/projekt_management/g/g/", prompt)
@@ -188,6 +190,8 @@ class WeitereBefehle(Temp):
         with mock.patch.object(kette.shutil, "which", return_value=None):           # Nacharbeit 1: Platzhalter-Pfade
             code, out = self.rufen(kette.prompt, "review", "k", None, commit)
         self.assertIn(f"docs/projekt_management/k/verdict_{D}_k_<modellkürzel>.md", out)
+        self.assertIn(f"docs/projekt_management/k/review_paket_{D}_k.md", out)
+        self.assertNotIn("docs/projekt_management/k/k/", out)
         self.assertNotIn(f"docs/projekt_management/verdict_{D}_k_", out)
 
 
