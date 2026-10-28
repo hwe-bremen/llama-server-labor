@@ -1,4 +1,4 @@
-# Lernregeln der Kette (Stand 28.10.2026, nach K11a2)
+# Lernregeln der Kette (Stand 28.10.2026, nach K11b)
 
 Verdichtet aus 10 Ketten. Format: **Rnn** Regel – *Warum (Quelle)*. Höchstens ~100 Zeilen; neue Regel nur für wiederkehrende oder teure Fehler.
 Details je Kette: `kette_<kurztitel>.md`.
@@ -75,3 +75,8 @@ Details je Kette: `kette_<kurztitel>.md`.
 - **R49** „Rot vorab“ schließt Tests für bestehendes Verhalten aus: solche Tests mit `(Bestand)` im Titel kennzeichnen (müssen vorab grün sein) oder in eine Methode legen, die wegen eines neuen Teils rot ist. – *K11a2: Befunde 1, 4, 5 der Gegenprüfung waren sonst nicht als Vorgabe-Tests schreibbar.*
 - **R50** Ein neuer Schutzmechanismus der Kette greift erst ab der nächsten Kette: Den Lauf, der ihn baut, nicht als Messung werten – Mechanismus von Claude einbauen, an der nächsten kleinen Kette messen. Nach jedem Lauf **alle** Testdateien laufen lassen, nicht nur die der Kette. – *K11a: alter Prompt verlangte noch „Tests schreibst du“; Regression 22/37 sah `pruefen` nicht.*
 - **R51** Eigene Vorgabe-Tests per Mutation gegenprüfen: je Anforderung die tragende Zeile im Referenzcode entfernen – mindestens ein Test muss rot werden; jede Zeile der Fehlerpfad-Tabelle braucht einen Test oder „–“ mit Grund. – *K11a: frische Instanz fand zwei Lücken in Claudes Tests (T5, T7), beide per Mutation bestätigt.*
+
+## Automatik (K11b)
+- **R52** Vorgabe-Tests schreibt weiter Claude. Lokale Test-Schreiber nur als Messung: Ihre Tests laufen vorher gegen eine Referenzlösung – `tests-pruefen` erkennt Tests nicht, die das Falsche prüfen. – *K11b: 27B in 32:45, 6/8 grün mit Referenz, zwei Tests widersprachen der Spec.*
+- **R53** Mutanten nicht nur aus der eigenen Lösung ableiten: auch typische Fehler eines anderen Umsetzers einbauen (Schreibweise von Konstanten und Umlauten, Pfad statt Name, Rückgabewerte). Vor dem Commit den Diff des Umsetzers gegen die Referenz lesen. – *K11b: `UNVOLLSTAENDIG` und voller Pfad bestanden Claudes Tests (17/18 eigene Mutanten gefangen).*
+- **R54** Antwort von `review-auto` vor jeder Folgerung prüfen: Beginnt sie wie der Prompt, ist es ein Echo (einmal wiederholen, Limit nicht erhöhen); jeder Befund wird am Code nachgesehen (`grep`), bevor nachgebessert wird – ein „hoch“ über „Harte Vorgabe: ja“ bei selbst „niedrig“ genanntem Befund ist verdächtig. – *K11b: 1. Versuch Echo, 2. Versuch drei Befunde zu einem String, der nicht im Code steht.*

@@ -47,7 +47,7 @@ Dateiname: `verdict_<JJJJMMTT>_<kurztitel>_<modellkuerzel>.md`
 ## Befunde
 
 Fuer **jeden** Befund drei Fragen mit ja/nein beantworten. Ein „ja" macht den Befund „hoch", unabhaengig davon,
-ob die Schaechte schon vorher bestand. `kette.py urteil` prueft das nach.
+ob die Schwaeche schon vorher bestand. `kette.py urteil` prueft das nach.
 - **Datenverlust:** Kann Daten verlieren, ueberschreiben oder echte Daten veraendern?
 - **Unbemerkt:** Kann ein Fehler unbemerkt bleiben (Haenger, Schweigen, falscher Exit-Code, Test misst nichts)?
 - **Harte Vorgabe:** Verstoesst es gegen eine harte Vorgabe der Spec oder des Auftrags (z. B. kein echter Versand)?

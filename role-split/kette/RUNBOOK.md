@@ -156,6 +156,25 @@ python3 role-split/kette/kette.py umsetzung-auto <kurztitel>
 
 ---
 
+### Phase B–D in einem Befehl: `lauf` (ab K11b)
+
+Voraussetzung: Commit „Spec <kurztitel>" **mit** `## Vorgabe-Tests` und der Testdatei (R48). Dann:
+```bash
+python3 role-split/kette/kette.py lauf <kurztitel>
+```
+- Prüft Spec-Commit und Vorgabe-Tests (sonst Exit 2), zeigt die **Größe** (Dateien/Anforderungen/Tests, Schwellen 2/6/8,
+  vorläufig). Zu groß → **Exit 3**: Spec teilen oder Claude übernimmt (R43).
+- Sonst: `umsetzung-auto`, nur bei Exit 0 danach `review-auto`, dann Status und `HALT – Entscheidung Hawe.`
+  Exit 0 = alles grün, 1 = Befunde lesen, 2 = Voraussetzung fehlt.
+- Stand jederzeit, ohne etwas auszuführen:
+  ```bash
+  python3 role-split/kette/kette.py status <kurztitel>
+  ```
+  Die letzte Zeile „Nächster Schritt" sagt, was jetzt dran ist (Nacharbeit, Review, Gegenprüfung, committen).
+- Bei `NACHBESSERN` aus dem Review: erst Claude gegenprüfen lassen (R39, R54), dann entscheiden.
+
+---
+
 ## Phase C – Maschinelle Prüfung (ein Befehl)
 
 ```bash
@@ -314,6 +333,8 @@ git add docs/projekt_management/*_<kurztitel>.md && git commit -m "Spec <kurztit
 python3 role-split/kette/kette.py prompt umsetzung <kurztitel>     # → opencode, Qwen3.6, Agent umsetzung
 #    oder automatisch (Spec braucht ## Schreibbereich):
 python3 role-split/kette/kette.py umsetzung-auto <kurztitel>
+#    oder alles bis zur Entscheidung (Spec mit ## Vorgabe-Tests, Tests von Claude):
+python3 role-split/kette/kette.py lauf <kurztitel>      # danach: kette.py status <kurztitel>
 # C
 python3 role-split/kette/kette.py pruefen <kurztitel>
 # D  Ctrl+C, start_eval | Qwen3.6-35B-A3B, Reasoning aus | Lauf 1: prompt review | Lauf 2 (neuer Chat): prompt review2
