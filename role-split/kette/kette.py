@@ -1056,7 +1056,7 @@ def anforderung(kurztitel: str, aufgabe: str | None, antwort: str | None, frage:
             print(f"Gibt es schon: {vorhanden} (nichts ueberschrieben; Antworten mit --antwort anhaengen)")
             return 2
         d = datum or dt.date.today().strftime("%Y%m%d")
-        abl = ablage(kurztitel)
+        abl = PM / kurztitel
         abl.mkdir(parents=True, exist_ok=True)
         ziel = abl / f"anforderung_{d}_{kurztitel}.md"
         ziel.write_text(
@@ -2135,6 +2135,10 @@ def main(argv=None) -> int:
     lf.add_argument("kurztitel")
     st = sub.add_parser("status", help="Stand der Kette anzeigen, ohne etwas auszufuehren")
     st.add_argument("kurztitel")
+    e = sub.add_parser("einsortieren", help="Flache PM-Dateien in Ordner verschieben")
+    eg = e.add_mutually_exclusive_group(required=True)
+    eg.add_argument("kurztitel", nargs="?")
+    eg.add_argument("--alle", action="store_true")
     args = ap.parse_args(argv)
     if args.cmd == "zusammenfuehren":
         return zusammenfuehren([Path(v) if Path(v).is_absolute() or Path(v).exists() else PM / Path(v).name
@@ -2165,6 +2169,9 @@ def main(argv=None) -> int:
     if args.cmd == "status":
         import automatik
         return automatik.status(args.kurztitel)
+    if args.cmd == "einsortieren":
+        import einsortieren
+        return einsortieren.einsortieren(None if args.alle else args.kurztitel)
     pfad = Path(args.verdikt)
     if not pfad.is_absolute() and not pfad.exists():
         pfad = PM / pfad.name
