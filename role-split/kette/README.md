@@ -17,7 +17,7 @@ und ein Test hat echt gesendet.
 | 2 Umsetzung | OpenCode, Agent „umsetzung" | `… prompt umsetzung <kurztitel> --commit <rücksetzpunkt>` (ohne `--commit`: HEAD, mit Warnung) |
 | – | **Prüfen:** `… abgleich <kurztitel>`, `python3 -m unittest -v tests/test_<kurztitel>.py` und `… gegenprobe <kurztitel> --commit <rücksetzpunkt>` | |
 | 3 Review | Web-UI, neuer Chat | `… prompt review <kurztitel>` |
-| – | **Prüfen:** `… urteil docs/projekt_management/verdict_….md --anhaengen` | |
+| – | **Prüfen:** `… urteil docs/projekt_management/<kurztitel>/verdict_….md --anhaengen` | |
 | 4 Tiefenprüfung (optional, Eval) | `start_eval`, Modell laden, MCP aus/an, neuer Chat | `… prompt tief <kurztitel>` |
 
 `prompt` kopiert den Text am Mac gleich in die Zwischenablage (pbcopy).

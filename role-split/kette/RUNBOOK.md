@@ -18,7 +18,8 @@ Du beschreibst eine Aufgabe im Chat. Danach arbeiten nacheinander:
 | E Gegenprüfung | Claude (Projekt-Chat) | Befunde oder Freigabe | 5–15 min |
 | F Entscheidung | **Du** | Commit, Nachbesserung oder Verwerfen | 2 min |
 
-Alle Dateien liegen in `docs/projekt_management/` und tragen Datum und Kurztitel im Namen,
+Alle Dateien einer Kette liegen seit K13 in `docs/projekt_management/<kurztitel>/` (Ordner legt `anforderung` an;
+alte flache Dateien sortiert `kette.py einsortieren <kurztitel>` bzw. `--alle` ein) und tragen Datum und Kurztitel im Namen,
 z. B. `spec_20261021_search_results_verbessern.md`.
 
 **Drei Grundsätze**
@@ -83,7 +84,7 @@ Grundsatzfragen (Richtung des Labs, Architektur über mehrere Ketten) besser mit
 > 1. **Gezielt lesen:** Satz oben an die Aufgabe hängen; liest das Modell trotzdem große Dateien ganz → Stopp, „nur search_files + read_file mit Zeilenbereich".
 > 2. **Phase teilen:** Deine Antworten stehen schon in der Anforderung (der Proxy hängt sie an). Neuer Chat, Qwen3.8, Reasoning aus:
 >    ```
->    @review Spec schreiben für <kurztitel>: Lies docs/projekt_management/anforderung_<datum>_<kurztitel>.md – dort stehen Aufgabe, alle Rückfragen und meine Antworten. Keine neuen Rückfragen außer bei echtem Widerspruch. Lies Code nur gezielt: search_files, dann read_file mit start_line/end_line. Schreib die Spec abschnittsweise: write_file für den Kopf, danach append_file je Abschnitt.
+>    @review Spec schreiben für <kurztitel>: Lies docs/projekt_management/<kurztitel>/anforderung_<datum>_<kurztitel>.md – dort stehen Aufgabe, alle Rückfragen und meine Antworten. Keine neuen Rückfragen außer bei echtem Widerspruch. Lies Code nur gezielt: search_files, dann read_file mit start_line/end_line. Schreib die Spec abschnittsweise: write_file für den Kopf, danach append_file je Abschnitt.
 >    ```
 >    (Noch wenig erprobt – greift die Rolle nicht, Claude fragen.)
 > 3. **Abschnittsweise schreiben:** Korrekturen an der Spec mit `replace_in_file`, nie die ganze Spec neu schreiben lassen.
@@ -101,7 +102,7 @@ Grundsatzfragen (Richtung des Labs, Architektur über mehrere Ketten) besser mit
    Meldet es `FEHLT`, `ZU LANG`, `VERWEIGERT` oder `UNKLAR`: im Spec-Chat korrigieren lassen, Befehl wiederholen.
 6. Committen – **die Nachricht muss genau so lauten**, daran findet `pruefen` später den Rücksetzpunkt:
    ```bash
-   git add docs/projekt_management/*_<kurztitel>.md && git commit -m "Spec <kurztitel>"
+   git add docs/projekt_management/<kurztitel>/ && git commit -m "Spec <kurztitel>"
    ```
 
 **Fertig, wenn:** Commit „Spec <kurztitel>" existiert (`git log --oneline -3`).
@@ -136,9 +137,9 @@ python3 role-split/kette/kette.py umsetzung-auto <kurztitel>
   Testdatei und Handover geändert, Handover in diesem Lauf geschrieben, `pruefen` grün. Es setzt **nichts** zurück.
 - **Ergebnis:** Exit 0 = alles in Ordnung → weiter mit **Phase D**. Exit 1 = Liste der Befunde lesen. Je Lauf eine Zeile in
   `umsetzung_<datum>_<kurztitel>.md`, Rohdaten (JSON-Strom) in `role-split/results/`.
-- **Nacharbeit:** Den Auftrag (von Claude) als `docs/projekt_management/nacharbeit_<datum>_<kurztitel>_<n>.md` ablegen, dann
+- **Nacharbeit:** Den Auftrag (von Claude) als `docs/projekt_management/<kurztitel>/nacharbeit_<datum>_<kurztitel>_<n>.md` ablegen, dann
   ```bash
-  python3 role-split/kette/kette.py umsetzung-auto <kurztitel> --nacharbeit docs/projekt_management/nacharbeit_<datum>_<kurztitel>_<n>.md
+  python3 role-split/kette/kette.py umsetzung-auto <kurztitel> --nacharbeit docs/projekt_management/<kurztitel>/nacharbeit_<datum>_<kurztitel>_<n>.md
   ```
   Offene Kettendateien (Prüfung, Verdikte, Protokoll) stören dabei nicht. Nach zwei Nachbesserungen in Folge ohne
   Fortschritt startet keine weitere: „Übergabe an Hawe" (Exit 1).
@@ -221,7 +222,7 @@ Achtung: `gegenprobe` verändert Dateien für Sekunden – nicht laufen lassen, 
 5. **Kontextanzeige beobachten.** Ab **80 %** die Notbremse schicken (Abschnitt 5).
 6. **Zusammenführen – mechanisch, kein dritter Modell-Lauf:**
    ```bash
-   python3 role-split/kette/kette.py zusammenfuehren docs/projekt_management/verdict_<…>.md docs/projekt_management/verdict_<…>_betrieb.md
+   python3 role-split/kette/kette.py zusammenfuehren docs/projekt_management/<kurztitel>/verdict_<…>.md docs/projekt_management/<kurztitel>/verdict_<…>_betrieb.md
    ```
    Schreibt `gesamt_<datum>_<kurztitel>.md` mit allen Befunden beider Läufe; ein hoher Befund in irgendeinem Lauf
    (oder „ja" bei Datenverlust/Unbemerkt/Harte Vorgabe) ergibt NACHBESSERN.
@@ -284,7 +285,7 @@ Hinweis: Proben, die bekannte Defekte als Prüfstein nutzen, sperren `docs/learn
 **Notbremse Kontext Spec (ab 80 %)** – in denselben Chat, rettet den Stand:
 ```
 Stopp, Kontext fast voll. Nichts mehr lesen. Speichere jetzt deinen Stand nach
-docs/projekt_management/spec_<datum>_<kurztitel>.md: erst write_file mit Kopf und den Abschnitten, die fertig sind,
+docs/projekt_management/<kurztitel>/spec_<datum>_<kurztitel>.md: erst write_file mit Kopf und den Abschnitten, die fertig sind,
 dann je weiterer Abschnitt append_file. Unfertiges als „OFFEN: …" markieren.
 ```
 Danach weiter mit **Phase teilen** (Kasten in Phase A): neuer Chat liest Anforderung + diese Spec-Datei und ergänzt nur die offenen Abschnitte.
@@ -328,7 +329,7 @@ cd ~/PycharmProjects/llama-server && source .venv/bin/activate && git status --s
 #    "@review Neue Aufgabe <kurztitel>: … Lies keine großen Dateien ganz …"  →  Rückfragen beantworten
 #    →  Kontext < 50 %: "Spec schreiben" | sonst neuer Chat: "@review Spec schreiben für <kurztitel>: …"  →  Spec-Checkliste
 python3 role-split/kette/kette.py quellen <kurztitel>
-git add docs/projekt_management/*_<kurztitel>.md && git commit -m "Spec <kurztitel>"
+git add docs/projekt_management/<kurztitel>/ && git commit -m "Spec <kurztitel>"
 # B
 python3 role-split/kette/kette.py prompt umsetzung <kurztitel>     # → opencode, Qwen3.6, Agent umsetzung
 #    oder automatisch (Spec braucht ## Schreibbereich):
@@ -339,7 +340,7 @@ python3 role-split/kette/kette.py lauf <kurztitel>      # danach: kette.py statu
 python3 role-split/kette/kette.py pruefen <kurztitel>
 # D  Ctrl+C, start_eval | Qwen3.6-35B-A3B, Reasoning aus | Lauf 1: prompt review | Lauf 2 (neuer Chat): prompt review2
 python3 role-split/kette/kette.py prompt review <kurztitel>
-python3 role-split/kette/kette.py zusammenfuehren docs/projekt_management/verdict_<…>.md docs/projekt_management/verdict_<…>_betrieb.md
+python3 role-split/kette/kette.py zusammenfuehren docs/projekt_management/<kurztitel>/verdict_<…>.md docs/projekt_management/<kurztitel>/verdict_<…>_betrieb.md
 # E  Projekt-Chat: "Kette <kurztitel> fertig, bitte gegenprüfen."
 # F  Freigabe → git add -A && git commit -m "Kette <kurztitel>: …"
 #    Nachbessern → Claude-Prompt in OpenCode → zurück zu C → E

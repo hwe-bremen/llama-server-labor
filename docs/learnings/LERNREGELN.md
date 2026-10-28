@@ -1,4 +1,4 @@
-# Lernregeln der Kette (Stand 28.10.2026, nach K11b)
+# Lernregeln der Kette (Stand 28.10.2026, nach K13)
 
 Verdichtet aus 10 Ketten. Format: **Rnn** Regel – *Warum (Quelle)*. Höchstens ~100 Zeilen; neue Regel nur für wiederkehrende oder teure Fehler.
 Details je Kette: `kette_<kurztitel>.md`.
@@ -80,3 +80,8 @@ Details je Kette: `kette_<kurztitel>.md`.
 - **R52** Vorgabe-Tests schreibt weiter Claude. Lokale Test-Schreiber nur als Messung: Ihre Tests laufen vorher gegen eine Referenzlösung – `tests-pruefen` erkennt Tests nicht, die das Falsche prüfen. – *K11b: 27B in 32:45, 6/8 grün mit Referenz, zwei Tests widersprachen der Spec.*
 - **R53** Mutanten nicht nur aus der eigenen Lösung ableiten: auch typische Fehler eines anderen Umsetzers einbauen (Schreibweise von Konstanten und Umlauten, Pfad statt Name, Rückgabewerte). Vor dem Commit den Diff des Umsetzers gegen die Referenz lesen. – *K11b: `UNVOLLSTAENDIG` und voller Pfad bestanden Claudes Tests (17/18 eigene Mutanten gefangen).*
 - **R54** Antwort von `review-auto` vor jeder Folgerung prüfen: Beginnt sie wie der Prompt, ist es ein Echo (einmal wiederholen, Limit nicht erhöhen); jeder Befund wird am Code nachgesehen (`grep`), bevor nachgebessert wird – ein „hoch“ über „Harte Vorgabe: ja“ bei selbst „niedrig“ genanntem Befund ist verdächtig. – *K11b: 1. Versuch Echo, 2. Versuch drei Befunde zu einem String, der nicht im Code steht.*
+
+## Ablage (K13a/K13b)
+- **R55** Die Größenprüfung zählt Dateien, Anforderungen und Tests, nicht die Änderungsstellen: Viele verstreute kleine Änderungen in einer großen Datei bringen den 35B an die Kontextgrenze, auch unter den Schwellen. Die Spec nennt die Zahl der Stellen; ab etwa 10 Stellen teilen oder Claude baut. – *K13a: 2/6/7, ~20 Stellen in `kette.py` → zweimal ~62,7K von 64K, je ~25 min; K13b mit 2 Stellen + neuer Datei: 18 min ohne Spec-Abweichung.*
+- **R56** Das lokale `review-auto` ist derzeit kein Prüfstein: Es setzt den Kurztitel für `{kurztitel}` ein und bemängelt dann „fest codierte“ Texte. Befunde gelten als Hinweis; entschieden wird über den Vergleich mit der Referenz und `grep` am Code. – *K11b und K13a: 7 „hoch“, alle falsch.*
+- **R57** Nach jeder Nacharbeit wieder den ganzen Diff gegen die Referenz lesen, nicht nur die beauftragten Punkte: Eine Nacharbeit kann vorher richtige Stellen kaputt machen. Bei realen Daten (Migration) einen Trockenlauf an einer Kopie des echten Bestands machen, mit Referenz und Umsetzung, und die Ergebnisse vergleichen. – *K13a nb1 machte Anforderung/Quellen/Paket wieder flach; K13b-Trockenlauf 133/18/19 identisch.*
