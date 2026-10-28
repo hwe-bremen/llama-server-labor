@@ -325,7 +325,7 @@ class AufgabenMitschriftTests(unittest.TestCase):
         self.addCleanup(lambda: setattr(self.k, "ROOT", alt[0]) or setattr(self.k, "PM", alt[1]))
 
     def anf(self):
-        treffer = sorted(self.k.PM.glob("anforderung_*_feeds.md"))
+        treffer = sorted((self.k.PM / "feeds").glob("anforderung_*_feeds.md"))   # K13b: Ordner je Kette
         return treffer[0].read_text(encoding="utf-8") if treffer else None
 
     def test_neue_aufgabe_woertlich_und_spec_auftrag(self):
@@ -337,7 +337,7 @@ class AufgabenMitschriftTests(unittest.TestCase):
         system = out["messages"][0]["content"]
         self.assertIn("Die GitHub-Feeds liefern nichts.", system)
         self.assertIn("Spec schreiben", system)
-        self.assertRegex(system, r"docs/projekt_management/anforderung_\d{8}_feeds\.md")
+        self.assertRegex(system, r"docs/projekt_management/feeds/anforderung_\d{8}_feeds\.md")   # K13b
         self.assertNotIn("<AUFGABE", system)
 
     def test_antwort_mit_frage_einmal_angehaengt(self):

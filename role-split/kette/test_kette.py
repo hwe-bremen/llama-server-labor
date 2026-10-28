@@ -443,7 +443,7 @@ class AnforderungTests(unittest.TestCase):
     def test_anlegen_antwort_und_kein_ueberschreiben(self):
         code, _ = lauf(kette.anforderung, "t", "Zweitlauf darf nichts verlieren.\nZweite Zeile.", None, None, "20261018")
         self.assertEqual(code, 0)
-        p = kette.PM / "anforderung_20261018_t.md"
+        p = kette.PM / "t" / "anforderung_20261018_t.md"          # K13b: Ordner je Kette
         self.assertEqual(kette.aufgabe_lesen(p), "Zweitlauf darf nichts verlieren.\nZweite Zeile.")
         code, _ = lauf(kette.anforderung, "t", None, "Jeder Eintrag genau einmal per Mail.", "Mail nach Zweitlauf?", None)
         self.assertEqual(code, 0)
@@ -460,7 +460,7 @@ class AnforderungTests(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertIn("Zweitlauf darf nichts verlieren.", out)
         self.assertNotIn("<AUFGABE", out)
-        self.assertIn("docs/projekt_management/anforderung_20261018_t.md", out)
+        self.assertIn("docs/projekt_management/t/anforderung_20261018_t.md", out)   # K13b
         self.assertIn("spec_20261018_t.md", out)
 
     def test_review_nimmt_datum_der_spec(self):
