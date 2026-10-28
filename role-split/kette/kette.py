@@ -2076,6 +2076,10 @@ def main(argv=None) -> int:
     ua.add_argument("kurztitel"); ua.add_argument("--nacharbeit", help="Datei mit dem Nachbesserungs-Auftrag")
     tp = sub.add_parser("tests-pruefen", help="Vorgabe-Tests pruefen: Abdeckung, laedt, rot vorab")
     tp.add_argument("kurztitel"); tp.add_argument("--timeout", type=int, default=300)
+    lf = sub.add_parser("lauf", help="Kette: Groesse -> umsetzung-auto -> review-auto -> status")
+    lf.add_argument("kurztitel")
+    st = sub.add_parser("status", help="Stand der Kette anzeigen, ohne etwas auszufuehren")
+    st.add_argument("kurztitel")
     args = ap.parse_args(argv)
     if args.cmd == "zusammenfuehren":
         return zusammenfuehren([Path(v) if Path(v).is_absolute() or Path(v).exists() else PM / Path(v).name
@@ -2100,6 +2104,12 @@ def main(argv=None) -> int:
         return prompt(args.schritt, args.kurztitel, args.datum, args.commit, args.lauf)
     if args.cmd == "abgleich":
         return abgleich(args.kurztitel, args.datum)
+    if args.cmd == "lauf":
+        import automatik
+        return automatik.lauf(args.kurztitel)
+    if args.cmd == "status":
+        import automatik
+        return automatik.status(args.kurztitel)
     pfad = Path(args.verdikt)
     if not pfad.is_absolute() and not pfad.exists():
         pfad = PM / pfad.name
