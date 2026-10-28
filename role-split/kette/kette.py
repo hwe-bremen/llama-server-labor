@@ -61,6 +61,10 @@ Befehle, nur Standardbibliothek, liest/schreibt nur im Projekt:
         Danach mechanisch: Selbst-Commit, Schreibbereich der Spec, Handover, pruefen. Protokollzeile in
         docs/projekt_management/umsetzung_<datum>_<kurztitel>.md, Rohdaten in role-split/results/.
 
+  python3 role-split/kette/kette.py tests-pruefen <kurztitel> [--timeout S]
+        Prueft vorab geschriebene Tests (Spec mit '## Vorgabe-Tests'): je Test-ID eine Methode, Skript laedt,
+        jeder Test rot ohne Umsetzung. umsetzung-auto startet den Erstlauf nur bei Exit 0 (K11a).
+
 Exit-Codes: 0 = in Ordnung / PASS, 1 = Abweichung / NACHBESSERN, 2 = Datei/Format-Fehler.
 Mode B: Lab, beruehrt AskValentinAI nicht.
 """
@@ -441,6 +445,56 @@ def gegenprobe(kurztitel: str, commit: str, timeout: int = 300) -> int:
               "oder gar nichts (Befund)? Tipp: Neue Funktionen im Test erst in der Methode importieren, "
               "dann wird die Gegenprobe je Test aussagekraeftig.")
     return 0 if not gruen else 1
+
+# ---------------------------------------------------------------- tests-pruefen (K11a)
+
+def _vorgabe_tests(spec_text: str) -> bool:
+    """Wahr, wenn die Spec den Abschnitt '## Vorgabe-Tests' hat (Tests vorab, Umsetzer schreibt nur Code)."""
+    return re.search(r"^##\s+Vorgabe-Tests\s*$", spec_text, re.M) is not None
+
+
+def tests_pruefen(kurztitel: str, timeout: int = 300) -> int:
+    """Prueft vorab geschriebene Tests: je Test-ID der Spec eine Methode, Skript laedt, jeder Test rot vorab."""
+    spec = datei_suchen("spec", kurztitel, None)
+    skript = ROOT / "tests" / f"test_{kurztitel}.py"
+    if not skript.is_file():
+        print(f"Keine Vorgabe-Tests tests/test_{kurztitel}.py"); return 2
+    if not spec:
+        print(f"Keine spec_*_{kurztitel}.md"); return 2
+    spec_tests = tests_finden(spec.read_text(encoding="utf-8"))
+    if not spec_tests:
+        print(f"Keine Test-IDs (T1, NT1 ...) in {spec.name}"); return 2
+    code = skript.read_text(encoding="utf-8")
+    probleme = 0
+    for hinweis in methoden_pruefen(code):
+        probleme += 1
+        print(f"  {hinweis}")
+    stand = tests_laufen(skript, timeout)
+    if stand is None:
+        print(f"  ZEIT      Testskript nach {timeout} s abgebrochen")
+        return 1
+    try:
+        methoden = {k.name for k in ast.walk(ast.parse(code))
+                    if isinstance(k, (ast.FunctionDef, ast.AsyncFunctionDef)) and k.name.startswith("test")}
+    except SyntaxError:
+        methoden = set()
+    if not set(stand) & methoden:          # nur Lade-Eintraege, keine echte Testmethode gelaufen
+        print("  LAEDT NICHT Testskript laedt nicht -- neue Funktionen erst in der Methode importieren")
+        return 1
+    for tid in spec_tests:
+        namen = [n for n in stand if re.match(rf"test_{tid.lower()}(_|$)", n)]
+        if not namen:
+            probleme += 1
+            print(f"  FEHLT     {tid}")
+            continue
+        nicht_rot = [n for n in namen if stand[n] not in ("FAIL", "ERROR")]
+        if nicht_rot:
+            probleme += 1
+            print(f"  NICHT ROT {tid}  {', '.join(nicht_rot)} (ohne Umsetzung nicht rot -- prueft nichts Neues)")
+        else:
+            print(f"  rot       {tid}")
+    print(f"\n{'Keine Abweichung.' if not probleme else f'{probleme} Abweichung(en).'}")
+    return 0 if not probleme else 1
 
 # ---------------------------------------------------------------- pruefen (alles in einem)
 
@@ -1677,6 +1731,11 @@ def _umsetzung_prompt(kurztitel: str, datum: str, commit: str, nacharbeit: Path 
                 zeilen.append(f"**{tid}: {titel}** – bestanden | fehlgeschlagen")
             zeilen.append('Unter „## Nicht getestet" nur Test-IDs, die wirklich nicht getestet sind – keine Sammelangaben wie „T1–T5".')
             text += "\n".join(zeilen) + "\n"
+    if spec_p and _vorgabe_tests(spec_p.read_text(encoding="utf-8")):
+        text += ("\n## Vorgabe-Tests\n\nAbweichend von den Testregeln oben: Die Tests stehen schon in "
+                 f"tests/test_{kurztitel}.py. Du änderst diese Datei nicht – keine Zeile. Schreib nur den Code, "
+                 f"bis python3 -m unittest -v tests/test_{kurztitel}.py grün ist. Passt ein Test nicht zur Spec, "
+                 "nenne ihn im Handover unter „Abweichungen“.\n")
     if nacharbeit:
         text += (f"\n## Nachbesserung {nb}\n\nDas ist Nachbesserung {nb}. Der Auftrag steht unten (aus "
                  f"`{_rel(nacharbeit)}`). Ergänze den Handover docs/projekt_management/handover_{datum}_"
@@ -1836,6 +1895,13 @@ def umsetzung_auto(kurztitel: str, nacharbeit: str | None = None) -> int:
         if fremd:
             return nein("Nacharbeit: unzulaessige offene Aenderungen (Vorgaben oder ausserhalb von Schreibbereich/"
                         "Testdatei/Kettendateien):\n" + "\n".join(f"  {d}" for d in fremd))
+    # K11a: Vorgabe-Tests
+    vorgabe = _vorgabe_tests(spec_p.read_text(encoding="utf-8"))
+    if vorgabe:
+        if not (ROOT / testdatei).is_file():
+            return nein(f"Spec nennt '## Vorgabe-Tests', aber {testdatei} fehlt.")
+        if not nach_p and tests_pruefen(kurztitel) != 0:
+            return nein(f"Vorgabe-Tests nicht in Ordnung (kette.py tests-pruefen {kurztitel}) – kein Lauf.")
     # A2.5 opencode
     programm = _opencode_programm()
     if not programm:
@@ -1897,8 +1963,12 @@ def umsetzung_auto(kurztitel: str, nacharbeit: str | None = None) -> int:
     if head_vor != head_nach:
         befunde.append(f"Selbst-Commit: HEAD {head_vor[:7]} -> {head_nach[:7]} (nichts zurückgesetzt).")
     # (b) immer
+    if vorgabe and testdatei in aenderungen:
+        befunde.append(f"Vorgabe-Tests in diesem Lauf geändert: {testdatei} ({aenderungen[testdatei]}) – "
+                       "nichts zurückgesetzt.")
     verstoesse = [(d, a) for d, a in aenderungen.items()
-                  if _ist_vorgabe(d) or not (_im_schreibbereich(d, bereich) or d in (testdatei, handover_rel))]
+                  if not (vorgabe and d == testdatei)
+                  and (_ist_vorgabe(d) or not (_im_schreibbereich(d, bereich) or d in (testdatei, handover_rel)))]
     if verstoesse:
         befunde.append("Schreibbereich verletzt (nichts zurückgesetzt):\n"
                        + "\n".join(f"  {d} ({a})" for d, a in verstoesse))
@@ -1975,6 +2045,8 @@ def main(argv=None) -> int:
     ra.add_argument("kurztitel")
     ua = sub.add_parser("umsetzung-auto", help="Umsetzung/Nacharbeit ueber opencode run ohne TUI, danach pruefen")
     ua.add_argument("kurztitel"); ua.add_argument("--nacharbeit", help="Datei mit dem Nachbesserungs-Auftrag")
+    tp = sub.add_parser("tests-pruefen", help="Vorgabe-Tests pruefen: Abdeckung, laedt, rot vorab")
+    tp.add_argument("kurztitel"); tp.add_argument("--timeout", type=int, default=300)
     args = ap.parse_args(argv)
     if args.cmd == "zusammenfuehren":
         return zusammenfuehren([Path(v) if Path(v).is_absolute() or Path(v).exists() else PM / Path(v).name
@@ -1987,6 +2059,8 @@ def main(argv=None) -> int:
         return review_auto(args.kurztitel)
     if args.cmd == "umsetzung-auto":
         return umsetzung_auto(args.kurztitel, args.nacharbeit)
+    if args.cmd == "tests-pruefen":
+        return tests_pruefen(args.kurztitel, args.timeout)
     if args.cmd == "gegenprobe":
         return gegenprobe(args.kurztitel, args.commit, args.timeout)
     if args.cmd == "quellen":
