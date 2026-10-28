@@ -142,6 +142,15 @@ python3 role-split/kette/kette.py umsetzung-auto <kurztitel>
   ```
   Offene Kettendateien (Prüfung, Verdikte, Protokoll) stören dabei nicht. Nach zwei Nachbesserungen in Folge ohne
   Fortschritt startet keine weitere: „Übergabe an Hawe" (Exit 1).
+- **Tests vorab (ab K11a, R48):** Hat die Spec `## Vorgabe-Tests`, schreibt Claude die Tests mit der Spec; sie werden im
+  Commit „Spec <kurztitel>" mitcommittet. Vor dem Erstlauf prüft `umsetzung-auto` sie selbst (sonst Exit 2):
+  ```bash
+  python3 role-split/kette/kette.py tests-pruefen <kurztitel>
+  ```
+  Erwartet: `rot` für jede Test-ID (bei `(Bestand)`-Tests `gruen`), „Keine Abweichung.". Nach der Umsetzung meldet dieser Befehl
+  `NICHT ROT` – das ist dann richtig. Ändert der Umsetzer die Testdatei, steht `Vorgabe-Tests in diesem Lauf geändert` in den
+  Befunden (Exit 1). Eine Nacharbeit startet nicht, solange die Testdatei offene Änderungen hat: `git restore` oder Korrektur committen.
+  Danach **alle** Tests laufen lassen, nicht nur die der Kette (R50).
 - Gemessen an opencode 1.19.3: `ask` wird ohne TUI sofort abgelehnt und beendet den Lauf stumm; der Exit-Code von OpenCode
   ist immer 0 – deshalb wertet `kette.py` nur den JSON-Strom aus.
 

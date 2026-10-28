@@ -1,4 +1,4 @@
-# Lernregeln der Kette (Stand 27.10.2026, nach K10)
+# Lernregeln der Kette (Stand 28.10.2026, nach K11a2)
 
 Verdichtet aus 10 Ketten. Format: **Rnn** Regel – *Warum (Quelle)*. Höchstens ~100 Zeilen; neue Regel nur für wiederkehrende oder teure Fehler.
 Details je Kette: `kette_<kurztitel>.md`.
@@ -69,3 +69,9 @@ Details je Kette: `kette_<kurztitel>.md`.
 - **R45** Attrappen für Fremdprogramme sperren sich selbst (Arbeitsordner **und** jedes Schreibziel im Temp-Ordner), und jeder Test prüft am Ende, dass HEAD, Status und Prüfsummen des echten Repos unverändert sind. Auch an die Gegenprobe denken: Dort läuft der Test gegen die **alte** Attrappe. – *K10: Tests des Umsetzers committeten ins echte Repo; Ausbruchs-Test hätte mit alter Attrappe hinausgeschrieben.*
 - **R46** OpenCode ohne TUI: Verbote als `deny` in die Agent-Datei (Umgebungsvariablen überstimmen Agent-Regeln nicht, `ask` beendet den Lauf stumm); Erfolg nur aus dem JSON-Strom (`reason: stop`), nie aus dem Exit-Code. – *K10 Probe P1–P6.*
 - **R47** Schreibbereich einer Spec nie unter Pfaden, die Paket und Gegenprobe ausblenden (`PAKET_NIE`: `docs/`, `experiments/`). – *K10 Abnahme: Mini-Spec unter `experiments/` → „Keine geaenderten Code-Dateien", Exit 1 trotz korrektem Code.*
+
+## Automatik (K11a/K11a2)
+- **R48** Tests vor der Umsetzung schreiben (Claude), in der Spec als `## Vorgabe-Tests` markieren und vor dem Start mit `kette.py tests-pruefen` prüfen; der lokale Umsetzer schreibt nur Code. Ohne ausdrückliches Verbot im Prompt schreibt der 35B Vorgabe-Tests passend zu seinem Code um. – *K11a: Tests überschrieben, 1/8 gegen die echten Vorgabe-Tests; K11a2 mit Prompt-Abschnitt: Testdatei unverändert, Code gleichwertig zur Referenz in 12:28.*
+- **R49** „Rot vorab“ schließt Tests für bestehendes Verhalten aus: solche Tests mit `(Bestand)` im Titel kennzeichnen (müssen vorab grün sein) oder in eine Methode legen, die wegen eines neuen Teils rot ist. – *K11a2: Befunde 1, 4, 5 der Gegenprüfung waren sonst nicht als Vorgabe-Tests schreibbar.*
+- **R50** Ein neuer Schutzmechanismus der Kette greift erst ab der nächsten Kette: Den Lauf, der ihn baut, nicht als Messung werten – Mechanismus von Claude einbauen, an der nächsten kleinen Kette messen. Nach jedem Lauf **alle** Testdateien laufen lassen, nicht nur die der Kette. – *K11a: alter Prompt verlangte noch „Tests schreibst du“; Regression 22/37 sah `pruefen` nicht.*
+- **R51** Eigene Vorgabe-Tests per Mutation gegenprüfen: je Anforderung die tragende Zeile im Referenzcode entfernen – mindestens ein Test muss rot werden; jede Zeile der Fehlerpfad-Tabelle braucht einen Test oder „–“ mit Grund. – *K11a: frische Instanz fand zwei Lücken in Claudes Tests (T5, T7), beide per Mutation bestätigt.*
