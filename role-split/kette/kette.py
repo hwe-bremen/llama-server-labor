@@ -415,6 +415,7 @@ def gegenprobe(kurztitel: str, commit: str, timeout: int = 300) -> int:
         print(f"Abbruch: Das Testskript laeuft auf dem aktuellen Stand nicht gruen ({vorher}). Erst reparieren.")
         return 2
     print(f"Gegenprobe gegen {commit}: {len(vorher)} Tests, je Datei einzeln zurueckgesetzt\n")
+    bestand = _bestand_ids(kurztitel)
     rot_durch: dict[str, list[str]] = {t: [] for t in vorher}
     laden_scheitert: list[str] = []
     for d in dateien:
@@ -430,10 +431,13 @@ def gegenprobe(kurztitel: str, commit: str, timeout: int = 300) -> int:
             rot_durch[t].append(d)
         print(f"  {d}: {len(rote)} Test(s) rot")
     print()
-    gruen = [t for t, ds in rot_durch.items() if not ds]
+    bestand_re = re.compile(rf"test_({'|'.join(bestand)})(_|$)", re.I)
+    gruen = [t for t, ds in rot_durch.items() if not ds and not bestand_re.match(t)]
     for t in sorted(rot_durch):
         if rot_durch[t]:
             print(f"  rot   {t}  <- {', '.join(Path(x).name for x in rot_durch[t])}")
+        elif bestand_re.match(t) and not rot_durch[t]:
+            print(f"  BESTAND {t}  (prueft laut Spec bewusst Bestehendes)")
         elif laden_scheitert:
             print(f"  LADEN {t}  (rot nur, weil das Skript ohne {', '.join(laden_scheitert)} nicht laedt -- schwacher Beleg)")
         else:
@@ -447,6 +451,21 @@ def gegenprobe(kurztitel: str, commit: str, timeout: int = 300) -> int:
     return 0 if not gruen else 1
 
 # ---------------------------------------------------------------- tests-pruefen (K11a)
+
+BESTAND = "(Bestand)"
+
+
+def _bestand_ids(kurztitel: str) -> set[str]:
+    """Test-IDs der Spec, deren Titel BESTAND enthält."""
+    spec = datei_suchen("spec", kurztitel, None)
+    if not spec:
+        return set()
+    ids, titel_map = [], tests_finden(spec.read_text(encoding="utf-8"))
+    for tid, titel in titel_map.items():
+        if BESTAND in titel:
+            ids.append(tid)
+    return set(ids)
+
 
 def _vorgabe_tests(spec_text: str) -> bool:
     """Wahr, wenn die Spec den Abschnitt '## Vorgabe-Tests' hat (Tests vorab, Umsetzer schreibt nur Code)."""
@@ -481,11 +500,20 @@ def tests_pruefen(kurztitel: str, timeout: int = 300) -> int:
     if not set(stand) & methoden:          # nur Lade-Eintraege, keine echte Testmethode gelaufen
         print("  LAEDT NICHT Testskript laedt nicht -- neue Funktionen erst in der Methode importieren")
         return 1
+    bestand = _bestand_ids(kurztitel)
     for tid in spec_tests:
         namen = [n for n in stand if re.match(rf"test_{tid.lower()}(_|$)", n)]
         if not namen:
             probleme += 1
             print(f"  FEHLT     {tid}")
+            continue
+        if tid in bestand:
+            if not namen or all(stand[n] == "ok" for n in namen):
+                print(f"  gruen     {tid}")
+            else:
+                probleme += 1
+                nicht_ok = [n for n in namen if stand[n] != "ok"]
+                print(f"  NICHT GRUEN {tid}  {', '.join(nicht_ok)} (Bestand-Test muss vorab grün sein)")
             continue
         nicht_rot = [n for n in namen if stand[n] not in ("FAIL", "ERROR")]
         if nicht_rot:
@@ -1900,6 +1928,8 @@ def umsetzung_auto(kurztitel: str, nacharbeit: str | None = None) -> int:
     if vorgabe:
         if not (ROOT / testdatei).is_file():
             return nein(f"Spec nennt '## Vorgabe-Tests', aber {testdatei} fehlt.")
+        if nach_p and testdatei in offen:
+            return nein(f"Nacharbeit: Vorgabe-Tests {testdatei} haben offene Aenderungen. Auf die Vorgabe zuruecksetzen (git restore {testdatei}) oder eine bewusste Korrektur committen – kein Lauf.")
         if not nach_p and tests_pruefen(kurztitel) != 0:
             return nein(f"Vorgabe-Tests nicht in Ordnung (kette.py tests-pruefen {kurztitel}) – kein Lauf.")
     # A2.5 opencode
@@ -1967,8 +1997,7 @@ def umsetzung_auto(kurztitel: str, nacharbeit: str | None = None) -> int:
         befunde.append(f"Vorgabe-Tests in diesem Lauf geändert: {testdatei} ({aenderungen[testdatei]}) – "
                        "nichts zurückgesetzt.")
     verstoesse = [(d, a) for d, a in aenderungen.items()
-                  if not (vorgabe and d == testdatei)
-                  and (_ist_vorgabe(d) or not (_im_schreibbereich(d, bereich) or d in (testdatei, handover_rel)))]
+                  if _ist_vorgabe(d) or not (_im_schreibbereich(d, bereich) or d in (testdatei, handover_rel))]
     if verstoesse:
         befunde.append("Schreibbereich verletzt (nichts zurückgesetzt):\n"
                        + "\n".join(f"  {d} ({a})" for d, a in verstoesse))
