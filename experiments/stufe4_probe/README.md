@@ -44,7 +44,29 @@ Den Lab-Eintrag (8787) für die Messung ausschalten, damit das Modell nur die So
 tail -n 40 ~/.lab_mcp/probe_calls.jsonl
 ```
 
-Lesart: Zeigt die UI nach **Y s** einen Fehler, der Server meldet aber `ok` nach X > Y s,
-dann hat ein Glied **vor** der Sonde aufgegeben (Server merkt Client-Abbrüche nicht –
-im Test nachgewiesen). `abgebrochen` im Log hieße: die Verbindung wurde aktiv gekappt.
-Fehlertext der UI wörtlich notieren – er verrät meist, welches Glied es war.
+Lesart: `abgebrochen` im Log = der Client hat aktiv `notifications/cancelled` geschickt
+(so macht es die Web-UI). `ok` nach dem UI-Fehler hieße: ein Glied hat nur aufgehört zu
+warten, ohne abzubrechen (so verhält sich ein einfacher Python-Client).
+
+## Ergebnis 28.10.2026 (Mac, 8092, Qwen3.6-27B-MTP Q4_K_XL)
+
+| Schritt | Ergebnis |
+|---|---|
+| 1 `probe_warten` 30 s | ok |
+| 2 `probe_warten` 120 s | ok (120,1 s) |
+| 2 `probe_warten` 330 s | UI: `MCP error -32001: Request timed out`; Sonde: `abgebrochen nach 322,7 s` nach `POST 202` (Cancel der UI) |
+| 3 `probe_warten_fortschritt` 330 s | gleicher Fehler – Fortschritt verlängert das Limit **nicht** |
+| 4 `probe_start` 300 s + `probe_status` | ok: ID gemerkt, Status selbst abgefragt, Sperre korrekt erklärt, „fertig nach 300,0 s" |
+
+Folgerungen für die Stufe-4-Spec:
+- Das Limit sitzt im **MCP-Client der Web-UI** (~5 min; Vermutung: 300-s-Zähler, der vor dem
+  eigentlichen Aufruf startet). Proxys (900 s) und llama-server greifen vorher nicht.
+- Die UI **bricht aktiv ab** – ein blockierendes Werkzeug wird mittendrin abgewürgt.
+  → `kette_lauf` startet einen **eigenen Prozess** (nicht Thread im Werkzeugaufruf),
+  kehrt sofort zurück, Sperrdatei gegen Doppelstart. Faustregel: kein Werkzeug > ~4 min blockierend.
+- Bedienmuster Start → Status trägt mit dem 27B; das Modell deutet Fehler aber selbstbewusst
+  falsch („Server hat eine Obergrenze") → eindeutige, selbsterklärende Rückmeldetexte.
+- Bei MCP-Eintrag „Connection timed out after 10s" direkt nach Start: einmal ↻ – Sonde war
+  noch nicht bereit. curl über `/cors-proxy` liefert `Invalid Content-Type: text/plain`
+  auch für 8787 – als Test ungeeignet.
+- Offen: iPad über `.ts.net` (Schritt 5) nicht gemessen.
