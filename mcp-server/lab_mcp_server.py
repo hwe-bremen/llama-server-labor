@@ -734,6 +734,16 @@ if ALLOW_PYTHON:
 
 
 # --------------------------------------------------------------------------
+# Kette (STANDARDMAESSIG AUS — bewusst mehr Recht als MCP_WRITE_ROOTS)
+# --------------------------------------------------------------------------
+ALLOW_KETTE = os.environ.get("MCP_ALLOW_KETTE", "0") == "1" and not READONLY
+if ALLOW_KETTE:
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import kette_werkzeuge
+    kette_werkzeuge.registrieren(mcp)
+
+
+# --------------------------------------------------------------------------
 # Start
 # --------------------------------------------------------------------------
 def _banner() -> None:
@@ -746,6 +756,7 @@ def _banner() -> None:
     print(f"  readonly   : {READONLY}", file=sys.stderr)
     print(f"  delete     : {ALLOW_DELETE}", file=sys.stderr)
     print(f"  run_python : {ALLOW_PYTHON}", file=sys.stderr)
+    print(f"  kette      : {ALLOW_KETTE}", file=sys.stderr)
     print(f"  web_search : {ALLOW_WEB}", file=sys.stderr)
     print(f"  git_log    : {ALLOW_GITLOG}", file=sys.stderr)
     print(f"  name       : {SERVER_NAME}", file=sys.stderr)
