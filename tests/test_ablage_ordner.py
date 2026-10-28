@@ -66,6 +66,9 @@ class Ablage(Temp):
         self.assertEqual(kette.datei_suchen("spec", "k", None), self.pm / "k" / f"spec_{D}_k.md")
         self.assertEqual(kette.datei_suchen("spec", "k", D), self.pm / "k" / f"spec_{D}_k.md")
         self.assertIsNone(kette.datei_suchen("handover", "k", None))
+        (self.pm / f"handover_{D}_k.md").write_text("flach\n", encoding="utf-8")       # Nacharbeit 1: kein Rueckfall
+        self.assertIsNone(kette.datei_suchen("handover", "k", None))
+        self.assertIsNone(kette.datei_suchen("handover", "k", D))
 
     def test_t3_schreibende_befehle_in_der_ablage(self):
         """T3: anforderung, Verdikt-Pfad und Gesamtbefund landen in der Ablage"""
@@ -182,6 +185,10 @@ class WeitereBefehle(Temp):
             code, out = self.rufen(kette.prompt, "umsetzung", "k", None, commit)
         self.assertIn(f"docs/projekt_management/k/spec_{D}_k.md", out)
         self.assertNotIn(f"docs/projekt_management/spec_{D}_k.md", out)
+        with mock.patch.object(kette.shutil, "which", return_value=None):           # Nacharbeit 1: Platzhalter-Pfade
+            code, out = self.rufen(kette.prompt, "review", "k", None, commit)
+        self.assertIn(f"docs/projekt_management/k/verdict_{D}_k_<modellkürzel>.md", out)
+        self.assertNotIn(f"docs/projekt_management/verdict_{D}_k_", out)
 
 
 if __name__ == "__main__":
