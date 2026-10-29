@@ -19,6 +19,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 
 export MCP_WRITE_ROOTS="docs/projekt_management,docs/research"
 export MCP_ALLOW_GITLOG=1
+export MCP_ALLOW_KETTE=1          # Stufe 4: kette_status/lauf/ergebnis/commit
 export LAB_MEMORY=1
 export LAB_BIND=serve
 export LAB_KEEP_SERVE=0
