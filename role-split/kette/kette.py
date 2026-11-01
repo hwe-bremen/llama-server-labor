@@ -1624,6 +1624,7 @@ UMSETZUNG_BASH_MS_STANDARD = 300000        # ms, Einzelbefehl, wertet OpenCode s
 KETTEN_PRAEFIXE = ("pruefung", "umsetzung", "review_paket", "verdict", "gesamt", "nacharbeit")
 VORGABE_PRAEFIXE = ("spec_", "anforderung_", "quellen_", "_vorlage_")
 ABGELEHNT_TEXTE = ("rejected permission", "rule which prevents")
+GIT_SCHUTZ = ("config", "hooks", "info")
 
 
 def _schreibbereich(spec_text: str) -> list[str] | None:
@@ -1719,6 +1720,60 @@ def _in_diesem_lauf(vor: dict[str, str], nach: dict[str, str]) -> dict[str, str]
             raus[d] = "weg"
         elif vor[d] != nach[d]:
             raus[d] = "geaendert"
+    return raus
+
+
+def _git_verzeichnis() -> Path | None:
+    """Git-Verzeichnis (common-dir) bestimmen; None wenn nicht moeglich."""
+    try:
+        out = subprocess.run(["git", "-C", str(ROOT), "rev-parse", "--git-common-dir"],
+                             capture_output=True, text=True)
+    except OSError:
+        return None
+    if out.returncode != 0 or not out.stdout.strip():
+        return None
+    pfad = out.stdout.strip()
+    if not os.path.isabs(pfad):
+        pfad = str(ROOT / pfad)
+    return Path(pfad).resolve()
+
+
+def _git_schutz(gitdir: Path) -> dict[str, str]:
+    """Schnappschuss der geschuetzten Teile: {rel: hash|x|link:...|<unlesbar>}."""
+    raus = {}
+    for name in GIT_SCHUTZ:
+        p = gitdir / name
+        if p.is_symlink():
+            raus[name] = "link:" + os.readlink(p)
+        elif p.is_file():
+            try:
+                h = hashlib.sha256(p.read_bytes()).hexdigest()
+                if p.stat().st_mode & 0o111:
+                    h += ":x"
+                raus[name] = h
+            except OSError:
+                raus[name] = "<unlesbar>"
+        elif p.is_dir():
+            for dirpath, dirnames, filenames in os.walk(p, followlinks=False):
+                dp = Path(dirpath)
+                for fn in filenames:
+                    fp = dp / fn
+                    rel = fp.relative_to(gitdir).as_posix()
+                    if fp.is_symlink():
+                        raus[rel] = "link:" + os.readlink(fp)
+                    else:
+                        try:
+                            h = hashlib.sha256(fp.read_bytes()).hexdigest()
+                            if fp.stat().st_mode & 0o111:
+                                h += ":x"
+                            raus[rel] = h
+                        except OSError:
+                            raus[rel] = "<unlesbar>"
+                for dn in dirnames:
+                    dpp = dp / dn
+                    if dpp.is_symlink():
+                        rel = dpp.relative_to(gitdir).as_posix()
+                        raus[rel] = "link:" + os.readlink(dpp)
     return raus
 
 
@@ -2015,6 +2070,10 @@ def umsetzung_auto(kurztitel: str, nacharbeit: str | None = None) -> int:
         return nein("KETTE_UMSETZUNG_TIMEOUT / OPENCODE_EXPERIMENTAL_BASH_DEFAULT_TIMEOUT_MS muessen ganze Zahlen sein.")
 
     # A7 Schnappschuss VOR dem Start
+    gitdir = _git_verzeichnis()
+    if gitdir is None:
+        return nein("Git-Verzeichnis nicht gefunden (git rev-parse --git-common-dir) – kein Lauf.", 2)
+    schutz_vor = _git_schutz(gitdir)
     head_vor = _git("rev-parse", "HEAD").strip()
     stand_vor = _stand()
     if stand_vor is None:
@@ -2029,7 +2088,11 @@ def umsetzung_auto(kurztitel: str, nacharbeit: str | None = None) -> int:
 
     # A7 Schnappschuss SOFORT nach dem Lauf, bevor kette.py selbst etwas schreibt
     stand_nach = _stand() or {}
-    head_nach = _git("rev-parse", "HEAD").strip()
+    head_nach_result = subprocess.run(["git", "-C", str(ROOT), "rev-parse", "HEAD"],
+                                      capture_output=True, text=True)
+    head_nach = head_nach_result.stdout.strip() if head_nach_result.returncode == 0 else None
+    schutz_nach = _git_schutz(gitdir)
+    schutz_aenderung = _in_diesem_lauf(schutz_vor, schutz_nach)
     aenderungen = _in_diesem_lauf(stand_vor, stand_nach)
     abgeschlossen = not info["timeout"] and info["reason"] == "stop"
     befunde = []
@@ -2045,8 +2108,16 @@ def umsetzung_auto(kurztitel: str, nacharbeit: str | None = None) -> int:
     elif info["reason"] != "stop":
         befunde.append(f"Lauf nicht abgeschlossen (reason: {info['reason']}).")
     # (a) immer
-    if head_vor != head_nach:
+    if head_nach is not None and head_vor != head_nach:
         befunde.append(f"Selbst-Commit: HEAD {head_vor[:7]} -> {head_nach[:7]} (nichts zurückgesetzt).")
+    # git-schutz befund
+    if schutz_aenderung:
+        befunde.append("Git-Schutz verletzt – .git/ in diesem Lauf geändert (nichts zurückgesetzt):\n"
+                        + "\n".join(f"  .git/{k} ({v})" for k, v in sorted(schutz_aenderung.items())))
+    # git nach dem Lauf nicht benutzbar
+    if head_nach is None:
+        stderr_text = head_nach_result.stderr.strip().splitlines()[0] if head_nach_result.stderr.strip() else "?"
+        befunde.append(f"git nach dem Lauf nicht benutzbar (git rev-parse HEAD: {stderr_text}) – (c)/(d) übersprungen.")
     # (b) immer
     if vorgabe and testdatei in aenderungen:
         befunde.append(f"Vorgabe-Tests in diesem Lauf geändert: {testdatei} ({aenderungen[testdatei]}) – "
@@ -2056,9 +2127,9 @@ def umsetzung_auto(kurztitel: str, nacharbeit: str | None = None) -> int:
     if verstoesse:
         befunde.append("Schreibbereich verletzt (nichts zurückgesetzt):\n"
                        + "\n".join(f"  {d} ({a})" for d, a in verstoesse))
-    # (c) und (d) nur bei abgeschlossenem Lauf
+    # (c) und (d) nur bei abgeschlossenem Lauf und git benutzbar
     rot, pruefen_code = "–", "–"
-    if abgeschlossen:
+    if abgeschlossen and head_nach is not None:
         if handover_rel not in aenderungen or not (ROOT / handover_rel).is_file():
             befunde.append(f"Handover {handover_rel} in diesem Lauf nicht geschrieben.")
         elif nach_p and not re.search(rf"^## Nachbesserung {nb}\b",
@@ -2070,7 +2141,10 @@ def umsetzung_auto(kurztitel: str, nacharbeit: str | None = None) -> int:
         if code != 0:
             befunde.append(f"pruefen: Exit {code}.")
     else:
-        print("(c) übersprungen (Lauf nicht abgeschlossen)\n(d) übersprungen (Lauf nicht abgeschlossen)")
+        if head_nach is None:
+            print("(c) übersprungen (git nicht benutzbar)\n(d) übersprungen (git nicht benutzbar)")
+        else:
+            print("(c) übersprungen (Lauf nicht abgeschlossen)\n(d) übersprungen (Lauf nicht abgeschlossen)")
 
     exit_code = 1 if befunde else 0
     reason = "timeout" if info["timeout"] else (info["reason"] or "–")
@@ -2085,6 +2159,8 @@ def umsetzung_auto(kurztitel: str, nacharbeit: str | None = None) -> int:
     zeile += f"  - Tokens: input {tt['input']}, output {tt['output']}, reasoning {tt['reasoning']}, spitze {info['tokens_spitze']}\n"
     for e in info["fehler"]:
         zeile += f"  - {'abgelehnt' if e in info['abgelehnt'] else 'fehlgeschlagen'}: {e}\n"
+    for k in sorted(schutz_aenderung):
+        zeile += f"  - git-schutz: .git/{k} ({schutz_aenderung[k]})\n"
     with open(protokoll_p, "a", encoding="utf-8") as f:
         f.write(zeile)
 
@@ -2096,6 +2172,10 @@ def umsetzung_auto(kurztitel: str, nacharbeit: str | None = None) -> int:
     if info["text"]:
         print(f"Schlusstext: {info['text'][:300]}")
     print(f"In diesem Lauf geändert: {', '.join(aenderungen) or 'nichts'}")
+    if schutz_aenderung:
+        print(f"Git-Schutz: geändert ({len(schutz_aenderung)})")
+    else:
+        print("Git-Schutz: unverändert")
     for b in befunde:
         print(f"!!! {b}")
     print(f"Rohdaten: {_rel(rohdaten)}\nProtokoll: {_rel(protokoll_p)}")
