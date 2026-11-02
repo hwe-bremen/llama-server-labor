@@ -88,3 +88,7 @@ Details je Kette: `kette_<kurztitel>.md`.
 
 ## Stufe 4 (mcp_kette, alle_tests)
 - **R58** Biegen Vorgabe-Tests Konstanten, Pfade oder Zeitgrenzen um, braucht es mindestens einen Test der Standardwerte im echten Pfad (Modul-Konstanten prüfen, Einstiegspunkt ohne Umbiegen aufrufen, Laufzeit mit echter Dauer bedenken). Eine einzeln getestete Hilfsfunktion beweist nicht, dass der echte Ablauf sie aufruft – den Test über den Aufruf führen. – *mcp_kette: 35B mit `ROOT = mcp-server/` und 120-s-Läufer, alle Tests grün; alle_tests: `interpreter()` bestand T3, wurde aber nie aufgerufen.*
+
+## git_schutz
+- **R59** (vorläufig, ein Lauf) Für den 35B die Spec so zuschneiden: Quellen mit Zeilenbereich bzw. `def`, je Anforderung eine genaue Einbaustelle („unmittelbar vor …“, „erste Anweisung nach …“), Meldetexte wörtlich, Vorgabe-Tests stellen den Anlass direkt nach. Richtwert: 1 Datei, ≤ 4 Anforderungen, ≤ 8 Tests, ≤ ~9 Änderungsstellen (R55). Bestätigen oder verwerfen an K12. – *git_schutz: 1/4/8, 9 Stellen in `kette.py`, 35B 9:32 ohne Nacharbeit, gleichwertig zur Referenz (24/24 Mutanten); Kontextspitze trotzdem 57,6K von 64K.*
+- **R60** Ein „hoher“ Befund des lokalen Reviews, der sich im eigenen Text zurücknimmt („Das ist korrekt“, „kein echter Fehler erkennbar“), zählt nicht – auch wenn `zusammenfuehren` daraus mechanisch NACHBESSERN macht. Vor jeder Nacharbeit den Befundtext lesen; entschieden wird über die Referenz (R56). – *git_schutz: einziger „hoher“ Befund widerlegte sich selbst, zweiter Lauf PASS, Gesamturteil NACHBESSERN.*
