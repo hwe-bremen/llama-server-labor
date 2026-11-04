@@ -3,6 +3,7 @@
 - **Datum:** <JJJJ-MM-TT>
 - **Modell:** <Modellname aus dem System-Prompt>
 - **Betroffene Dateien:** <nur Dateien, die du gelesen hast>
+- **Änderungsstellen:** <Zahl der Stellen im Code, die die Umsetzung ändert; ab etwa 10 teilen (R55, R59)>
 
 ## Ziel
 
