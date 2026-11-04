@@ -65,6 +65,10 @@ Befehle, nur Standardbibliothek, liest/schreibt nur im Projekt:
         Prueft vorab geschriebene Tests (Spec mit '## Vorgabe-Tests'): je Test-ID eine Methode, Skript laedt,
         jeder Test rot ohne Umsetzung. umsetzung-auto startet den Erstlauf nur bei Exit 0 (K11a).
 
+  python3 role-split/kette/kette.py spec-pruefen <kurztitel>
+        Prueft Spec mechanisch ohne Modell: Pflichtabschnitte, Platzhalter, Offene Fragen, Groesse,
+        Stelle/Prueft-Zuordnung, Schreibbereich, Quellen.
+
 Exit-Codes: 0 = in Ordnung / PASS, 1 = Abweichung / NACHBESSERN, 2 = Datei/Format-Fehler.
 Mode B: Lab, beruehrt AskValentinAI nicht.
 """
@@ -2215,6 +2219,8 @@ def main(argv=None) -> int:
     lf.add_argument("kurztitel")
     st = sub.add_parser("status", help="Stand der Kette anzeigen, ohne etwas auszufuehren")
     st.add_argument("kurztitel")
+    sp = sub.add_parser("spec-pruefen", help="Spec mechanisch pruefen")
+    sp.add_argument("kurztitel")
     e = sub.add_parser("einsortieren", help="Flache PM-Dateien in Ordner verschieben")
     eg = e.add_mutually_exclusive_group(required=True)
     eg.add_argument("kurztitel", nargs="?")
@@ -2249,6 +2255,9 @@ def main(argv=None) -> int:
     if args.cmd == "status":
         import automatik
         return automatik.status(args.kurztitel)
+    if args.cmd == "spec-pruefen":
+        import spec_pruefen
+        return spec_pruefen.spec_pruefen(args.kurztitel)
     if args.cmd == "einsortieren":
         import einsortieren
         return einsortieren.einsortieren(None if args.alle else args.kurztitel)
