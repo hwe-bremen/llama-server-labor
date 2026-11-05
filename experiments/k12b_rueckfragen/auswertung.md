@@ -57,3 +57,58 @@ Rauschen (Mutanten-Fragen). Keine Variante trifft die Kern-Entscheidungen von `s
 - Vermutung (ungeprüft): Ein fester, kleiner Projektkontext (Spec-Vorlage, Liste der `kette.py`-Befehle,
   Verzeichnisübersicht) hebt die Trefferquote deutlich. Prüfbar mit einer Variante C für wenige Minuten
   Laufzeit.
+
+---
+
+# Nachtrag: Varianten C und D (Lauf `ergebnisse/20261105_193503`)
+
+C = A + Projektkontext vom Stand vor der Spec (kette.py-Befehle, Spec-Vorlage, Code-Dateiliste), ~4K Token.
+D = C + LERNREGELN.md vom selben Stand, ~8,5K Token.
+
+## Betrieb
+
+- 18/18 Antworten, Form 18/18 ok, 6–25 s je Aufruf (D ~15–25 s, C ~6–16 s). Wiederholbarkeit weiter niedrig.
+
+## Treffer je Kette (6 Läufe C+D, Vergleich A+B in Klammern)
+
+**spec_pruefen – deutlich besser.** Keine YAML/JSON-Missverständnisse mehr, die Fragen sitzen an der Vorlage:
+- S4 Offene Fragen erlaubt/Fehler/Warnung: D2 F2 – direkter Treffer (A+B: nur am Rand).
+- S3 Befund (Exit 1) oder Hinweis (Exit 0): als allgemeine Exit-Frage 4/6 (C1 F2, C3 F2, D2 F4 mit
+  „kritisch Exit 1, geringfügig Exit 0 mit Warnung“) – nicht an R59 gebunden, obwohl R59 in D steht.
+- S2 Zuordnung Test → Anforderung: D2 F1 („A1 im Testplan T1 abgedeckt“) als Frage, ob geprüft wird; Format nie.
+- S1 Platzhalter: nur angedeutet (C1 F2 „nur Platzhalter-Text“).
+- S6 welche Prüfungen: viele gute Neben-Treffer – Schreibbereich (C1 F1, C3 F4, D1 F1 mit R47) und Form der
+  Quellen (C1 F3 „Existenz oder nur Format“, C2 F2, D1 F1, D3 F3). Genau das prüft die spätere Spec (A4).
+- S5 Änderungsstellen: 0/6 (aus dem Text nicht ableitbar, erwartet).
+
+**git_schutz – kaum besser.**
+- G1 melden/blockieren: 0/6 klar (A+B 4/6); G4 Vorbeugen oder Erkennen: D3 F2 (1/6, A+B 1/6).
+- G2 Umfang: nur angedeutet (C1 F3 mit falschem Beispiel `.gitignore`, D1 F1); `info/` und `~/.gitconfig` nie.
+- Neu: G6 unlesbare `.git/config` (D2 F3, über R20/R24) und G8 Ausführbar-Bit/Rechte (C3 F2, D1 F2) als Neben-Treffer.
+- 3× schon beantwortet: „nur config oder auch hooks?“ (C1 F1, D2 F1, D3 F3) – die Aufgabe nennt beide.
+
+**alle_tests – anders, nicht besser.**
+- Erstmals Fragen zum Anlass „richtig aufrufen“ (T6): C2 F1 Unterprozess oder Import, D2 F1 `discover` oder
+  einzeln; dazu Importfehler (C2 F2, D1 F3, D3 F2) – das war am 28.10. der echte Fehler (Suchpfad).
+- T1 Umfang: D3 F3 „nur `tests/` oder alle `test_*.py` im Repo“ – bester Treffer bisher; T5 Ausgabe: D2 F2.
+- T2, T3, T4 (Zeitlimit): 0/6 (A+B: Zeitlimit 2/6).
+- Neuer Fehler: C liest „Prüfskript“ als statische Prüfung der Testdateien (C1 F2, C3 F1/F3) – vermutlich
+  gelenkt von `tests-pruefen` im Kontext.
+
+## Was Hawe beantworten kann
+
+Hawe (05.11.): Ob eine Frage sein Ergebnis verändert hätte, kann er nicht beurteilen. Daraus folgt ein zweiter
+Maßstab: Eine Rückfrage an Hawe muss eine Entscheidung des Auftraggebers sein (melden oder blockieren,
+Offene Fragen als Fehler, nur `tests/` oder alles), keine Umsetzungsfrage (Unterprozess oder Import,
+`discover` oder einzeln, Mocking). In allen vier Varianten ist etwa die Hälfte der Fragen Umsetzungsdetail –
+der Prompt steuert das nicht.
+
+## Einschätzung
+
+- Kontext ist der Hebel – aber nur, wo der Gegenstand im Kontext steht: `spec_pruefen` prüft die Spec-Vorlage,
+  und die Vorlage stand im Kontext. Bei `git_schutz` und `alle_tests` hängen die Entscheidungen am Code
+  (wie `umsetzung-auto` den Schreibbereich prüft, wie Tests aufgerufen werden), der nicht im Kontext stand.
+- Das stützt die Vermutung zu K12c: Das Modell braucht die passenden Code-Auszüge (Zwei-Schritt: Quellen
+  vorschlagen → `quellen` holt Auszüge → Modell arbeitet). Derselbe Mechanismus würde K12b helfen.
+- Als eigenständiger Kettenschritt trägt K12b in dieser Form noch nicht: zu viel Rauschen und zu viele
+  Umsetzungsfragen für Hawe; Claude müsste ohnehin filtern.
