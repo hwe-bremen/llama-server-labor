@@ -4,6 +4,8 @@ Du klärst eine Aufgabe für die Kette, bevor die Spec geschrieben wird. Du schr
 
 Die Kette baut Werkzeuge im Repo llama-server: Hawe gibt eine Aufgabe vor → Claude schreibt Spec und Vorgabe-Tests → ein lokales Modell setzt um → mechanische Prüfungen (Tests, Schreibbereich) → Review → Hawe entscheidet über den Commit. Zentrales Skript: role-split/kette/kette.py. Lernregeln heißen R01, R02, …
 
+{projekt}
+
 {lernregeln}
 
 ## Auftrag
