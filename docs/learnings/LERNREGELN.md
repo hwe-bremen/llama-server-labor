@@ -96,3 +96,6 @@ Details je Kette: `kette_<kurztitel>.md`.
 ## spec_pruefen (K12a)
 - **R61** Vor `lauf` die Quellen-Datei erzeugen (`kette.py quellen <kt>`, ohne FEHLT/PRÜFEN) **und committen**: Ohne sie liest der 35B die großen Dateien selbst und läuft voll; nicht committet bricht `umsetzung-auto` mit „Arbeitsstand nicht sauber“ ab. – *spec_pruefen: Lauf 1 ohne Quellen 887 s, `length`, Spitze 73,8K, 0/8; Lauf 2 Exit 2 (nicht committet); Lauf 3 mit Quellen 1209 s, Spitze 58,4K, 8/8.*
 - **R62** Ergänzung zu R53: Mutanten auch für Kontrollfluss und Abgrenzung bilden – ein frühes `return`, das eine unabhängige Folgeprüfung überspringt, und ein Muster, das strenger ist als die Spec (z. B. `\s*$` am Überschriften-Ende). – *spec_pruefen: 36/36 eigene Mutanten gefangen, trotzdem beide Fehler im Umsetzer-Code unentdeckt; Patch Claude.*
+
+## lauf_spec_pruefen (K12a2)
+- **R63** Ergänzung zu R58: Importieren sich zwei Module gegenseitig, braucht **jeder** Einstiegspunkt einen Test im frischen Prozess – auch der, der das andere Modul zuerst lädt. Ein Import am Dateianfang geht in der einen Richtung gut und bricht in der anderen (Zirkelimport); Import im Funktionsrumpf vermeidet das. – *K12a2: Mutant „Top-Level-Import aus `spec_pruefen`“ überlebte, solange nur `lauf` im frischen Prozess lief; `kette.py spec-pruefen` wäre abgestürzt. T5 um den zweiten Aufruf ergänzt, dann 17/17.*
