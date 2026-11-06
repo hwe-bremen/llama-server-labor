@@ -1,0 +1,2 @@
+- `lauf` soll `spec-pruefen` erst in einer späteren Kette nutzen; hier nur der eigene Befehl.
+- Alte Specs ohne die Zeile „Änderungsstellen“ bekommen den Befund – keine Ausnahme nach Datum.

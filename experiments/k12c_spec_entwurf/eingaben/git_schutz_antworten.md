@@ -1,0 +1,4 @@
+- Reaktion: Nur melden – lauter Befund, der Lauf endet mit Exit 1. Nichts automatisch zurücksetzen oder abbrechen; ich entscheide danach.
+- Umfang: `config`, `hooks/` und `info/` im Git-Verzeichnis (`info/exclude` kann Dateien aus `git status` ausblenden). Nicht das ganze Git-Verzeichnis – das ändert sich bei jedem Commit.
+- Die globale Git-Konfiguration (`~/.gitconfig`) gehört nicht dazu; das ist eine spätere Kette.
+- Auch Nacharbeit-Läufe werden geprüft.
