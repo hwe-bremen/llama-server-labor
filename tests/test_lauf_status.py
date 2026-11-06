@@ -6,6 +6,9 @@ VORGABE: Diese Datei ist vor der Umsetzung geschrieben. Die Umsetzung aendert si
 Keine Aussenwirkung: Jeder Test arbeitet in tempfile.TemporaryDirectory() mit eigenem Temp-Git-Repo und
 umgebogenem kette.ROOT/kette.PM. umsetzung_auto und review_auto werden im Modul kette durch Attrappen
 ersetzt (kein opencode, kein Modell, kein Netz). automatik wird in jeder Methode importiert (rot vorab).
+
+Angepasst mit K12a2 (spec_20261106_lauf_spec_pruefen.md, von Claude vor dem Lauf): spec() liefert eine Spec ohne
+Befund aus spec-pruefen; T3 prüft nur noch die Schwelle, das Verhalten bei Überschreitung prüft test_lauf_spec_pruefen.py.
 """
 import io
 import subprocess
@@ -24,11 +27,20 @@ DATUM = "20261028"
 
 
 def spec(tests: int = 2, anforderungen: int = 2, bereich: int = 1, vorgabe: bool = True) -> str:
-    t = "# Spec: k\n\n## Ziel\nx\n\n## Schreibbereich\n\n" + "".join(f"- `src/d{i}.py`\n" for i in range(bereich))
+    """Vollstaendige Spec ohne Befund aus spec-pruefen (K12a2: lauf prueft die Spec vor der Umsetzung)."""
+    t = ("# Spec: k\n\n- **Datum:** 2026-10-28\n- **Modell:** Test\n- **Betroffene Dateien:** `src/d0.py`\n"
+         "- **Änderungsstellen:** 3\n\n## Ziel\n\nx\n\n## Nicht-Ziele\n\n- y\n\n## Schreibbereich\n\n")
+    t += "".join(f"- `src/d{i}.py`\n" for i in range(bereich))
     if vorgabe:
         t += "\n## Vorgabe-Tests\n\n- `tests/test_k.py`\n"
-    t += "\n## Anforderungen\n\n" + "".join(f"### A{i + 1}: a\n- x\n\n" for i in range(anforderungen))
-    t += "## Testplan\n\n" + "".join(f"### T{i + 1}: t\n- **Erwartung:** y\n\n" for i in range(tests))
+    t += ("\n## Außenwirkung und Sperre\n\n- nichts\n\n## Einstiegspunkte\n\n| Datei | Wie | Test |\n|---|---|---|\n"
+          "| `src/d0.py` | Modul | T1 |\n\n## Quellen\n\n- `src/d0.py` def f – Muster\n\n## Anforderungen\n\n")
+    t += "".join(f"### A{i + 1}: a\n- **Anforderung:** x\n- **Stelle:** `src/d0.py`, f\n- **Akzeptanz:** T1\n\n"
+                 for i in range(anforderungen))
+    t += "## Fehlerpfade\n\n| Anforderung | Fall |\n|---|---|\n| A1 | n. a. |\n\n## Testplan\n\n"
+    t += "".join(f"### T{i + 1}: t\n- **Prüft:** A{i % anforderungen + 1}\n- **Erwartung:** y\n\n"
+                 for i in range(tests))
+    t += "## Offene Fragen\n\n- Keine\n\n## Abweichende Meinung\n\n- Keine\n"
     return t
 
 
@@ -99,19 +111,9 @@ class LaufVorab(Temp):
         self.assertEqual(self.aufrufe, [])
 
     def test_t3_lauf_zu_gross(self):
-        """T3: lauf – Größenprüfung hält bei Überschreitung, an der Schwelle läuft es"""
+        """T3: lauf – an der alten Schwelle 2/6/8 läuft es (Halt bei Überschreitung entfällt mit K12a2)"""
         import automatik
-        self.spec_committen(spec(tests=9))
-        code, out = self.rufen(automatik.lauf, "k")
-        self.assertEqual(code, 3, out)
-        self.assertIn("9 Tests", out)
-        self.assertIn("teilen", out)
-        self.assertEqual(self.aufrufe, [])
-        for zu_viel in (dict(anforderungen=7), dict(bereich=3)):
-            self.spec_committen(spec(**zu_viel), nachricht="Aenderung")
-            code, out = self.rufen(automatik.lauf, "k")
-            self.assertEqual(code, 3, (zu_viel, out))
-        self.spec_committen(spec(tests=8, anforderungen=6, bereich=2), nachricht="Schwelle")
+        self.spec_committen(spec(tests=8, anforderungen=6, bereich=2), nachricht="Spec k")
         code, out = self.rufen(automatik.lauf, "k")
         self.assertEqual(code, 0, out)
         self.assertIn("2 Datei(en), 6 Anforderungen, 8 Tests", out)
