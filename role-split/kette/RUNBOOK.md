@@ -163,10 +163,13 @@ Voraussetzung: Commit „Spec <kurztitel>" **mit** `## Vorgabe-Tests` und der Te
 ```bash
 python3 role-split/kette/kette.py lauf <kurztitel>
 ```
-- Prüft Spec-Commit und Vorgabe-Tests (sonst Exit 2), zeigt die **Größe** (Dateien/Anforderungen/Tests, Schwellen 2/6/8,
-  vorläufig). Zu groß → **Exit 3**: Spec teilen oder Claude übernimmt (R43).
+- Prüft Spec-Commit und Vorgabe-Tests (sonst Exit 2), dann die Spec mit `spec-pruefen` (ab K12a2; Ausgabe wie
+  `kette.py spec-pruefen <kurztitel>`). Befunde → **Exit 3** vor der Umsetzung: Spec nachbessern, neu committen, `lauf`
+  erneut. Die Größe (R59 1/4/8/9, vorläufig) ist nur noch Hinweis und hält nicht an.
+- Alte Specs (vor K12a) halten immer mit „Änderungsstellen fehlt“: für einen Wiederholungslauf die Zeile
+  `- **Änderungsstellen:** <n>` nachtragen und committen; Rücksetzpunkt bleibt der älteste Commit „Spec <kurztitel>“.
 - Sonst: `umsetzung-auto`, nur bei Exit 0 danach `review-auto`, dann Status und `HALT – Entscheidung Hawe.`
-  Exit 0 = alles grün, 1 = Befunde lesen, 2 = Voraussetzung fehlt.
+  Exit 0 = alles grün, 1 = Befunde lesen, 2 = Voraussetzung fehlt, 3 = Spec-Prüfung mit Befunden.
 - Stand jederzeit, ohne etwas auszuführen:
   ```bash
   python3 role-split/kette/kette.py status <kurztitel>

@@ -1,6 +1,7 @@
-"""Automatik: groesse, stand, status, lauf – K11b.
+"""Automatik: groesse, stand, status, lauf – K11b, K12a2.
 
 Importiert kette (nicht umgekehrt), damit kette.py klein bleibt (R43).
+groesse zaehlt nur noch (fuer spec_pruefen), haelt nicht mehr an.
 """
 import re
 import subprocess
@@ -9,9 +10,6 @@ from pathlib import Path
 
 import kette
 
-GROESSE_DATEIEN = 2
-GROESSE_ANFORDERUNGEN = 6
-GROESSE_TESTS = 8
 UMSETZER_VORSCHLAG = "35B"
 
 
@@ -135,7 +133,7 @@ def status(kurztitel: str) -> int:
 
 
 def lauf(kurztitel: str) -> int:
-    """Kette: Groesse -> umsetzung-auto -> review-auto -> status -> HALT."""
+    """Kette: spec-pruefen -> umsetzung-auto -> review-auto -> status -> HALT."""
     if not re.fullmatch(r"[a-z0-9_]+", kurztitel):
         print(f"Kurztitel '{kurztitel}' ungültig (nur a-z, 0-9, _).", file=sys.stderr)
         return 2
@@ -158,22 +156,13 @@ def lauf(kurztitel: str) -> int:
         )
         return 2
 
-    g = groesse(spec_text)
-    print(
-        f"Größe: {g['dateien']} Datei(en), {g['anforderungen']} Anforderungen, "
-        f"{g['tests']} Tests (Schwellen 2/6/8, vorläufig)"
-    )
-
-    if (
-        g["dateien"] > GROESSE_DATEIEN
-        or g["anforderungen"] > GROESSE_ANFORDERUNGEN
-        or g["tests"] > GROESSE_TESTS
-    ):
-        print(
-            "HALT – zu groß für den lokalen Umsetzer: Spec teilen oder "
-            "Claude übernimmt (R43)."
-        )
+    import spec_pruefen
+    exit_spec = spec_pruefen.spec_pruefen(kurztitel)
+    if exit_spec == 1:
+        print("HALT – Spec-Prüfung mit Befunden: Spec nachbessern, neu committen, dann lauf erneut.")
         return 3
+    if exit_spec != 0:
+        return exit_spec
 
     print(f"Umsetzer: {UMSETZER_VORSCHLAG}")
     exit_umsetzung = kette.umsetzung_auto(kurztitel)
