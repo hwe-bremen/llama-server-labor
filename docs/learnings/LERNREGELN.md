@@ -99,3 +99,6 @@ Details je Kette: `kette_<kurztitel>.md`.
 
 ## lauf_spec_pruefen (K12a2)
 - **R63** Ergänzung zu R58: Importieren sich zwei Module gegenseitig, braucht **jeder** Einstiegspunkt einen Test im frischen Prozess – auch der, der das andere Modul zuerst lädt. Ein Import am Dateianfang geht in der einen Richtung gut und bricht in der anderen (Zirkelimport); Import im Funktionsrumpf vermeidet das. – *K12a2: Mutant „Top-Level-Import aus `spec_pruefen`“ überlebte, solange nur `lauf` im frischen Prozess lief; `kette.py spec-pruefen` wäre abgestürzt. T5 um den zweiten Aufruf ergänzt, dann 17/17.*
+
+## Spec-Phase (K12b/K12c)
+- **R64** Spec, Rückfragen, Quellen und Einbaustellen legt Claude fest, nicht das lokale Modell: Aus einer Funktionsliste wählt der 35B thematisch klingende Namen statt der Stelle, an der die Änderung hängt, und stellt fast nur Umsetzungsfragen. Die Stärke des lokalen Modells ist die Umsetzung bei gutem Zuschnitt (R59). – *K12b: 0–2 von 14 Kern-Fragen je Lauf; K12c: Einbaustelle in 1/9 Läufen angefordert, Entwürfe 0/9 inhaltlich ok, 9/9 „Offene Fragen: Keine“.*
