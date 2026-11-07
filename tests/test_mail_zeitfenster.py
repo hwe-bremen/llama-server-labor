@@ -200,12 +200,15 @@ class Abruf(Basis):
                       "5 beim nächsten Lauf.\n", out)
 
     def test_t4_bekannte_und_ohne_message_id(self):
-        """T4: bekannte Mails nur per Kopfzeile erkannt und übersprungen; ohne Message-ID immer geholt, zählt nicht"""
+        """T4: bekannte Mails nur per Kopfzeile erkannt und übersprungen; ohne Message-ID immer geholt, zählt nicht
+
+        Nachgeschärft 07.11. (Claude): bekannt enthält auch IDs außerhalb des Fensters – gezählt werden nur die im Fenster.
+        """
         mp = self.mp
         fake = FakeIMAP([roh(1), roh(2), roh(3), roh(4, mit_id=False), roh(5), roh(6)])
         with patch.object(mp.imaplib, "IMAP4_SSL", fake):
             mails, out, _ = self.rufen(mp.fetch_mails, "127.0.0.1", 993, "u", "p", since="06-Nov-2026",
-                                       max_anzahl=2, bekannt={"<m1@test>", "<m2@test>"})
+                                       max_anzahl=2, bekannt={"<m1@test>", "<m2@test>", "<alt-1@test>", "<alt-2@test>"})
         self.assertEqual([m["subject"] for m in mails], ["Mail 3", "Mail 4", "Mail 5"])
         self.assertEqual(fake.voll, [3, 4, 5])
         self.assertEqual(fake.kopf, [1, 2, 3, 4, 5, 6])

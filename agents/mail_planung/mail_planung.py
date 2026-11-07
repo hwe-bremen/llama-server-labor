@@ -26,7 +26,7 @@ import os
 import sqlite3
 import sys
 import tempfile
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -174,15 +174,66 @@ def compute_body_hash(body: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# EINSTELLUNGEN (A1) — Zeitfenster, IMAP-Datum, bekannte IDs
+# ---------------------------------------------------------------------------
+
+IMAP_MONATE = ("Jan", "Feb", "Mar", "Apr", "May", "Jun",
+               "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+
+
+def zeitfenster() -> tuple:
+    """Liest MAIL_SINCE_DAYS und MAIL_MAX_JE_LAUF aus der Umgebung.
+
+    Mindestwerte: 0 Tage, 1 Mail. Ungültige Werte lösen ValueError aus.
+    """
+    try:
+        tage = int(os.getenv("MAIL_SINCE_DAYS", "0").strip())
+    except ValueError:
+        wert = os.getenv("MAIL_SINCE_DAYS", "0").strip()
+        raise ValueError("MAIL_SINCE_DAYS ungültig: '{}' (ganze Zahl ≥ 0)".format(wert))
+    if tage < 0:
+        wert = os.getenv("MAIL_SINCE_DAYS", "0").strip()
+        raise ValueError("MAIL_SINCE_DAYS ungültig: '{}' (ganze Zahl ≥ 0)".format(wert))
+
+    try:
+        hoechstens = int(os.getenv("MAIL_MAX_JE_LAUF", "20").strip())
+    except ValueError:
+        wert = os.getenv("MAIL_MAX_JE_LAUF", "20").strip()
+        raise ValueError("MAIL_MAX_JE_LAUF ungültig: '{}' (ganze Zahl ≥ 1)".format(wert))
+    if hoechstens < 1:
+        wert = os.getenv("MAIL_MAX_JE_LAUF", "20").strip()
+        raise ValueError("MAIL_MAX_JE_LAUF ungültig: '{}' (ganze Zahl ≥ 1)".format(wert))
+
+    return (tage, hoechstens)
+
+
+def imap_datum(tag: date) -> str:
+    """Formatiert ein Datum im IMAP-Format: dd-Mon-yyyy (englische Monatsnamen)."""
+    return "{:02d}-{}-{}".format(tag.day, IMAP_MONATE[tag.month - 1], tag.year)
+
+
+def bekannte_ids(conn: sqlite3.Connection) -> set:
+    """Gibt alle message_id-Werte aus processed_mails zurück."""
+    cursor = conn.execute("SELECT message_id FROM processed_mails")
+    return {row[0] for row in cursor.fetchall()}
+
+
+# ---------------------------------------------------------------------------
 # IMAP (A2) — read-only, kein Gelesen-Markieren
 # ---------------------------------------------------------------------------
 
-def fetch_mails(host: str, port: int, user: str, password: str) -> List[Dict[str, Any]]:
+def fetch_mails(host: str, port: int, user: str, password: str,
+                since: Optional[str] = None,
+                max_anzahl: Optional[int] = None,
+                bekannt: Optional[set] = None) -> List[Dict[str, Any]]:
     """Liest Mails aus dem Postfach (read-only).
 
-    Verbindet sich per IMAP, �ffnet INBOX read-only, listet alle Mails
-    und schlie�t die Verbindung. Ver�ndert das Postfach nicht.
+    Verbindet sich per IMAP, �ffnet INBOX read-only, listet Mails ab
+    einem Stichtag (optional) und holt h�chstens max_anzahl neue Mails.
+    Bekannte Mails werden nur an der Message-ID erkannt.
     """
+    import email  # lazy import — nicht bei Modul-Import notwendig
+
     # A5: Unverschlüsseltes IMAP nur auf ausdrücklichen Wunsch und nur für localhost
     if MAIL_IMAP_UNENCRYPTED == "1":
         if host not in ("127.0.0.1", "localhost"):
@@ -194,19 +245,49 @@ def fetch_mails(host: str, port: int, user: str, password: str) -> List[Dict[str
         imap = imaplib.IMAP4_SSL(host, port)
     imap.login(user, password)
     imap.select("INBOX", readonly=True)  # A2: read-only
-    status, data = imap.search(None, "ALL")
+
+    # Suche: SINCE oder ALL
+    if since:
+        status, data = imap.search(None, "SINCE", since)
+    else:
+        status, data = imap.search(None, "ALL")
     if status != "OK":
         imap.logout()
         return []
 
     mail_ids = data[0].split()
     mails: List[Dict[str, Any]] = []
+    bekannt_set = bekannt if bekannt is not None else set()
+    geholt = 0
+    rest = 0
+    gezählt = 0
+    n_bekannt = 0
+
     for mid in mail_ids:
+        # Header lesen, um Message-ID zu pr�fen
+        status, msg_data = imap.fetch(mid, "(BODY.PEEK[HEADER.FIELDS (MESSAGE-ID)])")
+        if status != "OK":
+            rest += 1
+            continue
+        raw_header = msg_data[0][1]
+        msg = email.message_from_bytes(raw_header)
+        message_id = msg.get("Message-ID", "").strip()
+
+        # Bekannte Mail: �berspringen (kein RFC822-Abruf)
+        if message_id in bekannt_set:
+            n_bekannt += 1
+            continue
+
+        # Max-Anzahl erreicht und Mail hat eine Message-ID → �berspringen, aber zählen
+        if max_anzahl is not None and gezählt >= max_anzahl and message_id:
+            rest += 1
+            continue
+
+        # Vollst�ndige Mail holen
         status, msg_data = imap.fetch(mid, "(RFC822)")
         if status != "OK":
             continue
         raw = msg_data[0][1]
-        import email
         msg = email.message_from_bytes(raw)
 
         # Message-ID
@@ -231,8 +312,16 @@ def fetch_mails(host: str, port: int, user: str, password: str) -> List[Dict[str
             "date": date_str,
             "body": body,
         })
+        geholt += 1
+        if message_id:
+            gezählt += 1
 
     imap.logout()
+
+    # Zusammenfassung
+    since_text = since if since else "Beginn"
+    print(f"Postfach: {len(mail_ids)} Mails seit {since_text}, {n_bekannt} schon verarbeitet, {geholt} geholt, {rest} beim nächsten Lauf.")
+
     return mails
 
 
@@ -751,22 +840,38 @@ def run_dry() -> int:
     Keine �nderung der Planungsdatei, keine DB-�nderung,
     keine IMAP-Write-Befehle.
     """
-    password = get_imap_password()
-
+    # A3: Zeitfenster pr�fen (vor Schlüsselbund)
     try:
-        mails = fetch_mails(IMAP_HOST, IMAP_PORT, IMAP_USER, password)
-    except Exception as e:
-        print(f"IMAP-Verbindung fehlgeschlagen: {e}", file=sys.stderr)
+        tage, hoechstens = zeitfenster()
+    except ValueError as e:
+        print(f"{e}", file=sys.stderr)
         return 1
 
-    if not mails:
-        print("Keine neuen Mails")
-        return 0
+    # Passwort holen
+    try:
+        password = get_imap_password()
+    except RuntimeError as e:
+        print(f"{e}", file=sys.stderr)
+        return 1
 
-    # DB nur lesen (f�r Dedup-Pr�fung)
-    conn = sqlite3.connect(DB_PATH)
+    # DB nur lesen: vorhandene Datei oeffnen, sonst leere DB im Speicher – der Trockenlauf legt nichts an
+    conn = sqlite3.connect(DB_PATH if Path(DB_PATH).exists() else ":memory:")
     try:
         init_db(conn)
+        known = bekannte_ids(conn)
+        since = imap_datum(date.today() - timedelta(days=tage))
+
+        try:
+            mails = fetch_mails(IMAP_HOST, IMAP_PORT, IMAP_USER, password,
+                                since=since, max_anzahl=hoechstens, bekannt=known)
+        except Exception as e:
+            print(f"IMAP-Verbindung fehlgeschlagen: {e}", file=sys.stderr)
+            return 1
+
+        if not mails:
+            print("Keine neuen Mails")
+            return 0
+
         exit_code = 0
         for mail in mails:
             result = process_mail(conn, mail, dry_run=True)
@@ -785,35 +890,45 @@ def main() -> int:
     """Hauptfunktion: Mails holen, auswerten, Planungsdatei aktualisieren.
 
     Reihenfolge:
-    1. Passwort holen
-    2. Mails f�r IMAP
+    1. Zeitfenster pr�fen
+    2. Passwort holen
     3. DB initialisieren
-    4. Pro Mail: LLM -> Block -> atomar schreiben -> pr�fen -> markieren
+    4. Mails f�r IMAP (mit Zeitfenster)
+    5. Pro Mail: LLM -> Block -> atomar schreiben -> pr�fen -> markieren
 
     Gibt Exit-Code zur�ck (0 = Erfolg, 1 = Fehler).
     """
-    # 1. Passwort aus Schl�sselbund (A8)
+    # 1. Zeitfenster pr�fen (vor Schlüsselbund)
+    try:
+        tage, hoechstens = zeitfenster()
+    except ValueError as e:
+        print(f"{e}", file=sys.stderr)
+        return 1
+
+    # 2. Passwort aus Schl�sselbund (A8)
     try:
         password = get_imap_password()
     except RuntimeError as e:
         print(f"{e}", file=sys.stderr)
         return 1
 
-    # 2. Mails holen (A2)
-    try:
-        mails = fetch_mails(IMAP_HOST, IMAP_PORT, IMAP_USER, password)
-    except Exception as e:
-        print(f"IMAP-Verbindung fehlgeschlagen: {e}", file=sys.stderr)
-        return 1
-
-    if not mails:
-        print("Keine neuen Mails")
-        return 0
-
-    # 3. DB initialisieren
+    # 3. DB initialisieren und Mails holen
     conn = sqlite3.connect(DB_PATH)
     try:
         init_db(conn)
+        known = bekannte_ids(conn)
+        since = imap_datum(date.today() - timedelta(days=tage))
+
+        try:
+            mails = fetch_mails(IMAP_HOST, IMAP_PORT, IMAP_USER, password,
+                                since=since, max_anzahl=hoechstens, bekannt=known)
+        except Exception as e:
+            print(f"IMAP-Verbindung fehlgeschlagen: {e}", file=sys.stderr)
+            return 1
+
+        if not mails:
+            print("Keine neuen Mails")
+            return 0
 
         exit_code = 0
         for mail in mails:
