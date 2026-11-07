@@ -114,6 +114,22 @@ class Auswahl(Temp):
         link.unlink()
         link.symlink_to(self.aussen / "gibt_es_nicht")
         self.assertEqual(tp("tests/test_k.py"), sys.executable, "kaputter Link zählt nicht")
+        # Nachgeschärft 07.11. (Claude): ROOT hinter einem Link (macOS: /var -> /private/var) – kein Hänger
+        import threading
+        echt_ordner = self.aussen / "echt"
+        (echt_ordner / "tests").mkdir(parents=True)
+        verweis = self.aussen / "verweis"
+        verweis.symlink_to(echt_ordner)
+        setattr(kette, "ROOT", verweis)
+        erg = []
+        for arg in ("tests/test_k.py", verweis / "tests" / "test_k.py"):
+            th = threading.Thread(target=lambda a=arg: erg.append(tp(a)), daemon=True)
+            th.start()
+            th.join(5)
+            self.assertFalse(th.is_alive(), f"test_python hängt bei ROOT hinter einem Link ({arg})")
+        self.assertEqual(erg, [sys.executable, sys.executable])
+        self.venv_anlegen(echt_ordner)
+        self.assertEqual(tp("tests/test_k.py"), str(echt_ordner / ".venv" / "bin" / "python"))
         setattr(kette, "ROOT", ECHT)
         echt = ECHT / ".venv" / "bin" / "python"
         erwartet = str(echt) if echt.exists() else sys.executable

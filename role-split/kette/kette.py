@@ -389,6 +389,29 @@ print("@@KETTE@@" + json.dumps(stand))
 """
 
 
+def test_python(skript: Path | str) -> str:
+    """Python fuer Testlaeufe: naechstes .venv/bin/python vom Ordner der Testdatei aufwaerts bis ROOT.
+
+    Ohne .venv (oder Testdatei ausserhalb von ROOT) sys.executable. Grund: aus der Chat-UI laeuft kette.py mit dem
+    Python des MCP-Servers, die Tests brauchen aber die Pakete des Projekts (z. B. requests). Wie
+    scripts/alle_tests.py interpreter(). Der Pfad wird nicht aufgeloest – ein venv-Python wirkt nur ueber seinen Pfad.
+    """
+    pfad = Path(skript)
+    if not pfad.is_absolute():
+        pfad = ROOT / pfad
+    root = ROOT.resolve()
+    ordner = pfad.resolve().parent
+    if ordner != root and root not in ordner.parents:
+        return sys.executable
+    while True:
+        kandidat = ordner / ".venv" / "bin" / "python"
+        if kandidat.exists():
+            return str(kandidat)
+        if ordner == root:
+            return sys.executable
+        ordner = ordner.parent
+
+
 def tests_laufen(skript: Path, timeout: int) -> dict[str, str] | None:
     """Laesst das Testskript in einem eigenen Prozess laufen; Ergebnis je Testmethode."""
     modul = ".".join(skript.relative_to(ROOT).with_suffix("").parts)
@@ -396,7 +419,7 @@ def tests_laufen(skript: Path, timeout: int) -> dict[str, str] | None:
     # wenn die zurueckgesetzte Datei gleich gross ist und in derselben Sekunde geschrieben wurde.
     with tempfile.TemporaryDirectory(prefix="kette_pyc_") as cache:
         try:
-            r = subprocess.run([sys.executable, "-X", f"pycache_prefix={cache}", "-c", LAEUFER, modul],
+            r = subprocess.run([test_python(skript), "-X", f"pycache_prefix={cache}", "-c", LAEUFER, modul],
                                cwd=ROOT, capture_output=True, text=True, timeout=timeout)
         except subprocess.TimeoutExpired:
             return None
@@ -603,7 +626,9 @@ def _pruefen_teile(kurztitel: str, commit: str | None = None, timeout: int = 300
         if not skript.is_file():
             print(f"Kein Testskript {skript.relative_to(ROOT)}")
             return 2
-        r = subprocess.run([sys.executable, "-m", "unittest", "-v", f"tests/test_{kurztitel}.py"],
+        p = test_python(skript)
+        print(f"Python: {p}")
+        r = subprocess.run([p, "-m", "unittest", "-v", f"tests/test_{kurztitel}.py"],
                            cwd=ROOT, capture_output=True, text=True, timeout=timeout)
         print((r.stdout + r.stderr).rstrip())
         return 0 if r.returncode == 0 else 1
